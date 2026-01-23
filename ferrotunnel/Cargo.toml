@@ -1,0 +1,23 @@
+[package]
+name = "ferrotunnel"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "A production-ready reverse tunnel system in Rust"
+keywords = ["tunnel", "reverse-proxy", "networking", "async"]
+categories = ["network-programming", "asynchronous"]
+
+[dependencies]
+ferrotunnel-common = { version = "0.1.0", path = "../ferrotunnel-common" }
+ferrotunnel-protocol = { version = "0.1.0", path = "../ferrotunnel-protocol" }
+
+# Re-export commonly used dependencies
+tokio = { workspace = true }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true
