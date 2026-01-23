@@ -8,8 +8,8 @@ repository.workspace = true
 description = "FerroTunnel Client binary"
 
 [dependencies]
-ferrotunnel-core = { version = "0.1.0", path = "../ferrotunnel-core" }
-ferrotunnel-common = { version = "0.1.0", path = "../ferrotunnel-common" }
+ferrotunnel-core = { version = "0.2.0", path = "../ferrotunnel-core" }
+ferrotunnel-common = { version = "0.2.0", path = "../ferrotunnel-common" }
 
 tokio = { workspace = true }
 clap = { version = "4.4", features = ["derive", "env"] }
