@@ -1,0 +1,23 @@
+# Rustfmt Configuration for FerroTunnel
+# Only stable features - for use with stable Rust toolchain
+# See: https://rust-lang.github.io/rustfmt/
+
+# Edition
+edition = "2021"
+
+# Maximum line width
+max_width = 100
+
+# Hard tabs
+hard_tabs = false
+tab_spaces = 4
+
+# Newlines
+newline_style = "Unix"
+
+# Use
+use_field_init_shorthand = true
+use_try_shorthand = true
+
+# Miscellaneous
+remove_nested_parens = true

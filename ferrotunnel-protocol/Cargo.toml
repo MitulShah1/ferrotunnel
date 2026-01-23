@@ -1,0 +1,24 @@
+[package]
+name = "ferrotunnel-protocol"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Wire protocol for FerroTunnel reverse tunnel"
+keywords = ["protocol", "tunnel", "networking"]
+
+[dependencies]
+serde = { workspace = true }
+bincode = { workspace = true }
+bytes = { workspace = true }
+tokio-util = { workspace = true }
+uuid = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[lints]
+workspace = true

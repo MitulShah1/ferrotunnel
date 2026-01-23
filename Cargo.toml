@@ -1,0 +1,72 @@
+[workspace]
+resolver = "2"
+members = ["ferrotunnel-protocol", "ferrotunnel-common", "ferrotunnel"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Mitul Shah <mitul@example.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/MitulShah1/ferrotunnel"
+homepage = "https://github.com/MitulShah1/ferrotunnel"
+keywords = ["tunnel", "reverse-proxy", "networking"]
+categories = ["network-programming"]
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1", features = ["derive"] }
+bincode = "1"
+bytes = { version = "1", features = ["serde"] }
+
+# Codec
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# UUIDs
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Dev dependencies
+tokio = { version = "1", features = ["full"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+# Workspace-wide lints
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "allow"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+# Pedantic lints - high quality code
+pedantic = { level = "warn", priority = -1 }
+# Specific pedantic lints to allow
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+# Restriction lints - catch common mistakes
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+
+# Performance lints
+inefficient_to_string = "warn"
+linkedlist = "warn"
+
+# Style lints
+module_name_repetitions = "allow"
