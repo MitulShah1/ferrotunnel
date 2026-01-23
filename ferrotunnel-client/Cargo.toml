@@ -1,0 +1,21 @@
+[package]
+name = "ferrotunnel-client"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "FerroTunnel Client binary"
+
+[dependencies]
+ferrotunnel-core = { version = "0.1.0", path = "../ferrotunnel-core" }
+ferrotunnel-common = { version = "0.1.0", path = "../ferrotunnel-common" }
+
+tokio = { workspace = true }
+clap = { version = "4.4", features = ["derive", "env"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true

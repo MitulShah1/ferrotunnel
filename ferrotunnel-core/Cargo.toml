@@ -1,0 +1,26 @@
+[package]
+name = "ferrotunnel-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Core tunnel implementation for FerroTunnel"
+keywords = ["tunnel", "networking", "async", "core"]
+categories = ["network-programming", "asynchronous"]
+
+[dependencies]
+ferrotunnel-common = { version = "0.1.0", path = "../ferrotunnel-common" }
+ferrotunnel-protocol = { version = "0.1.0", path = "../ferrotunnel-protocol" }
+
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = "0.1"
+uuid = { workspace = true }
+dashmap = "5.5" # Thread-safe map for sessions
+futures = "0.3.31"
+
+[lints]
+workspace = true
