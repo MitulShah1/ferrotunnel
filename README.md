@@ -1,8 +1,13 @@
 # FerroTunnel 🦀
 
-**Wire Protocol Foundation for Reverse Tunneling**
-
+[![CI](https://github.com/MitulShah1/ferrotunnel/workflows/CI/badge.svg)](https://github.com/MitulShah1/ferrotunnel/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/ferrotunnel)](https://crates.io/crates/ferrotunnel)
+[![Documentation](https://docs.rs/ferrotunnel/badge.svg)](https://docs.rs/ferrotunnel)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![Rust Version](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
+[![Security](https://img.shields.io/badge/security-policy-green)](SECURITY.md)
+
+**Wire Protocol Foundation for Reverse Tunneling**
 
 FerroTunnel is a Rust-based reverse tunnel implementation. This repository contains the **Phase 1 foundation**: the wire protocol and core types.
 
