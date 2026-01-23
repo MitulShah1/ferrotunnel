@@ -1,0 +1,15 @@
+# Clippy Configuration for FerroTunnel
+# See: https://doc.rust-lang.org/clippy/
+
+# Cognitive complexity threshold
+cognitive-complexity-threshold = 30
+
+# Documentation
+missing-docs-in-crate-items = false
+
+# Allow expect and unwrap in tests
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
+
+# Maximum number of lines for a function
+max-fn-params-bools = 3

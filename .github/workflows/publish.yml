@@ -1,0 +1,67 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify version matches tag
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          CARGO_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "Tag version: $TAG_VERSION"
+          echo "Cargo version: $CARGO_VERSION"
+          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match Cargo.toml version ($CARGO_VERSION)"
+            exit 1
+          fi
+
+      - name: Run checks
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --all-features -- -D warnings
+          cargo test --workspace --all-features
+
+      - name: Publish ferrotunnel-common
+        run: |
+          cd ferrotunnel-common
+          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: false
+
+      - name: Wait for crates.io
+        run: sleep 30
+
+      - name: Publish ferrotunnel-protocol
+        run: |
+          cd ferrotunnel-protocol
+          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: false
+
+      - name: Wait for crates.io
+        run: sleep 30
+
+      - name: Publish ferrotunnel
+        run: |
+          cd ferrotunnel
+          cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        continue-on-error: false
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
