@@ -7,12 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **BREAKING**: Restructured to tokio-style flat layout (removed `crates/` folder)
-- Moved `ferrotunnel-common` and `ferrotunnel-protocol` to root level
-- Updated all documentation to reflect new structure
+## [0.2.0] - 2026-01-23
 
 ### Added
+
+#### Basic Tunnel Implementation
+- New `ferrotunnel-core` crate implementing the core tunnel logic
+  - TCP transport layer abstraction
+  - Session management with thread-safe `DashMap` storage
+  - Heartbeat mechanism for connection keep-alive
+  - Handshake protocol with token authentication
+- New CLI binaries
+  - `ferrotunnel-server`: TCP listener with token-based auth
+  - `ferrotunnel-client`: Tunneled client with automatic reconnection
+- Structured logging with `tracing` and `tracing-subscriber`
+- CLI argument parsing with `clap`
+
+#### Project Infrastructure & Community
 - Main `ferrotunnel` library crate with convenience re-exports
 - `CODE_OF_CONDUCT.md` - Community guidelines based on Rust CoC
 - `SECURITY.md` - Security policy and vulnerability reporting
@@ -21,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Makefile with development commands
 - VS Code integration settings
 - CI/CD workflows for testing and publishing
+
+### Changed
+- **BREAKING**: Restructured to tokio-style flat layout (removed `crates/` folder)
+- Moved `ferrotunnel-common` and `ferrotunnel-protocol` to root level
+- Updated all documentation to reflect new structure
 
 ## [0.1.0] - 2026-01-23
 
@@ -84,5 +100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame serialization tests
 - Partial frame handling tests
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v0.1.0
