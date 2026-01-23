@@ -18,7 +18,7 @@ The FerroTunnel project team takes security issues seriously. We appreciate your
 
 Instead, please report security vulnerabilities by email to:
 
-**security@ferrotunnel.dev**
+**shahmitul005@gmail.com**
 
 Or, if you prefer, you can use GitHub's private vulnerability reporting feature:
 
@@ -51,7 +51,7 @@ Third-party stakeholders may include:
 
 ### Participation in Coordination
 
-Downstream project maintainers and FerroTunnel users can request participation in coordination of applicable security issues by sending your contact information to **security@ferrotunnel.dev**.
+Downstream project maintainers and FerroTunnel users can request participation in coordination of applicable security issues by sending your contact information to **shahmitul005@gmail.com**.
 
 Please include:
 - Contact email address
