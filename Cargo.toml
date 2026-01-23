@@ -1,6 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["ferrotunnel-protocol", "ferrotunnel-common", "ferrotunnel"]
+members = [
+    "ferrotunnel-protocol",
+    "ferrotunnel-common",
+    "ferrotunnel",
+    "ferrotunnel-core",
+    "ferrotunnel-server",
+    "ferrotunnel-client",
+]
 
 [workspace.package]
 version = "0.1.0"
