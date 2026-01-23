@@ -12,8 +12,8 @@ keywords = ["tunnel", "reverse-proxy", "networking", "async"]
 categories = ["network-programming", "asynchronous"]
 
 [dependencies]
-ferrotunnel-common = { version = "0.1.0", path = "../ferrotunnel-common" }
-ferrotunnel-protocol = { version = "0.1.0", path = "../ferrotunnel-protocol" }
+ferrotunnel-common = { version = "0.2.0", path = "../ferrotunnel-common" }
+ferrotunnel-protocol = { version = "0.2.0", path = "../ferrotunnel-protocol" }
 
 # Re-export commonly used dependencies
 tokio = { workspace = true }
