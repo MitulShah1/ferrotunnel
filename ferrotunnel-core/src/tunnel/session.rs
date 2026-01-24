@@ -1,3 +1,4 @@
+use crate::stream::multiplexer::Multiplexer;
 use dashmap::DashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -13,6 +14,7 @@ pub struct Session {
     pub connected_at: Instant,
     pub last_heartbeat: Instant,
     pub capabilities: Vec<String>,
+    pub multiplexer: Option<Multiplexer>,
 }
 
 impl Session {
@@ -21,6 +23,7 @@ impl Session {
         client_addr: SocketAddr,
         token: String,
         capabilities: Vec<String>,
+        multiplexer: Option<Multiplexer>,
     ) -> Self {
         let now = Instant::now();
         Self {
@@ -30,6 +33,7 @@ impl Session {
             connected_at: now,
             last_heartbeat: now,
             capabilities,
+            multiplexer,
         }
     }
 
@@ -98,6 +102,15 @@ impl SessionStore {
 
         count
     }
+
+    pub fn find_multiplexer(&self) -> Option<Multiplexer> {
+        for r in self.sessions.iter() {
+            if let Some(m) = &r.multiplexer {
+                return Some(m.clone());
+            }
+        }
+        None
+    }
 }
 
 #[cfg(test)]
@@ -110,7 +123,7 @@ mod tests {
         let store = SessionStore::new();
         let id = Uuid::new_v4();
         let addr = "127.0.0.1:1234".parse().unwrap();
-        let session = Session::new(id, addr, "token".into(), vec![]);
+        let session = Session::new(id, addr, "token".into(), vec![], None);
 
         store.add(session);
         assert_eq!(store.count(), 1);
@@ -127,7 +140,7 @@ mod tests {
         let store = SessionStore::new();
         let id = Uuid::new_v4();
         let addr = "127.0.0.1:1234".parse().unwrap();
-        let mut session = Session::new(id, addr, "token".into(), vec![]);
+        let mut session = Session::new(id, addr, "token".into(), vec![], None);
 
         // Artificially age the session
         session.last_heartbeat = Instant::now()

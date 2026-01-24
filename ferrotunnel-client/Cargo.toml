@@ -9,6 +9,7 @@ description = "FerroTunnel Client binary"
 
 [dependencies]
 ferrotunnel-core = { version = "0.2.0", path = "../ferrotunnel-core" }
+ferrotunnel-http = { version = "0.2.0", path = "../ferrotunnel-http" }
 ferrotunnel-common = { version = "0.2.0", path = "../ferrotunnel-common" }
 
 tokio = { workspace = true }

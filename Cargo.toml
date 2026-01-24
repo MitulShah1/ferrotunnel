@@ -6,7 +6,7 @@ members = [
     "ferrotunnel",
     "ferrotunnel-core",
     "ferrotunnel-server",
-    "ferrotunnel-client",
+    "ferrotunnel-client", "ferrotunnel-http",
 ]
 
 [workspace.package]

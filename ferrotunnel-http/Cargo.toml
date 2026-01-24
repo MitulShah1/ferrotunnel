@@ -1,0 +1,27 @@
+[package]
+name = "ferrotunnel-http"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+ferrotunnel-core = { path = "../ferrotunnel-core" }
+ferrotunnel-protocol = { path = "../ferrotunnel-protocol" }
+ferrotunnel-common = { path = "../ferrotunnel-common" }
+tokio = { workspace = true }
+hyper = { version = "1", features = ["full"] }
+http-body-util = "0.1"
+hyper-util = { version = "0.1", features = ["full"] }
+bytes = { workspace = true }
+tracing = "0.1"
+uuid = { workspace = true }
+futures = "0.3"
+
+[lints]
+workspace = true

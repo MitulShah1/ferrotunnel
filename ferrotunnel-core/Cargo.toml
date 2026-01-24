@@ -21,6 +21,7 @@ tracing = "0.1"
 uuid = { workspace = true }
 dashmap = "5.5"                   # Thread-safe map for sessions
 futures = "0.3.31"
+bytes = { workspace = true }
 
 [lints]
 workspace = true
