@@ -18,6 +18,10 @@ struct Args {
     /// Log level
     #[arg(long, default_value = "info", env = "RUST_LOG")]
     log_level: String,
+
+    /// HTTP Ingress bind address
+    #[arg(long, default_value = "0.0.0.0:8080", env = "FERROTUNNEL_HTTP_BIND")]
+    http_bind: SocketAddr,
 }
 
 #[tokio::main]
@@ -27,15 +31,20 @@ async fn main() -> Result<()> {
     // Setup logging
     tracing_subscriber::fmt()
         .with_env_filter(format!(
-            "ferrotunnel_server={},ferrotunnel_core={}",
-            args.log_level, args.log_level
+            "ferrotunnel_server={},ferrotunnel_core={},ferrotunnel_http={}",
+            args.log_level, args.log_level, args.log_level
         ))
         .init();
 
     info!("Starting FerroTunnel Server v{}", env!("CARGO_PKG_VERSION"));
 
     let server = TunnelServer::new(args.bind, args.token);
-    server.run().await?;
+    let sessions = server.sessions();
+
+    info!("Starting HTTP Ingress on {}", args.http_bind);
+    let ingress = ferrotunnel_http::HttpIngress::new(args.http_bind, sessions);
+
+    tokio::try_join!(server.run(), ingress.start())?;
 
     Ok(())
 }
