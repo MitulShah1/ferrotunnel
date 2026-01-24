@@ -11,7 +11,7 @@
 ### Core Differentiators
 
 🎯 **Library-First** - Published to crates.io, embedded in your apps
-🎯 **Plugin System** - Trait-based extensibility for custom behavior  
+🎯 **Plugin System** - Trait-based extensibility for custom behavior
 🎯 **Built-in Dashboard** - Real-time WebUI for monitoring
 
 ---
@@ -42,7 +42,7 @@ gantt
 
 ### 🔧 Phase 1: Foundation (Weeks 1-2)
 
-**Status**: 🎯 Next
+**Status**: ✅ Completed
 **Goal**: Working protocol and workspace structure
 
 #### Deliverables
@@ -67,7 +67,7 @@ gantt
 
 ### 🔌 Phase 2: Basic Tunnel (Weeks 3-4)
 
-**Status**: ⏳ Planned
+**Status**: ✅ Completed
 **Goal**: CLI client and server establish connection
 
 #### Deliverables
@@ -93,7 +93,7 @@ gantt
 
 ### 🌐 Phase 3: HTTP Proxying (Weeks 5-6)
 
-**Status**: ⏳ Planned
+**Status**: 🎯 Next
 **Goal**: Functional HTTP tunnel (MVP)
 
 #### Deliverables
@@ -185,13 +185,13 @@ use ferrotunnel_plugin::{Plugin, PluginAction};
 
 #[async_trait]
 impl Plugin for CustomAuth {
-    async fn on_request(&self, req: &mut Request, ctx: &RequestContext) 
-        -> Result<PluginAction> 
+    async fn on_request(&self, req: &mut Request, ctx: &RequestContext)
+        -> Result<PluginAction>
     {
         if !validate_token(req.headers()) {
-            return Ok(PluginAction::Reject { 
-                status: 401, 
-                reason: "Unauthorized".into() 
+            return Ok(PluginAction::Reject {
+                status: 401,
+                reason: "Unauthorized".into()
             });
         }
         Ok(PluginAction::Continue)
@@ -377,8 +377,8 @@ GET  /                         # Dashboard UI
 
 ### v0.x Releases (During Development)
 
-- **v0.1.0** - Protocol working (Week 2)
-- **v0.2.0** - Basic tunnel (Week 4)
+- **v0.1.0** - Protocol working (Week 2) ✅
+- **v0.2.0** - Basic tunnel (Week 4) ✅
 - **v0.3.0** - HTTP proxying (Week 6) - **MVP**
 - **v0.4.0** - Library API (Week 8) - **Publish to crates.io**
 - **v0.5.0** - Plugin system (Week 10)
@@ -519,9 +519,9 @@ Stable release with all three differentiators:
 
 | Week | Phase | Status | Deliverable |
 |------|-------|--------|-------------|
-| 1-2 | Foundation | 🎯 Next | Protocol v0.1.0 |
-| 3-4 | Basic Tunnel | ⏳ Planned | CLI v0.2.0 |
-| 5-6 | HTTP Proxy | ⏳ Planned | MVP v0.3.0 |
+| 1-2 | Foundation | ✅ Completed | Protocol v0.1.0 |
+| 3-4 | Basic Tunnel | ✅ Completed | CLI v0.2.0 |
+| 5-6 | HTTP Proxy | 🎯 Next | MVP v0.3.0 |
 | **7-8** | **Library API** | ⏳ Planned | **🎯 crates.io v0.4.0** |
 | **9-10** | **Plugin System** | ⏳ Planned | **🎯 Plugins v0.5.0** |
 | **11-12** | **Dashboard** | ⏳ Planned | **🎯 Observable v0.6.0** |
