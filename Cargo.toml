@@ -6,14 +6,15 @@ members = [
     "ferrotunnel",
     "ferrotunnel-core",
     "ferrotunnel-server",
-    "ferrotunnel-client", "ferrotunnel-http",
+    "ferrotunnel-client",
+    "ferrotunnel-http",
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.75"
-authors = ["Mitul Shah <mitul@example.com>"]
+authors = ["Mitul Shah <shahmitul005@gmail.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/MitulShah1/ferrotunnel"
 homepage = "https://github.com/MitulShah1/ferrotunnel"
