@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-01-24
+
+### Added
+
+#### HTTP Proxying (Phase 3 MVP)
+- New `ferrotunnel-http` crate for HTTP integration
+  - `HttpIngress`: Hyper-based HTTP server listening for requests
+  - `HttpProxy`: Client-side proxy logic connecting to local services
+- `Multiplexer` in `ferrotunnel-core`
+  - Supports multiple concurrent virtual streams over a single TCP connection
+  - Handles `OpenStream`, `Data`, and `CloseStream` frames
+- End-to-end HTTP Proxy support
+  - Server listens on HTTP port (default 8080)
+  - Client tunnels requests to local service (default 127.0.0.1:8000)
+- Dependencies added: `hyper`, `hyper-util`, `http-body-util`, `bytes`
+
+#### CI/CD
+- Added Dependabot configuration (`.github/dependabot.yml`)
+  - Weekly updates for `cargo` and `github-actions`
+
+### Changed
+- Updated all crates to version 0.3.0
+- `ferrotunnel-server`: Added `--http-bind` argument
+- `ferrotunnel-client`: Added `--local-addr` argument for proxy target
+
 ## [0.2.0] - 2026-01-23
 
 ### Added
@@ -100,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame serialization tests
 - Partial frame handling tests
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v0.1.0
