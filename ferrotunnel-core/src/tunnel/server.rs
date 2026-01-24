@@ -1,8 +1,11 @@
+use crate::stream::multiplexer::Multiplexer;
 use crate::tunnel::session::Session;
 use crate::tunnel::session::SessionStore;
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::frame::{Frame, HandshakeStatus};
+use futures::channel::mpsc;
+use futures::stream::SplitStream;
 use futures::{SinkExt, StreamExt};
 use std::net::SocketAddr;
 use std::time::Duration;
@@ -26,6 +29,10 @@ impl TunnelServer {
             sessions: SessionStore::new(),
             session_timeout: Duration::from_secs(90),
         }
+    }
+
+    pub fn sessions(&self) -> SessionStore {
+        self.sessions.clone()
     }
 
     pub async fn run(self) -> Result<()> {
@@ -100,7 +107,6 @@ impl TunnelServer {
 
                     if version != 1 {
                         warn!("Unsupported protocol version {} from {}", version, addr);
-                        // Ideally send a specific error, but generic for now
                         framed
                             .send(Frame::HandshakeAck {
                                 status: HandshakeStatus::UnsupportedVersion,
@@ -113,12 +119,42 @@ impl TunnelServer {
 
                     // Success
                     let session_id = Uuid::new_v4();
-                    let session = Session::new(session_id, addr, token, capabilities);
+
+                    // Setup multiplexer
+                    let (mut sink, stream) = framed.split();
+                    let (frame_tx, mut frame_rx) = mpsc::channel::<Frame>(100);
+
+                    // Spawn sender task: Rx -> Sink
+                    tokio::spawn(async move {
+                        while let Some(frame) = frame_rx.next().await {
+                            if let Err(e) = sink.send(frame).await {
+                                warn!("Failed to send frame: {}", e);
+                                break;
+                            }
+                        }
+                    });
+
+                    let (multiplexer, mut new_stream_rx) = Multiplexer::new(frame_tx);
+
+                    // Log unexpected streams from client (for now)
+                    tokio::spawn(async move {
+                        while let Some(_stream) = new_stream_rx.next().await {
+                            warn!("Client tried to open stream (not supported in MVP)");
+                        }
+                    });
+
+                    let session = Session::new(
+                        session_id,
+                        addr,
+                        token,
+                        capabilities,
+                        Some(multiplexer.clone()),
+                    );
                     sessions.add(session);
 
                     info!("Session established: {}", session_id);
-                    framed
-                        .send(Frame::HandshakeAck {
+                    multiplexer
+                        .send_frame(Frame::HandshakeAck {
                             status: HandshakeStatus::Success,
                             session_id,
                             server_capabilities: vec!["basic".to_string()],
@@ -126,7 +162,7 @@ impl TunnelServer {
                         .await?;
 
                     // Enter message loop
-                    Self::process_messages(framed, session_id, sessions).await?;
+                    Self::process_messages(stream, session_id, sessions, multiplexer).await?;
                 }
                 _ => {
                     return Err(TunnelError::Protocol("Expected handshake".into()));
@@ -140,11 +176,12 @@ impl TunnelServer {
     }
 
     async fn process_messages(
-        mut framed: Framed<TcpStream, TunnelCodec>,
+        mut stream: SplitStream<Framed<TcpStream, TunnelCodec>>,
         session_id: Uuid,
         sessions: SessionStore,
+        multiplexer: Multiplexer,
     ) -> Result<()> {
-        while let Some(result) = framed.next().await {
+        while let Some(result) = stream.next().await {
             let frame = result?;
 
             // Update heartbeat for any activity
@@ -158,8 +195,8 @@ impl TunnelServer {
             match frame {
                 Frame::Heartbeat { .. } => {
                     debug!("Heartbeat from {}", session_id);
-                    framed
-                        .send(Frame::HeartbeatAck {
+                    multiplexer
+                        .send_frame(Frame::HeartbeatAck {
                             #[allow(clippy::cast_possible_truncation)]
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
@@ -168,12 +205,8 @@ impl TunnelServer {
                         })
                         .await?;
                 }
-                Frame::CloseStream { .. } | Frame::OpenStream { .. } | Frame::Data { .. } => {
-                    // Data plane logic (placeholder for Phase 3)
-                    debug!("Data frame received");
-                }
                 _ => {
-                    debug!("Received control frame: {:?}", frame);
+                    multiplexer.process_frame(frame).await?;
                 }
             }
         }

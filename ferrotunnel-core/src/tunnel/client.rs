@@ -1,7 +1,10 @@
+use crate::stream::multiplexer::{Multiplexer, VirtualStream};
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::frame::{Frame, HandshakeStatus};
+use futures::channel::mpsc;
 use futures::{SinkExt, StreamExt};
+use std::future::Future;
 use std::time::Duration;
 use tokio::net::TcpStream;
 use tokio::time::interval;
@@ -25,7 +28,11 @@ impl TunnelClient {
     }
 
     /// Connect to the server and start the session
-    pub async fn connect_and_run(&mut self) -> Result<()> {
+    pub async fn connect_and_run<F, Fut>(&mut self, stream_handler: F) -> Result<()>
+    where
+        F: Fn(VirtualStream) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+    {
         info!("Connecting to {}", self.server_addr);
 
         // Resolve address (simple implementation, relying on TcpStream::connect to resolve host:port)
@@ -76,10 +83,30 @@ impl TunnelClient {
             return Err(TunnelError::Connection("Connection closed".into()));
         }
 
-        // 3. Heartbeat and Message Loop
-        // We need to split the stream to handle sending (heartbeats) and receiving (messages) concurrently
-        let (mut split_sink, mut split_stream) = framed.split();
+        // 3. Setup Multiplexer
+        let (mut sink, mut split_stream) = framed.split();
+        let (frame_tx, mut frame_rx) = mpsc::channel::<Frame>(100);
 
+        // Spawn sender task: Rx -> Sink
+        tokio::spawn(async move {
+            while let Some(frame) = frame_rx.next().await {
+                if let Err(e) = sink.send(frame).await {
+                    error!("Failed to send frame: {}", e);
+                    break;
+                }
+            }
+        });
+
+        let (multiplexer, mut new_stream_rx) = Multiplexer::new(frame_tx);
+
+        // Spawn stream handler
+        tokio::spawn(async move {
+            while let Some(stream) = new_stream_rx.next().await {
+                stream_handler(stream).await;
+            }
+        });
+
+        // 4. Heartbeat and Message Loop
         let mut heartbeat_interval = interval(Duration::from_secs(30));
 
         loop {
@@ -93,9 +120,9 @@ impl TunnelClient {
                         .as_millis() as u64;
 
                     debug!("Sending heartbeat");
-                    if let Err(e) = split_sink.send(Frame::Heartbeat { timestamp: ts }).await {
+                    if let Err(e) = multiplexer.send_frame(Frame::Heartbeat { timestamp: ts }).await {
                         error!("Failed to send heartbeat: {}", e);
-                        return Err(e.into());
+                        return Err(e);
                     }
                 }
 
@@ -108,8 +135,10 @@ impl TunnelClient {
                                     debug!("Heartbeat ack received");
                                 }
                                 _ => {
-                                    // Handle other frames
-                                    debug!("Received frame: {:?}", frame);
+                                    // Handle other frames via multiplexer
+                                    if let Err(e) = multiplexer.process_frame(frame).await {
+                                        error!("Multiplexer error: {}", e);
+                                    }
                                 }
                             }
                         }

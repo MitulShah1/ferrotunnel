@@ -12,8 +12,8 @@ keywords = ["tunnel", "networking", "async", "core"]
 categories = ["network-programming", "asynchronous"]
 
 [dependencies]
-ferrotunnel-common = { version = "0.2.0", path = "../ferrotunnel-common" }
-ferrotunnel-protocol = { version = "0.2.0", path = "../ferrotunnel-protocol" }
+ferrotunnel-common = { version = "0.3.0", path = "../ferrotunnel-common" }
+ferrotunnel-protocol = { version = "0.3.0", path = "../ferrotunnel-protocol" }
 
 tokio = { workspace = true }
 tokio-util = { workspace = true }
@@ -21,6 +21,7 @@ tracing = "0.1"
 uuid = { workspace = true }
 dashmap = "5.5"                   # Thread-safe map for sessions
 futures = "0.3.31"
+bytes = { workspace = true }
 
 [lints]
 workspace = true
