@@ -1,0 +1,22 @@
+[package]
+name = "ferrotunnel-plugin"
+version = "0.5.0"
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Plugin system for FerroTunnel"
+keywords = ["plugin", "tunnel", "networking", "extensible"]
+categories = ["network-programming", "asynchronous"]
+
+[dependencies]
+async-trait = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+tracing = "0.1"
+http = "1.1"
+tokio = { version = "1", features = ["sync", "macros", "rt-multi-thread"] }
+governor = "0.6"
+[dev-dependencies]
+tracing-subscriber = "0.3"

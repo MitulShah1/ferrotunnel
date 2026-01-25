@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-01-25
+
+### Added
+
+#### Plugin System (Phase 5) - Extensibility
+- New `ferrotunnel-plugin` crate defining the plugin architecture
+  - `Plugin` async trait with `on_request` and `on_response` hooks
+  - `PluginRegistry` for managing and executing plugin chains
+  - `PluginAction` control flow (Continue, Reject, Respond, Modify)
+- Built-in Plugins:
+  - `LoggerPlugin`: Structured request logging
+  - `TokenAuthPlugin`: Header-based token authentication
+  - `RateLimitPlugin`: IP-based rate limiting (leaky bucket)
+- Core Integration:
+  - `HttpIngress` now executes request/response hooks
+  - `ServerBuilder` automatically registers default plugins (Logger)
+- Developer Experience:
+  - Examples: `hello_plugin`, `header_filter` (security), `ip_blocklist` (access control)
+  - `scripts/test-plugins.sh` for verifying plugin behavior
+
+### Changed
+- Updated all crates to version 0.5.0
+- `ferrotunnel-server` now initializes a `PluginRegistry` on startup
+- `HttpIngress::new` now requires `Arc<PluginRegistry>`
+
 ## [0.4.0] - 2026-01-25
 
 ### Added

@@ -40,11 +40,13 @@ jobs:
       # 1. ferrotunnel-common (no internal deps)
       # 2. ferrotunnel-protocol (depends on common)
       # 3. ferrotunnel-core (depends on common, protocol)
-      # 4. ferrotunnel-http (depends on common, protocol, core)
-      # 5. ferrotunnel (depends on all above)
+      # 4. ferrotunnel-plugin (depends on core)
+      # 5. ferrotunnel-http (depends on common, protocol, core, plugin)
+      # 6. ferrotunnel (depends on all above)
 
       - name: Publish ferrotunnel-common
         run: cargo publish -p ferrotunnel-common
+        continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -53,6 +55,7 @@ jobs:
 
       - name: Publish ferrotunnel-protocol
         run: cargo publish -p ferrotunnel-protocol
+        continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -61,6 +64,16 @@ jobs:
 
       - name: Publish ferrotunnel-core
         run: cargo publish -p ferrotunnel-core
+        continue-on-error: true
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io
+        run: sleep 60
+
+      - name: Publish ferrotunnel-plugin
+        run: cargo publish -p ferrotunnel-plugin
+        continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -69,6 +82,7 @@ jobs:
 
       - name: Publish ferrotunnel-http
         run: cargo publish -p ferrotunnel-http
+        continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -77,6 +91,7 @@ jobs:
 
       - name: Publish ferrotunnel
         run: cargo publish -p ferrotunnel
+        continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -85,6 +100,7 @@ jobs:
 
       - name: Publish ferrotunnel-client
         run: cargo publish -p ferrotunnel-client
+        continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
@@ -93,6 +109,7 @@ jobs:
 
       - name: Publish ferrotunnel-server
         run: cargo publish -p ferrotunnel-server
+        continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
