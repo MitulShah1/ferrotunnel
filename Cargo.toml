@@ -18,8 +18,9 @@ authors = ["Mitul Shah <shahmitul005@gmail.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/MitulShah1/ferrotunnel"
 homepage = "https://github.com/MitulShah1/ferrotunnel"
-keywords = ["tunnel", "reverse-proxy", "networking"]
-categories = ["network-programming"]
+description = "HTTP ingress and proxy for FerroTunnel"
+keywords = ["tunnel", "http", "proxy", "ingress"]
+categories = ["network-programming", "web-programming"]
 
 [workspace.dependencies]
 # Serialization
