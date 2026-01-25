@@ -46,7 +46,7 @@ echo ""
 # Build the project first
 echo -e "${YELLOW}Step 1: Building project...${NC}"
 cd "$PROJECT_DIR"
-cargo build --workspace --examples 2>&1 | tail -3
+cargo build -p ferrotunnel --examples 2>&1 | tail -3
 echo -e "${GREEN}✓ Build complete${NC}"
 echo ""
 
