@@ -7,8 +7,9 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-keywords.workspace = true
-categories.workspace = true
+keywords = ["tunnel", "http", "proxy", "async"]
+categories = ["network-programming", "web-programming"]
+description = "HTTP ingress and proxy implementation for FerroTunnel"
 
 [dependencies]
 ferrotunnel-core = { version = "0.4.0", path = "../ferrotunnel-core" }
