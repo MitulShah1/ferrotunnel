@@ -36,10 +36,15 @@ jobs:
           cargo clippy --workspace --all-targets --all-features -- -D warnings
           cargo test --workspace --all-features
 
+      # Publish in dependency order:
+      # 1. ferrotunnel-common (no internal deps)
+      # 2. ferrotunnel-protocol (depends on common)
+      # 3. ferrotunnel-core (depends on common, protocol)
+      # 4. ferrotunnel-http (depends on common, protocol, core)
+      # 5. ferrotunnel (depends on all above)
+
       - name: Publish ferrotunnel-common
-        run: |
-          cd ferrotunnel-common
-          cargo publish
+        run: cargo publish -p ferrotunnel-common
         continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -48,9 +53,25 @@ jobs:
         run: sleep 30
 
       - name: Publish ferrotunnel-protocol
-        run: |
-          cd ferrotunnel-protocol
-          cargo publish
+        run: cargo publish -p ferrotunnel-protocol
+        continue-on-error: true
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io
+        run: sleep 30
+
+      - name: Publish ferrotunnel-core
+        run: cargo publish -p ferrotunnel-core
+        continue-on-error: true
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Wait for crates.io
+        run: sleep 30
+
+      - name: Publish ferrotunnel-http
+        run: cargo publish -p ferrotunnel-http
         continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -59,9 +80,7 @@ jobs:
         run: sleep 30
 
       - name: Publish ferrotunnel
-        run: |
-          cd ferrotunnel
-          cargo publish
+        run: cargo publish -p ferrotunnel
         continue-on-error: true
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
