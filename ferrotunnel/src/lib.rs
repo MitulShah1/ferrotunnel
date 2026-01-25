@@ -2,48 +2,95 @@
 //!
 //! A production-ready, secure reverse tunnel system in Rust.
 //!
-//! ## Overview
-//!
-//! `FerroTunnel` provides a complete reverse tunneling solution, allowing you to expose
-//! local services through a public server. It's built with security, performance, and
-//! reliability in mind.
+//! `FerroTunnel` is the **first embeddable Rust reverse tunnel**, allowing you to
+//! integrate tunneling directly into your applications with a simple builder API.
 //!
 //! ## Features
 //!
-//! - 🔒 **Secure** - TLS encryption, token-based authentication
+//! - 🔒 **Secure** - Token-based authentication
 //! - ⚡ **Fast** - Built on Tokio for high-performance async I/O
-//! - 🔌 **Protocol Support** - HTTP, HTTPS, WebSocket, gRPC, TCP
-//! - 📊 **Observable** - Comprehensive logging and metrics
+//! - 🔌 **Embeddable** - Use as a library in your own applications
 //! - 🛡️ **Resilient** - Automatic reconnection, heartbeat monitoring
 //!
-//! ## Quick Start
+//! ## Quick Start: Embedded Client
 //!
 //! ```rust,no_run
-//! use ferrotunnel::prelude::*;
+//! use ferrotunnel::Client;
 //!
-//! // Example usage (will be implemented with client/server)
+//! #[tokio::main]
+//! async fn main() -> ferrotunnel::Result<()> {
+//!     let mut client = Client::builder()
+//!         .server_addr("tunnel.example.com:7835")
+//!         .token("my-secret-token")
+//!         .local_addr("127.0.0.1:8080")
+//!         .build()?;
+//!
+//!     let info = client.start().await?;
+//!     println!("Connected! Session: {:?}", info.session_id);
+//!
+//!     // Keep running until Ctrl+C
+//!     tokio::signal::ctrl_c().await?;
+//!     client.shutdown().await?;
+//!     Ok(())
+//! }
+//! ```
+//!
+//! ## Quick Start: Embedded Server
+//!
+//! ```rust,no_run
+//! use ferrotunnel::Server;
+//!
+//! #[tokio::main]
+//! async fn main() -> ferrotunnel::Result<()> {
+//!     let mut server = Server::builder()
+//!         .bind("0.0.0.0:7835".parse().unwrap())
+//!         .http_bind("0.0.0.0:8080".parse().unwrap())
+//!         .token("my-secret-token")
+//!         .build()?;
+//!
+//!     server.start().await?;
+//!     Ok(())
+//! }
 //! ```
 //!
 //! ## Architecture
 //!
 //! `FerroTunnel` consists of several crates:
 //!
-//! - [`ferrotunnel-common`] - Shared types, errors, and utilities
-//! - [`ferrotunnel-protocol`] - Wire protocol definitions and codec
-//! - (Future) `ferrotunnel-client` - Client implementation
-//! - (Future) `ferrotunnel-server` - Server implementation
+//! - `ferrotunnel` - Main library with builder API (this crate)
+//! - `ferrotunnel-common` - Shared types, errors, and utilities
+//! - `ferrotunnel-protocol` - Wire protocol definitions and codec
+//! - `ferrotunnel-core` - Core tunnel implementation
+//! - `ferrotunnel-http` - HTTP ingress and proxy
 //!
 //! ## Re-exports
 //!
 //! This crate re-exports the most commonly used items from the subcrates
 //! for convenience.
 
+// Modules
+pub mod client;
+pub mod config;
+pub mod server;
+
 // Re-export subcrates
 pub use ferrotunnel_common as common;
+pub use ferrotunnel_core as core;
+pub use ferrotunnel_http as http;
 pub use ferrotunnel_protocol as protocol;
+
+// Public API exports
+pub use client::{Client, ClientBuilder};
+pub use config::{ClientConfig, ServerConfig, TunnelInfo};
+pub use server::{Server, ServerBuilder};
 
 /// Prelude module for convenient imports
 pub mod prelude {
+    // Builder API
+    pub use crate::client::{Client, ClientBuilder};
+    pub use crate::config::{ClientConfig, ServerConfig, TunnelInfo};
+    pub use crate::server::{Server, ServerBuilder};
+
     // Common types
     pub use crate::common::{Result, TunnelError};
 
