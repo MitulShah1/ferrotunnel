@@ -4,31 +4,45 @@
 
 FerroTunnel follows the **tokio-style workspace pattern** - the industry standard for multi-crate Rust projects.
 
-### Current Structure (Phase 1)
+### Current Structure (Phase 4)
 
 ```
 ferrotunnel/
 ├── Cargo.toml                  # Workspace configuration
 ├── ROADMAP.md                  # Development plan
 ├── README.md
+├── ARCHITECTURE.md
 ├── CHANGELOG.md
 ├── LICENSE
-├── ferrotunnel/                # Main library (convenience re-exports)
+├── ferrotunnel/                # Main library (Facade & Builders)
 │   ├── Cargo.toml
 │   └── src/
-│       └── lib.rs
+│       ├── lib.rs              # Re-exports & prelude
+│       ├── client.rs           # Client Builder API
+│       ├── server.rs           # Server Builder API
+│       └── config.rs           # Configuration types
+├── ferrotunnel-core/           # Core tunnel logic
+│   ├── Cargo.toml
+│   └── src/
+│       ├── tunnel/             # Connection management
+│       ├── stream/             # Multiplexing
+│       └── transport/          # Transport layer
+├── ferrotunnel-http/           # HTTP handling
+│   ├── Cargo.toml
+│   └── src/
+│       ├── ingress.rs          # HTTP Ingress
+│       └── proxy.rs            # HTTP/WS Proxy
 ├── ferrotunnel-protocol/       # Wire protocol & codec
-│   ├── Cargo.toml
 │   └── src/
-│       ├── lib.rs
-│       ├── frame.rs            # 12 message types
-│       ├── codec.rs            # Length-prefixed encoder
-│       └── constants.rs        # Protocol constants
-└── ferrotunnel-common/         # Shared types & errors
-    ├── Cargo.toml
-    └── src/
-        ├── lib.rs
-        └── error.rs            # Error types
+├── ferrotunnel-common/         # Shared types & errors
+│   └── src/
+├── ferrotunnel-client/         # Client binary
+│   └── src/main.rs
+├── ferrotunnel-server/         # Server binary
+│   └── src/main.rs
+└── examples/                   # Embeddable examples
+    ├── embedded_client.rs
+    └── embedded_server.rs
 ```
 
 **Key improvements over nested `crates/` folder:**
@@ -127,10 +141,10 @@ ferrotunnel/
 
 ## Implementation Order
 
-1. ✅ **Phase 1** (Current): `ferrotunnel`, `protocol`, `common`
-2. **Phase 2**: `core` + client/server binaries
-3. **Phase 3**: `http` handling
-4. **Phase 4**: Complete main library API
+1. ✅ **Phase 1**: `ferrotunnel`, `protocol`, `common`
+2. ✅ **Phase 2**: `core` + client/server binaries
+3. ✅ **Phase 3**: `http` handling
+4. ✅ **Phase 4** (Current): Complete main library API
 5. **Phase 5**: `plugin` system
 6. **Phase 6**: `observability` dashboard
 7. **Phase 7-8**: Hardening + v1.0.0 release
@@ -184,11 +198,25 @@ FerroTunnel needs a workspace because:
 
 ### `ferrotunnel` ✅
 
-**Main library crate** - Public API and convenience re-exports:
-- Re-exports commonly used types from subcrates
-- Provides `prelude` module for easy imports
-- Future: Builder patterns for client/server
-- Users add `ferrotunnel = "0.1"` to their Cargo.toml
+**Main library crate** - The primary entry point for using FerroTunnel as a library:
+- **Builder API**: `Client::builder()` and `Server::builder()` for ergonomic configuration.
+- **Facade**: Re-exports commonly used types from subcrates.
+- **Prelude**: `ferrotunnel::prelude::*` for easy imports.
+
+### `Library API` ✅
+
+FerroTunnel is designed to be **embeddable**. You can include the `ferrotunnel` crate in your own Rust applications to create custom tunnel clients or servers.
+
+**Example: Embedded Client**
+```rust
+use ferrotunnel::Client;
+
+let client = Client::builder()
+    .server_addr("tunnel.example.com:7835")
+    .token("my-token")
+    .build()?;
+client.start().await?;
+```
 
 ### `ferrotunnel-protocol` ✅
 
@@ -205,14 +233,29 @@ FerroTunnel needs a workspace because:
 - **Result alias**: `Result<T>` for consistency
 - **UUID handling**: Session and stream identifiers
 
+### `ferrotunnel-core` ✅
+
+**Core tunnel engine**:
+- **Connection**: Manages the persistent control connection / Heartbeats.
+- **Session**: Concept of a "tunnel session".
+- **Multiplexer**: Handles multiple concurrent streams over one connection.
+
+### `ferrotunnel-http` ✅
+
+**HTTP Layer**:
+- **Ingress**: Receives public HTTP requests and routes them to sessions.
+- **Proxy**: Forwards requests from the client to localhost.
+
+### `ferrotunnel-client` & `ferrotunnel-server` ✅
+
+**Reference Implementations**:
+- CLI binaries for running the tunnel and server standalone.
+- Built on top of the library API.
+
 ### Future Crates
 
-- **`ferrotunnel-core`** (Phase 2): Client/server implementation, session management, stream multiplexing
-- **`ferrotunnel-http`** (Phase 3): HTTP ingress and reverse proxying
 - **`ferrotunnel-plugin`** (Phase 5): Plugin trait, registry, and built-in plugins
 - **`ferrotunnel-observability`** (Phase 6): Metrics, tracing, dashboard
-- **`ferrotunnel-client`** (Phase 2): Client CLI binary
-- **`ferrotunnel-server`** (Phase 2): Server CLI binary
 
 ## Building
 
