@@ -11,7 +11,7 @@
 ### Core Differentiators
 
 🎯 **Library-First** - Published to crates.io, embedded in your apps
-🎯 **Plugin System** - Trait-based extensibility for custom behavior
+🎯 **Plugin System** - Trait-based extensibility for custom behavior (Next)
 🎯 **Built-in Dashboard** - Real-time WebUI for monitoring
 
 ---
@@ -25,11 +25,11 @@ gantt
     section Foundation
     Protocol & Protocol Types     :p1, 2026-01-27, 2w
     section Core
-    Basic Tunnel                   :p2, after p1, 2w
-    HTTP Proxying (MVP)            :p3, after p2, 2w
+    Basic Tunnel                   :done, p2, after p1, 2w
+    HTTP Proxying (MVP)            :done, p3, after p2, 2w
     section Differentiators
-    Library API (crates.io)        :crit, p4, after p3, 2w
-    Plugin System                  :crit, p5, after p4, 2w
+    Library API (crates.io)        :done, p4, after p3, 2w
+    Plugin System                  :active, p5, after p4, 2w
     Observability Dashboard        :crit, p6, after p5, 2w
     section Production
     Hardening                      :p7, after p6, 2w
@@ -93,7 +93,7 @@ gantt
 
 ### 🌐 Phase 3: HTTP Proxying (Weeks 5-6)
 
-**Status**: 🎯 Next
+**Status**: ✅ Completed
 **Goal**: Functional HTTP tunnel (MVP)
 
 #### Deliverables
@@ -121,7 +121,7 @@ gantt
 
 ### 📦 Phase 4: Library API (Weeks 7-8)
 
-**Status**: ⏳ Planned
+**Status**: ✅ Completed
 **Goal**: 🎯 First Differentiator - Embeddable Library
 
 #### Deliverables
@@ -165,7 +165,7 @@ println!("Public URL: {}", info.public_url);
 
 ### 🔌 Phase 5: Plugin System (Weeks 9-10)
 
-**Status**: ⏳ Planned
+**Status**: 🎯 Next
 **Goal**: 🎯 Second Differentiator - Extensibility
 
 #### Deliverables
@@ -379,9 +379,9 @@ GET  /                         # Dashboard UI
 
 - **v0.1.0** - Protocol working (Week 2) ✅
 - **v0.2.0** - Basic tunnel (Week 4) ✅
-- **v0.3.0** - HTTP proxying (Week 6) - **MVP**
-- **v0.4.0** - Library API (Week 8) - **Publish to crates.io**
-- **v0.5.0** - Plugin system (Week 10)
+- **v0.3.0** - HTTP proxying (Week 6) - **MVP** ✅
+- **v0.4.0** - Library API (Week 8) - **Publish to crates.io** ✅
+- **v0.5.0** - Plugin system (Week 10) 🎯
 - **v0.6.0** - Dashboard (Week 12)
 - **v0.7.0** - Hardening (Week 14)
 - **v1.0.0-rc1** - Release candidate (Week 14)
@@ -521,9 +521,9 @@ Stable release with all three differentiators:
 |------|-------|--------|-------------|
 | 1-2 | Foundation | ✅ Completed | Protocol v0.1.0 |
 | 3-4 | Basic Tunnel | ✅ Completed | CLI v0.2.0 |
-| 5-6 | HTTP Proxy | 🎯 Next | MVP v0.3.0 |
-| **7-8** | **Library API** | ⏳ Planned | **🎯 crates.io v0.4.0** |
-| **9-10** | **Plugin System** | ⏳ Planned | **🎯 Plugins v0.5.0** |
+| 5-6 | HTTP Proxy | ✅ Completed | MVP v0.3.0 |
+| **7-8** | **Library API** | ✅ Completed | **🎯 crates.io v0.4.0** |
+| **9-10** | **Plugin System** | 🎯 Next | **🎯 Plugins v0.5.0** |
 | **11-12** | **Dashboard** | ⏳ Planned | **🎯 Observable v0.6.0** |
 | 13-14 | Hardening | ⏳ Planned | RC1 v1.0.0-rc1 |
 | 15-16 | Release | ⏳ Planned | **v1.0.0 🎉** |
