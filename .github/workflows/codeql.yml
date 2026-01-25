@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'javascript', 'rust' ]
+        language: [ 'rust' ]
 
     steps:
     - name: Checkout repository
