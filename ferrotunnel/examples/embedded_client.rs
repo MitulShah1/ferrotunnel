@@ -49,7 +49,7 @@ async fn main() -> ferrotunnel::Result<()> {
     println!("Connecting to server...");
 
     let info = client.start().await?;
-    println!("Connected! Session ID: {:?}", info.session_id);
+    println!("Connected!");
 
     if let Some(url) = &info.public_url {
         println!("Public URL: {url}");
