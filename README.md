@@ -7,17 +7,79 @@
 [![Rust Version](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
 [![Security](https://img.shields.io/badge/security-policy-green)](SECURITY.md)
 
-**Wire Protocol Foundation for Reverse Tunneling**
+**The First Embeddable Rust Reverse Tunnel**
 
-FerroTunnel is a Rust-based reverse tunnel implementation. This repository contains the **Phase 1 foundation**: the wire protocol and core types.
+FerroTunnel is a production-ready, secure reverse tunnel system in Rust. Unlike CLI-only alternatives, FerroTunnel can be **embedded directly into your applications** using a simple builder API.
 
-## Current Status: Phase 1 ✅
+## Quick Start: Library Usage
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+ferrotunnel = "0.4"
+tokio = { version = "1", features = ["full"] }
+```
+
+### Embedded Client
+
+```rust
+use ferrotunnel::Client;
+
+#[tokio::main]
+async fn main() -> ferrotunnel::Result<()> {
+    let mut client = Client::builder()
+        .server_addr("tunnel.example.com:7835")
+        .token("my-secret-token")
+        .local_addr("127.0.0.1:8080")
+        .build()?;
+
+    let info = client.start().await?;
+    println!("Connected! Session: {:?}", info.session_id);
+
+    // Keep running until Ctrl+C
+    tokio::signal::ctrl_c().await?;
+    client.shutdown().await?;
+    Ok(())
+}
+```
+
+### Embedded Server
+
+```rust
+use ferrotunnel::Server;
+
+#[tokio::main]
+async fn main() -> ferrotunnel::Result<()> {
+    let mut server = Server::builder()
+        .bind("0.0.0.0:7835".parse().unwrap())
+        .http_bind("0.0.0.0:8080".parse().unwrap())
+        .token("my-secret-token")
+        .build()?;
+
+    server.start().await?;
+    Ok(())
+}
+```
+
+## Features
+
+- 🔒 **Secure** - Token-based authentication
+- ⚡ **Fast** - Built on Tokio for high-performance async I/O
+- 🔌 **Embeddable** - Use as a library in your own applications
+- 🛡️ **Resilient** - Automatic reconnection, heartbeat monitoring
+- 📦 **Modular** - Use only what you need
+
+## Current Status
 
 **What's implemented:**
 - ✅ Complete wire protocol (`ferrotunnel-protocol`)
 - ✅ Frame types and codec with length-prefixed bincode encoding
 - ✅ Common error types (`ferrotunnel-common`)
-- ✅ Comprehensive unit tests (10+ tests)
+- ✅ Core tunnel client/server (`ferrotunnel-core`)
+- ✅ HTTP ingress and proxy (`ferrotunnel-http`)
+- ✅ **Library API with builder pattern** (`ferrotunnel`)
+- ✅ Comprehensive unit tests
 - ✅ Full documentation
 
 ## Crates

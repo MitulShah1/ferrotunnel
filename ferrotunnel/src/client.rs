@@ -1,0 +1,254 @@
+//! Embeddable tunnel client with builder pattern.
+//!
+//! # Example
+//!
+//! ```rust,no_run
+//! use ferrotunnel::Client;
+//!
+//! # async fn example() -> ferrotunnel::Result<()> {
+//! let mut client = Client::builder()
+//!     .server_addr("tunnel.example.com:7835")
+//!     .token("my-secret-token")
+//!     .local_addr("127.0.0.1:8080")
+//!     .build()?;
+//!
+//! let info = client.start().await?;
+//! println!("Connected! Session: {:?}", info.session_id);
+//! # Ok(())
+//! # }
+//! ```
+
+use crate::config::{ClientConfig, TunnelInfo};
+use ferrotunnel_common::{Result, TunnelError};
+use ferrotunnel_core::TunnelClient;
+use ferrotunnel_http::HttpProxy;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::{oneshot, watch};
+use tokio::task::JoinHandle;
+use tracing::{error, info};
+
+/// A tunnel client that can be embedded in your application.
+///
+/// Use [`Client::builder()`] to create a new client with the builder pattern.
+#[derive(Debug)]
+pub struct Client {
+    config: ClientConfig,
+    shutdown_tx: Option<watch::Sender<bool>>,
+    task: Option<JoinHandle<()>>,
+}
+
+/// Builder for constructing a [`Client`] with ergonomic configuration.
+#[derive(Debug, Default)]
+pub struct ClientBuilder {
+    config: ClientConfig,
+}
+
+impl Client {
+    /// Create a new client builder.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use ferrotunnel::Client;
+    ///
+    /// let client = Client::builder()
+    ///     .server_addr("localhost:7835")
+    ///     .token("secret")
+    ///     .build()
+    ///     .unwrap();
+    /// ```
+    pub fn builder() -> ClientBuilder {
+        ClientBuilder::default()
+    }
+
+    /// Start the tunnel client and connect to the server.
+    ///
+    /// Returns [`TunnelInfo`] with connection details on success.
+    /// The client will run until [`shutdown()`](Self::shutdown) is called or the connection fails.
+    ///
+    /// If `auto_reconnect` is enabled, the client will automatically
+    /// reconnect on connection loss.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the client is already running.
+    pub async fn start(&mut self) -> Result<TunnelInfo> {
+        if self.task.is_some() {
+            return Err(TunnelError::InvalidState("client already started".into()));
+        }
+
+        let config = self.config.clone();
+        let (shutdown_tx, shutdown_rx) = watch::channel(false);
+        self.shutdown_tx = Some(shutdown_tx);
+
+        let (info_tx, info_rx) = oneshot::channel();
+
+        let server_addr = config.server_addr.clone();
+        let token = config.token.clone();
+        let local_addr = config.local_addr.clone();
+        let auto_reconnect = config.auto_reconnect;
+        let reconnect_delay = config.reconnect_delay;
+
+        let task = tokio::spawn(async move {
+            let proxy = Arc::new(HttpProxy::new(local_addr));
+            let mut info_tx = Some(info_tx);
+            let mut shutdown_rx = shutdown_rx;
+
+            loop {
+                let mut client = TunnelClient::new(server_addr.clone(), token.clone());
+                let proxy_ref = proxy.clone();
+
+                let connect_result = tokio::select! {
+                    result = client.connect_and_run(move |stream| {
+                        let proxy = proxy_ref.clone();
+                        async move {
+                            proxy.handle_stream(stream);
+                        }
+                    }) => result,
+                    _ = shutdown_rx.changed() => {
+                        info!("Client shutdown requested");
+                        break;
+                    }
+                };
+
+                // Send initial connection info (only once)
+                if let Some(tx) = info_tx.take() {
+                    let _ = tx.send(TunnelInfo {
+                        session_id: None, // Will be populated when core exposes it
+                        public_url: None,
+                    });
+                }
+
+                match connect_result {
+                    Ok(()) => {
+                        info!("Client finished normally");
+                        break;
+                    }
+                    Err(e) => {
+                        error!("Connection error: {}", e);
+                        if !auto_reconnect {
+                            break;
+                        }
+                        info!("Reconnecting in {:?}...", reconnect_delay);
+                        tokio::time::sleep(reconnect_delay).await;
+                    }
+                }
+            }
+        });
+
+        self.task = Some(task);
+
+        // Wait for initial connection
+        info_rx
+            .await
+            .map_err(|_| TunnelError::Connection("Failed to establish connection".into()))
+    }
+
+    /// Shutdown the tunnel client and wait for cleanup.
+    ///
+    /// This will gracefully shut down the connection to the server
+    /// and wait for the background task to complete.
+    pub async fn shutdown(&mut self) -> Result<()> {
+        if let Some(tx) = self.shutdown_tx.take() {
+            let _ = tx.send(true);
+        }
+        if let Some(task) = self.task.take() {
+            let _ = task.await;
+        }
+        Ok(())
+    }
+
+    /// Signal the client to stop (non-blocking).
+    ///
+    /// Use [`shutdown()`](Self::shutdown) if you need to wait for cleanup.
+    pub fn stop(&mut self) {
+        if let Some(tx) = self.shutdown_tx.take() {
+            let _ = tx.send(true);
+        }
+    }
+
+    /// Check if the client is currently running.
+    pub fn is_running(&self) -> bool {
+        if let Some(task) = &self.task {
+            !task.is_finished()
+        } else {
+            false
+        }
+    }
+
+    /// Get the current configuration.
+    pub fn config(&self) -> &ClientConfig {
+        &self.config
+    }
+}
+
+impl Drop for Client {
+    fn drop(&mut self) {
+        // Best-effort signal shutdown on drop
+        if let Some(tx) = self.shutdown_tx.take() {
+            let _ = tx.send(true);
+        }
+    }
+}
+
+impl ClientBuilder {
+    /// Set the server address to connect to.
+    ///
+    /// Format: `host:port` (e.g., `"tunnel.example.com:7835"`)
+    #[must_use]
+    pub fn server_addr(mut self, addr: impl Into<String>) -> Self {
+        self.config.server_addr = addr.into();
+        self
+    }
+
+    /// Set the authentication token.
+    #[must_use]
+    pub fn token(mut self, token: impl Into<String>) -> Self {
+        self.config.token = token.into();
+        self
+    }
+
+    /// Set the local address to forward traffic to.
+    ///
+    /// Default: `"127.0.0.1:8080"`
+    #[must_use]
+    pub fn local_addr(mut self, addr: impl Into<String>) -> Self {
+        self.config.local_addr = addr.into();
+        self
+    }
+
+    /// Enable or disable automatic reconnection.
+    ///
+    /// Default: `true`
+    #[must_use]
+    pub fn auto_reconnect(mut self, enabled: bool) -> Self {
+        self.config.auto_reconnect = enabled;
+        self
+    }
+
+    /// Set the delay between reconnection attempts.
+    ///
+    /// Default: 5 seconds
+    #[must_use]
+    pub fn reconnect_delay(mut self, delay: Duration) -> Self {
+        self.config.reconnect_delay = delay;
+        self
+    }
+
+    /// Build the client with the configured options.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if required configuration is missing:
+    /// - `server_addr` must be set
+    /// - `token` must be set
+    pub fn build(self) -> Result<Client> {
+        self.config.validate()?;
+        Ok(Client {
+            config: self.config,
+            shutdown_tx: None,
+            task: None,
+        })
+    }
+}
