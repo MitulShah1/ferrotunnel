@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-25
+
+### Added
+
+#### Library API (Phase 4) - First Differentiator
+- **Embeddable Library**: FerroTunnel is now the first embeddable Rust reverse tunnel
+- New `Client` and `ClientBuilder` for embedded client usage
+  - Builder pattern with `server_addr()`, `token()`, `local_addr()`, `auto_reconnect()`
+  - `start()` / `shutdown()` / `stop()` lifecycle methods
+  - Proper `Drop` implementation for cleanup on drop
+- New `Server` and `ServerBuilder` for embedded server usage
+  - Builder pattern with `bind()`, `http_bind()`, `token()`
+  - `start()` / `shutdown()` / `stop()` lifecycle methods
+- Configuration types: `ClientConfig`, `ServerConfig`, `TunnelInfo`
+  - Validation in `build()` for fail-fast error handling
+- Example files:
+  - `examples/embedded_client.rs` - Demonstrates embedded client usage
+  - `examples/embedded_server.rs` - Demonstrates embedded server usage
+- Integration test script: `scripts/test-tunnel.sh`
+
+#### Documentation
+- Updated README with library usage examples
+- Complete rustdoc for all public API types
+
+### Changed
+- Updated all crates to version 0.4.0
+- `TunnelInfo.session_id` is now `Option<Uuid>` (placeholder until core exposes it)
+- Improved lifecycle management with `JoinHandle` tracking
+
 ## [0.3.0] - 2026-01-24
 
 ### Added
@@ -125,7 +154,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame serialization tests
 - Partial frame handling tests
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v0.1.0
