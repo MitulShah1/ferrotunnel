@@ -21,8 +21,10 @@ use crate::config::ServerConfig;
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_core::TunnelServer;
 use ferrotunnel_http::HttpIngress;
+use ferrotunnel_plugin::PluginRegistry;
 use std::net::SocketAddr;
-use tokio::sync::watch;
+use std::sync::Arc;
+use tokio::sync::{watch, RwLock};
 use tokio::task::JoinHandle;
 use tracing::info;
 
@@ -82,8 +84,23 @@ impl Server {
         info!("  HTTP bind: {}", config.http_bind_addr);
 
         let tunnel_server = TunnelServer::new(config.bind_addr, config.token);
+
+        // Initialize plugins
+        let mut registry = PluginRegistry::new();
+        // Add default plugins
+        registry.register(Arc::new(RwLock::new(
+            ferrotunnel_plugin::builtin::LoggerPlugin::new(),
+        )));
+
+        if let Err(e) = registry.init_all().await {
+            tracing::error!("Failed to initialize plugins: {}", e);
+            // We continue starting the server even if plugins fail, but we log it.
+            // Alternatively, we could return the error: return Err(TunnelError::InvalidState(format!("Plugin init failed: {e}")));
+        }
+
+        let registry = Arc::new(registry);
         let sessions = tunnel_server.sessions();
-        let ingress = HttpIngress::new(config.http_bind_addr, sessions);
+        let ingress = HttpIngress::new(config.http_bind_addr, sessions, registry);
 
         // Spawn both services
         let tunnel_handle = tokio::spawn(async move { tunnel_server.run().await });

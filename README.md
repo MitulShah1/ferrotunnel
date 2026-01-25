@@ -17,7 +17,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ferrotunnel = "0.4"
+ferrotunnel = "0.5"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -79,6 +79,7 @@ async fn main() -> ferrotunnel::Result<()> {
 - ✅ Core tunnel client/server (`ferrotunnel-core`)
 - ✅ HTTP ingress and proxy (`ferrotunnel-http`)
 - ✅ **Library API with builder pattern** (`ferrotunnel`)
+- ✅ **Plugin System for extensibility** (`ferrotunnel-plugin`)
 - ✅ Comprehensive unit tests
 - ✅ Full documentation
 
@@ -96,6 +97,13 @@ Wire protocol for tunnel communication with 12 message types:
 ### `ferrotunnel-common`
 
 Shared utilities and error types.
+
+### `ferrotunnel-plugin`
+
+Trait-based plugin system for intercepting traffic:
+- Request/Response hooks
+- Built-in Auth and Rate Limiting
+- Custom logic support
 
 ## Building
 
@@ -134,7 +142,7 @@ See [ROADMAP.md](ROADMAP.md) for the complete 16-week development plan.
 - Phase 2: Basic Tunnel (client-server communication)
 - Phase 3: HTTP Proxying
 - Phase 4: Library API (embeddable)
-- Phase 5: Plugin System
+- Phase 5: Plugin System (Completed)
 - Phase 6: Observability Dashboard
 - Phase 7-8: Production Hardening & Release
 

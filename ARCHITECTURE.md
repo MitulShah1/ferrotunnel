@@ -4,7 +4,7 @@
 
 FerroTunnel follows the **tokio-style workspace pattern** - the industry standard for multi-crate Rust projects.
 
-### Current Structure (Phase 4)
+### Current Structure (Phase 5)
 
 ```
 ferrotunnel/
@@ -34,6 +34,12 @@ ferrotunnel/
 │       └── proxy.rs            # HTTP/WS Proxy
 ├── ferrotunnel-protocol/       # Wire protocol & codec
 │   └── src/
+├── ferrotunnel-plugin/         # Plugin system
+│   ├── Cargo.toml
+│   └── src/
+│       ├── traits.rs
+│       ├── registry.rs
+│       └── builtin/
 ├── ferrotunnel-common/         # Shared types & errors
 │   └── src/
 ├── ferrotunnel-client/         # Client binary
@@ -103,7 +109,7 @@ ferrotunnel/
 │       ├── proxy.rs            # Reverse proxy
 │       └── upgrade.rs          # WebSocket upgrades
 │
-├── ferrotunnel-plugin/         # Phase 5: Plugin system
+├── ferrotunnel-plugin/         # ✅ Phase 5: Plugin system
 │   └── src/
 │       ├── traits.rs           # Plugin traits
 │       ├── registry.rs         # Plugin registry
@@ -144,8 +150,8 @@ ferrotunnel/
 1. ✅ **Phase 1**: `ferrotunnel`, `protocol`, `common`
 2. ✅ **Phase 2**: `core` + client/server binaries
 3. ✅ **Phase 3**: `http` handling
-4. ✅ **Phase 4** (Current): Complete main library API
-5. **Phase 5**: `plugin` system
+4. ✅ **Phase 4**: Complete main library API
+5. ✅ **Phase 5**: `plugin` system
 6. **Phase 6**: `observability` dashboard
 7. **Phase 7-8**: Hardening + v1.0.0 release
 
