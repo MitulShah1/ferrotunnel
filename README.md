@@ -153,7 +153,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation a
 
 Security is a top priority for FerroTunnel. If you discover a security vulnerability, please see our [Security Policy](SECURITY.md) for responsible disclosure guidelines.
 
-**Quick contact:** security@ferrotunnel.dev
+**Quick contact:** shahmitul005@gmail.com
 
 ## Code of Conduct
 
