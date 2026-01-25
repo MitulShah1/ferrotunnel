@@ -26,11 +26,6 @@ uuid = { workspace = true }
 [dev-dependencies]
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-[[example]]
-name = "embedded_client"
-
-[[example]]
-name = "embedded_server"
 
 [lints]
 workspace = true
