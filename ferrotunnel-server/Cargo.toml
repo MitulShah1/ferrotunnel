@@ -11,6 +11,7 @@ description = "FerroTunnel Server binary"
 ferrotunnel-core = { version = "0.4.0", path = "../ferrotunnel-core" }
 ferrotunnel-common = { version = "0.4.0", path = "../ferrotunnel-common" }
 ferrotunnel-http = { version = "0.4.0", path = "../ferrotunnel-http" }
+ferrotunnel-plugin = { path = "../ferrotunnel-plugin" }
 
 tokio = { workspace = true }
 clap = { version = "4.4", features = ["derive", "env"] }

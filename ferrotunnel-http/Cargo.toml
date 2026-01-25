@@ -14,6 +14,7 @@ description = "HTTP ingress and proxy implementation for FerroTunnel"
 [dependencies]
 ferrotunnel-core = { version = "0.4.0", path = "../ferrotunnel-core" }
 ferrotunnel-protocol = { version = "0.4.0", path = "../ferrotunnel-protocol" }
+ferrotunnel-plugin = { version = "0.1.0", path = "../ferrotunnel-plugin" }
 ferrotunnel-common = { version = "0.4.0", path = "../ferrotunnel-common" }
 tokio = { workspace = true }
 hyper = { version = "1", features = ["full"] }

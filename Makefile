@@ -58,3 +58,11 @@ clean:
 install-tools:
 	@echo "Installing development tools..."
 	rustup component add rustfmt clippy
+
+# Dry run cargo publish for all crates (in dependency order)
+publish-dry-run:
+	@echo "Dry running cargo publish..."
+	cargo publish -p ferrotunnel-common --dry-run --allow-dirty
+	cargo publish -p ferrotunnel-protocol --dry-run --allow-dirty
+	cargo publish -p ferrotunnel-core --dry-run --allow-dirty
+	cargo publish -p ferrotunnel-plugin --dry-run --allow-dirty

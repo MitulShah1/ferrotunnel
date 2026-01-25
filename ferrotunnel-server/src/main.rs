@@ -38,11 +38,32 @@ async fn main() -> Result<()> {
 
     info!("Starting FerroTunnel Server v{}", env!("CARGO_PKG_VERSION"));
 
-    let server = TunnelServer::new(args.bind, args.token);
+    let server = TunnelServer::new(args.bind, args.token.clone());
     let sessions = server.sessions();
 
+    info!("Initializing Plugin System");
+    let mut registry = ferrotunnel_plugin::PluginRegistry::new();
+
+    // built-in plugins
+    // 1. Logger
+    registry.register(std::sync::Arc::new(tokio::sync::RwLock::new(
+        ferrotunnel_plugin::builtin::LoggerPlugin::new().with_body_logging(),
+    )));
+
+    // 2. Token Auth
+    registry.register(std::sync::Arc::new(tokio::sync::RwLock::new(
+        ferrotunnel_plugin::builtin::TokenAuthPlugin::new(vec![args.token.clone()]),
+    )));
+
+    // Initialize plugins
+    registry
+        .init_all()
+        .await
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    let registry = std::sync::Arc::new(registry);
+
     info!("Starting HTTP Ingress on {}", args.http_bind);
-    let ingress = ferrotunnel_http::HttpIngress::new(args.http_bind, sessions);
+    let ingress = ferrotunnel_http::HttpIngress::new(args.http_bind, sessions, registry);
 
     tokio::try_join!(server.run(), ingress.start())?;
 
