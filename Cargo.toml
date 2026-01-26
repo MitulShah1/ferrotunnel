@@ -9,6 +9,7 @@ members = [
     "ferrotunnel-client",
     "ferrotunnel-http",
     "ferrotunnel-plugin",
+    "ferrotunnel-observability",
     "tools/loadgen",
     "tools/soak",
     "ferrotunnel-protocol/fuzz",

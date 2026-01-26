@@ -1,0 +1,30 @@
+[package]
+name = "ferrotunnel-observability"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Observability and dashboard for FerroTunnel"
+keywords = ["tunnel", "observability", "metrics", "dashboard"]
+categories = ["network-programming", "web-programming"]
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+ferrotunnel-common = { version = "0.6.0", path = "../ferrotunnel-common" }
+
+# Web Server
+axum = { version = "0.7", features = ["macros"] }
+serde_json = "1.0"
+
+# Metrics
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+[lints]
+workspace = true
