@@ -1,14 +1,8 @@
 # ferrotunnel-client
 
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel-client)](https://crates.io/crates/ferrotunnel-client)
-[![Documentation](https://docs.rs/ferrotunnel-client/badge.svg)](https://docs.rs/ferrotunnel-client)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](../LICENSE)
 
-The official CLI client for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel).
-
-## Overview
-
-This binary connects a local service to a FerroTunnel server, exposing it to the Internet.
+CLI client binary for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel).
 
 ## Installation
 
@@ -19,5 +13,49 @@ cargo install ferrotunnel-client
 ## Usage
 
 ```bash
-ferrotunnel-client --server tunnel.example.com --token my-secret --local-addr 127.0.0.1:8080
+ferrotunnel-client \
+  --server tunnel.example.com:7835 \
+  --token my-secret-token \
+  --local-addr 127.0.0.1:8000
 ```
+
+## Options
+
+| Option | Env Variable | Default | Description |
+|--------|--------------|---------|-------------|
+| `--server` | `FERROTUNNEL_SERVER` | (required) | Server address (host:port) |
+| `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
+| `--local-addr` | - | `127.0.0.1:8000` | Local service to forward to |
+| `--log-level` | `RUST_LOG` | `info` | Log level |
+
+## Example
+
+Start a local web server and tunnel it:
+
+```bash
+# Terminal 1: Start local service
+python3 -m http.server 8000
+
+# Terminal 2: Start tunnel client
+ferrotunnel-client --server localhost:7835 --token secret --local-addr 127.0.0.1:8000
+```
+
+## Library Usage
+
+For embedding in your application, use the main `ferrotunnel` crate instead:
+
+```rust
+use ferrotunnel::Client;
+
+let mut client = Client::builder()
+    .server_addr("tunnel.example.com:7835")
+    .token("secret")
+    .local_addr("127.0.0.1:8000")
+    .build()?;
+
+client.start().await?;
+```
+
+## License
+
+Licensed under either of Apache License, Version 2.0 or MIT license at your option.

@@ -32,6 +32,47 @@ jobs:
       - name: Run clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Run cargo-audit
+        run: cargo audit
+
+  license-check:
+    name: License & Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+
+      - name: Run cargo-deny
+        run: cargo deny check
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: cargo build --workspace --all-features
+      - name: Build Release
+        run: cargo build --workspace --all-features --release
+
   test:
     name: Tests
     runs-on: ${{ matrix.os }}
@@ -47,13 +88,28 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --all-features
 
-  build:
-    name: Build
+  fuzz-smoke-test:
+    name: Fuzz Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      - name: Run Fuzzer (Smoke Check)
+        run: cd ferrotunnel-protocol && cargo +nightly fuzz run codec_decode --sanitizer=none -- -max_total_time=300
+
+  benchmark-check:
+    name: Benchmark Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
-      - name: Build
-        run: cargo build --workspace --all-features
-      - name: Build Release
-        run: cargo build --workspace --all-features --release
+      - name: Compile Benchmarks
+        run: cargo check --benches --workspace
+      - name: Run Benchmarks (Smoke Check)
+        # Run benchmarks with minimal measurement time just to ensure they don't panic
+        env:
+          CRITERION_MEASUREMENT_TIME: 1
+        run: cargo bench --workspace

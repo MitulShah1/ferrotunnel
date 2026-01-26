@@ -1,0 +1,20 @@
+[package]
+name = "ferrotunnel-loadgen"
+version = "0.6.0"
+edition = "2021"
+license.workspace = true
+publish = false
+description = "Load testing tool for FerroTunnel"
+
+[dependencies]
+tokio = { version = "1", features = ["full", "rt-multi-thread"] }
+clap = { version = "4", features = ["derive"] }
+hdrhistogram = "7"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+bytes = "1"
+
+# Optional: for memory tracking on Linux
+[target.'cfg(target_os = "linux")'.dependencies]
+procfs = "0.16"

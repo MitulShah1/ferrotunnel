@@ -1,4 +1,7 @@
+use crate::auth::{constant_time_eq, validate_token_format};
+use crate::resource_limits::{ServerResourceLimits, SessionPermit};
 use crate::stream::multiplexer::Multiplexer;
+use crate::transport::{self, BoxedStream, TransportConfig};
 use crate::tunnel::session::Session;
 use crate::tunnel::session::SessionStore;
 use ferrotunnel_common::{Result, TunnelError};
@@ -9,7 +12,7 @@ use futures::stream::SplitStream;
 use futures::{SinkExt, StreamExt};
 use std::net::SocketAddr;
 use std::time::Duration;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpListener;
 use tokio_util::codec::Framed;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
@@ -19,6 +22,8 @@ pub struct TunnelServer {
     auth_token: String,
     sessions: SessionStore,
     session_timeout: Duration,
+    resource_limits: ServerResourceLimits,
+    transport_config: TransportConfig,
 }
 
 impl TunnelServer {
@@ -28,7 +33,21 @@ impl TunnelServer {
             auth_token,
             sessions: SessionStore::new(),
             session_timeout: Duration::from_secs(90),
+            resource_limits: ServerResourceLimits::default(),
+            transport_config: TransportConfig::default(),
         }
+    }
+
+    #[must_use]
+    pub fn with_resource_limits(mut self, limits: ServerResourceLimits) -> Self {
+        self.resource_limits = limits;
+        self
+    }
+
+    #[must_use]
+    pub fn with_transport(mut self, config: TransportConfig) -> Self {
+        self.transport_config = config;
+        self
     }
 
     pub fn sessions(&self) -> SessionStore {
@@ -56,14 +75,25 @@ impl TunnelServer {
         });
 
         loop {
-            match listener.accept().await {
+            match transport::accept(&self.transport_config, &listener).await {
                 Ok((stream, addr)) => {
                     debug!("New connection from {}", addr);
+
+                    let session_permit = match self.resource_limits.try_acquire_session() {
+                        Ok(permit) => permit,
+                        Err(e) => {
+                            warn!("Rejecting connection from {}: {}", addr, e);
+                            continue;
+                        }
+                    };
+
                     let sessions = sessions.clone();
                     let token = self.auth_token.clone();
 
                     tokio::spawn(async move {
-                        if let Err(e) = Self::handle_connection(stream, addr, sessions, token).await
+                        if let Err(e) =
+                            Self::handle_connection(stream, addr, sessions, token, session_permit)
+                                .await
                         {
                             warn!("Connection error for {}: {}", addr, e);
                         }
@@ -77,10 +107,11 @@ impl TunnelServer {
     }
 
     async fn handle_connection(
-        stream: TcpStream,
+        stream: BoxedStream,
         addr: SocketAddr,
         sessions: SessionStore,
         expected_token: String,
+        _session_permit: SessionPermit,
     ) -> Result<()> {
         let mut framed = Framed::new(stream, TunnelCodec::new());
 
@@ -93,7 +124,19 @@ impl TunnelServer {
                     token,
                     capabilities,
                 } => {
-                    if token != expected_token {
+                    if let Err(e) = validate_token_format(&token, 256) {
+                        warn!("Invalid token format from {}: {}", addr, e);
+                        framed
+                            .send(Frame::HandshakeAck {
+                                status: HandshakeStatus::InvalidToken,
+                                session_id: Uuid::nil(),
+                                server_capabilities: vec![],
+                            })
+                            .await?;
+                        return Ok(());
+                    }
+
+                    if !constant_time_eq(token.as_bytes(), expected_token.as_bytes()) {
                         warn!("Invalid token from {}", addr);
                         framed
                             .send(Frame::HandshakeAck {
@@ -176,7 +219,7 @@ impl TunnelServer {
     }
 
     async fn process_messages(
-        mut stream: SplitStream<Framed<TcpStream, TunnelCodec>>,
+        mut stream: SplitStream<Framed<BoxedStream, TunnelCodec>>,
         session_id: Uuid,
         sessions: SessionStore,
         multiplexer: Multiplexer,

@@ -79,6 +79,28 @@ Security advisories will be published through:
 - **Fix Timeline**: Varies by severity (critical issues prioritized)
 - **Public Disclosure**: Coordinated with reporter after fix is available
 
+## Automated Security Checks
+
+This project uses automated security scanning:
+
+- **cargo-audit**: Checks for known vulnerabilities in dependencies
+- **cargo-deny**: Validates licenses and bans problematic crates
+
+These checks run on every pull request and push to main.
+
+### Running Locally
+
+```bash
+# Install tools
+cargo install cargo-audit cargo-deny
+
+# Run security audit
+cargo audit
+
+# Run license and dependency check
+cargo deny check
+```
+
 ## Security Best Practices
 
 When using FerroTunnel:

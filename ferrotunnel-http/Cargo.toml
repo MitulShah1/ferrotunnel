@@ -12,10 +12,10 @@ categories = ["network-programming", "web-programming"]
 description = "HTTP ingress and proxy implementation for FerroTunnel"
 
 [dependencies]
-ferrotunnel-core = { version = "0.5.0", path = "../ferrotunnel-core" }
-ferrotunnel-protocol = { version = "0.5.0", path = "../ferrotunnel-protocol" }
-ferrotunnel-plugin = { version = "0.5.0", path = "../ferrotunnel-plugin" }
-ferrotunnel-common = { version = "0.5.0", path = "../ferrotunnel-common" }
+ferrotunnel-core = { version = "0.6.0", path = "../ferrotunnel-core" }
+ferrotunnel-protocol = { version = "0.6.0", path = "../ferrotunnel-protocol" }
+ferrotunnel-plugin = { version = "0.6.0", path = "../ferrotunnel-plugin" }
+ferrotunnel-common = { version = "0.6.0", path = "../ferrotunnel-common" }
 tokio = { workspace = true }
 hyper = { version = "1", features = ["full"] }
 http-body-util = "0.1"

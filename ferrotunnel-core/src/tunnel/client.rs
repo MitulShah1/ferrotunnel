@@ -1,4 +1,6 @@
+use crate::auth::validate_token_format;
 use crate::stream::multiplexer::{Multiplexer, VirtualStream};
+use crate::transport::{self, TransportConfig};
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::frame::{Frame, HandshakeStatus};
@@ -6,7 +8,6 @@ use futures::channel::mpsc;
 use futures::{SinkExt, StreamExt};
 use std::future::Future;
 use std::time::Duration;
-use tokio::net::TcpStream;
 use tokio::time::interval;
 use tokio_util::codec::Framed;
 use tracing::{debug, error, info};
@@ -16,6 +17,7 @@ pub struct TunnelClient {
     server_addr: String,
     auth_token: String,
     session_id: Option<Uuid>,
+    transport_config: TransportConfig,
 }
 
 impl TunnelClient {
@@ -24,20 +26,29 @@ impl TunnelClient {
             server_addr,
             auth_token,
             session_id: None,
+            transport_config: TransportConfig::default(),
         }
     }
 
+    #[must_use]
+    pub fn with_transport(mut self, config: TransportConfig) -> Self {
+        self.transport_config = config;
+        self
+    }
+
     /// Connect to the server and start the session
+    #[allow(clippy::too_many_lines)]
     pub async fn connect_and_run<F, Fut>(&mut self, stream_handler: F) -> Result<()>
     where
         F: Fn(VirtualStream) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
+        validate_token_format(&self.auth_token, 256)
+            .map_err(|e| TunnelError::Authentication(format!("Invalid token: {e}")))?;
+
         info!("Connecting to {}", self.server_addr);
 
-        // Resolve address (simple implementation, relying on TcpStream::connect to resolve host:port)
-        // If server_addr is "host:port" TcpStream::connect works.
-        let stream = TcpStream::connect(&self.server_addr).await?;
+        let stream = transport::connect(&self.transport_config, &self.server_addr).await?;
         info!("Connected to {}", self.server_addr);
 
         let mut framed = Framed::new(stream, TunnelCodec::new());
