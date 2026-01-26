@@ -16,6 +16,9 @@ Cargo.lock
 *.profraw
 *.profdata
 
+# Fuzz corpus
+ferrotunnel-protocol/fuzz/corpus/
+
 # Documentation
 /book/
 

@@ -2,22 +2,38 @@
 
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel-common)](https://crates.io/crates/ferrotunnel-common)
 [![Documentation](https://docs.rs/ferrotunnel-common/badge.svg)](https://docs.rs/ferrotunnel-common)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](../LICENSE)
 
-Common types, errors, and utilities for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel).
+Shared types and error handling for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel).
 
 ## Overview
 
-This crate provides shared definitions used throughout the FerroTunnel ecosystem, including:
-- Error types (`TunnelError`)
-- Result aliases
-- Common utility functions
+This crate provides common utilities shared across all FerroTunnel crates:
+
+- `TunnelError` - Comprehensive error type for tunnel operations
+- `Result<T>` - Convenient result type alias
 
 ## Usage
 
-This is an internal crate for FerroTunnel. If you are building on top of FerroTunnel components, you may need this.
+```rust
+use ferrotunnel_common::{Result, TunnelError};
 
-```toml
-[dependencies]
-ferrotunnel-common = "0.4.0"
+fn example() -> Result<()> {
+    // Your tunnel logic here
+    Ok(())
+}
 ```
+
+## Error Types
+
+- `Io` - I/O errors
+- `Protocol` - Protocol violations
+- `Authentication` - Auth failures
+- `SessionNotFound` - Invalid session
+- `StreamNotFound` - Invalid stream
+- `Timeout` - Operation timeout
+- `Config` - Configuration errors
+- `Connection` - Connection failures
+
+## License
+
+Licensed under either of Apache License, Version 2.0 or MIT license at your option.

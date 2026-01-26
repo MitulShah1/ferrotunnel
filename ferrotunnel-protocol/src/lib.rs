@@ -6,6 +6,8 @@
 pub mod codec;
 pub mod constants;
 pub mod frame;
+pub mod validation;
 
 pub use codec::TunnelCodec;
 pub use frame::{CloseReason, Frame, HandshakeStatus, Protocol, RegisterStatus, StreamStatus};
+pub use validation::{validate_frame, ValidationError, ValidationLimits};

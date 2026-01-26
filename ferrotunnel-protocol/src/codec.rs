@@ -18,13 +18,33 @@ use tokio_util::codec::{Decoder, Encoder};
 /// │ 4 bytes     │ N bytes      │
 /// └─────────────┴──────────────┘
 /// ```
-#[derive(Debug, Default, Clone, Copy)]
-pub struct TunnelCodec;
+#[derive(Debug, Clone, Copy)]
+pub struct TunnelCodec {
+    max_frame_size: usize,
+}
+
+impl Default for TunnelCodec {
+    fn default() -> Self {
+        Self {
+            max_frame_size: MAX_FRAME_SIZE as usize,
+        }
+    }
+}
 
 impl TunnelCodec {
-    /// Create a new codec instance
+    /// Create a new codec instance with default max frame size
     pub fn new() -> Self {
-        Self
+        Self::default()
+    }
+
+    /// Create a new codec instance with a custom max frame size
+    pub fn with_max_frame_size(max_frame_size: usize) -> Self {
+        Self { max_frame_size }
+    }
+
+    /// Get the configured max frame size
+    pub fn max_frame_size(&self) -> usize {
+        self.max_frame_size
     }
 }
 
@@ -44,10 +64,13 @@ impl Decoder for TunnelCodec {
         let frame_length = u32::from_be_bytes(length_bytes) as usize;
 
         // Validate frame size
-        if frame_length > MAX_FRAME_SIZE as usize {
+        if frame_length > self.max_frame_size {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("Frame too large: {frame_length} bytes (max: {MAX_FRAME_SIZE})"),
+                format!(
+                    "Frame too large: {frame_length} bytes (max: {})",
+                    self.max_frame_size
+                ),
             ));
         }
 
@@ -85,10 +108,13 @@ impl Encoder<Frame> for TunnelCodec {
         let frame_length = encoded.len();
 
         // Validate frame size
-        if frame_length > MAX_FRAME_SIZE as usize {
+        if frame_length > self.max_frame_size {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("Frame too large: {frame_length} bytes (max: {MAX_FRAME_SIZE})"),
+                format!(
+                    "Frame too large: {frame_length} bytes (max: {})",
+                    self.max_frame_size
+                ),
             ));
         }
 

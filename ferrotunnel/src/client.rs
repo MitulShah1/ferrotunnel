@@ -19,7 +19,9 @@
 //! ```
 
 use crate::config::{ClientConfig, TunnelInfo};
+use ferrotunnel_common::config::TlsConfig;
 use ferrotunnel_common::{Result, TunnelError};
+use ferrotunnel_core::transport::{tls::TlsTransportConfig, TransportConfig};
 use ferrotunnel_core::TunnelClient;
 use ferrotunnel_http::HttpProxy;
 use std::sync::Arc;
@@ -34,6 +36,7 @@ use tracing::{error, info};
 #[derive(Debug)]
 pub struct Client {
     config: ClientConfig,
+    transport_config: TransportConfig,
     shutdown_tx: Option<watch::Sender<bool>>,
     task: Option<JoinHandle<()>>,
 }
@@ -42,6 +45,7 @@ pub struct Client {
 #[derive(Debug, Default)]
 pub struct ClientBuilder {
     config: ClientConfig,
+    transport_config: Option<TransportConfig>,
 }
 
 impl Client {
@@ -89,6 +93,7 @@ impl Client {
         let local_addr = config.local_addr.clone();
         let auto_reconnect = config.auto_reconnect;
         let reconnect_delay = config.reconnect_delay;
+        let transport_config = self.transport_config.clone();
 
         let task = tokio::spawn(async move {
             let proxy = Arc::new(HttpProxy::new(local_addr));
@@ -96,7 +101,8 @@ impl Client {
             let mut shutdown_rx = shutdown_rx;
 
             loop {
-                let mut client = TunnelClient::new(server_addr.clone(), token.clone());
+                let mut client = TunnelClient::new(server_addr.clone(), token.clone())
+                    .with_transport(transport_config.clone());
                 let proxy_ref = proxy.clone();
 
                 let connect_result = tokio::select! {
@@ -236,6 +242,29 @@ impl ClientBuilder {
         self
     }
 
+    /// Configure TLS for the connection.
+    ///
+    /// When enabled, the client will use TLS to connect to the server.
+    #[must_use]
+    pub fn tls(mut self, config: TlsConfig) -> Self {
+        if config.enabled {
+            self.transport_config = Some(TransportConfig::Tls(TlsTransportConfig {
+                ca_cert_path: config.ca_cert_path.map(|p| p.to_string_lossy().to_string()),
+                cert_path: config
+                    .cert_path
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default(),
+                key_path: config
+                    .key_path
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default(),
+                server_name: config.server_name,
+                client_auth: config.client_auth,
+            }));
+        }
+        self
+    }
+
     /// Build the client with the configured options.
     ///
     /// # Errors
@@ -247,6 +276,7 @@ impl ClientBuilder {
         self.config.validate()?;
         Ok(Client {
             config: self.config,
+            transport_config: self.transport_config.unwrap_or_default(),
             shutdown_tx: None,
             task: None,
         })

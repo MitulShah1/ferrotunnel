@@ -105,6 +105,21 @@ Trait-based plugin system for intercepting traffic:
 - Built-in Auth and Rate Limiting
 - Custom logic support
 
+## Tools
+
+FerroTunnel includes powerful tools to ensure reliability and performance:
+
+- **[`ferrotunnel-soak`](tools/soak)**: Long-duration stability testing tool.
+- **[`ferrotunnel-loadgen`](tools/loadgen)**: High-performance load generator.
+- **`ferrotunnel-protocol/fuzz`**: Fuzz testing for protocol robustness.
+
+## Hardening
+
+We prioritize security and stability. See our [Hardening Overview](extra/hardening_overview.md) for details on:
+- 🛡️ **Fuzz Testing**: Continuous fuzzing to catch edge cases.
+- ⚡ **Benchmarks**: Performance tracking for latency and throughput.
+- 🔒 **Security Audits**: Automated dependency auditing.
+
 ## Building
 
 ```bash

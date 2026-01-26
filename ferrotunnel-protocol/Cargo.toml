@@ -19,6 +19,11 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
+criterion = { workspace = true }
+
+[[bench]]
+name = "codec"
+harness = false
 
 [lints]
 workspace = true
