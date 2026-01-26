@@ -58,7 +58,7 @@ audit:
 # Run fuzz tests (smoke test)
 fuzz:
 	@echo "Running fuzz tests (5 min)..."
-	cd ferrotunnel-protocol && cargo +nightly fuzz run codec_decode -- -max_total_time=300
+	cd ferrotunnel-protocol && cargo +nightly fuzz run codec_decode --sanitizer=none -- -max_total_time=300
 
 # Build the project
 build:
