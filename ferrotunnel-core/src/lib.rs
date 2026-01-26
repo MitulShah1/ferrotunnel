@@ -1,3 +1,7 @@
+pub mod auth;
+pub mod rate_limit;
+pub mod reconnect;
+pub mod resource_limits;
 pub mod stream;
 pub mod transport;
 pub mod tunnel;

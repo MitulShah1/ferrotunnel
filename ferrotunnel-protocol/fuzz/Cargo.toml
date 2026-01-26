@@ -1,0 +1,30 @@
+[package]
+name = "ferrotunnel-protocol-fuzz"
+version = "0.6.0"
+publish = false
+license = "MIT"
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+ferrotunnel-protocol = { path = ".." }
+bytes = "1"
+tokio-util = { version = "0.7", features = ["codec"] }
+arbitrary = { version = "1", features = ["derive"] }
+
+[[bin]]
+name = "codec_decode"
+path = "fuzz_targets/codec_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "frame_validation"
+path = "fuzz_targets/frame_validation.rs"
+test = false
+doc = false
+bench = false

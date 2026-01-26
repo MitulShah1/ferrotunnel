@@ -1,3 +1,4 @@
+use crate::rate_limit::SessionRateLimiter;
 use crate::stream::multiplexer::Multiplexer;
 use dashmap::DashMap;
 use std::net::SocketAddr;
@@ -15,6 +16,7 @@ pub struct Session {
     pub last_heartbeat: Instant,
     pub capabilities: Vec<String>,
     pub multiplexer: Option<Multiplexer>,
+    pub rate_limiter: Option<SessionRateLimiter>,
 }
 
 impl Session {
@@ -34,7 +36,14 @@ impl Session {
             last_heartbeat: now,
             capabilities,
             multiplexer,
+            rate_limiter: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_rate_limiter(mut self, rate_limiter: SessionRateLimiter) -> Self {
+        self.rate_limiter = Some(rate_limiter);
+        self
     }
 
     pub fn update_heartbeat(&mut self) {

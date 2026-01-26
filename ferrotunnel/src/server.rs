@@ -18,7 +18,9 @@
 //! ```
 
 use crate::config::ServerConfig;
+use ferrotunnel_common::config::TlsConfig;
 use ferrotunnel_common::{Result, TunnelError};
+use ferrotunnel_core::transport::{tls::TlsTransportConfig, TransportConfig};
 use ferrotunnel_core::TunnelServer;
 use ferrotunnel_http::HttpIngress;
 use ferrotunnel_plugin::PluginRegistry;
@@ -34,6 +36,7 @@ use tracing::info;
 #[derive(Debug)]
 pub struct Server {
     config: ServerConfig,
+    transport_config: TransportConfig,
     shutdown_tx: Option<watch::Sender<bool>>,
     task: Option<JoinHandle<Result<()>>>,
 }
@@ -42,6 +45,7 @@ pub struct Server {
 #[derive(Debug, Default)]
 pub struct ServerBuilder {
     config: ServerConfig,
+    transport_config: Option<TransportConfig>,
 }
 
 impl Server {
@@ -83,7 +87,8 @@ impl Server {
         info!("  Tunnel bind: {}", config.bind_addr);
         info!("  HTTP bind: {}", config.http_bind_addr);
 
-        let tunnel_server = TunnelServer::new(config.bind_addr, config.token);
+        let tunnel_server = TunnelServer::new(config.bind_addr, config.token)
+            .with_transport(self.transport_config.clone());
 
         // Initialize plugins
         let mut registry = PluginRegistry::new();
@@ -202,6 +207,29 @@ impl ServerBuilder {
         self
     }
 
+    /// Configure TLS for the server.
+    ///
+    /// When enabled, the server will use TLS for all connections.
+    #[must_use]
+    pub fn tls(mut self, config: TlsConfig) -> Self {
+        if config.enabled {
+            self.transport_config = Some(TransportConfig::Tls(TlsTransportConfig {
+                ca_cert_path: config.ca_cert_path.map(|p| p.to_string_lossy().to_string()),
+                cert_path: config
+                    .cert_path
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default(),
+                key_path: config
+                    .key_path
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_default(),
+                server_name: config.server_name,
+                client_auth: config.client_auth,
+            }));
+        }
+        self
+    }
+
     /// Build the server with the configured options.
     ///
     /// # Errors
@@ -212,6 +240,7 @@ impl ServerBuilder {
         self.config.validate()?;
         Ok(Server {
             config: self.config,
+            transport_config: self.transport_config.unwrap_or_default(),
             shutdown_tx: None,
             task: None,
         })

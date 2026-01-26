@@ -12,8 +12,8 @@ keywords = ["tunnel", "networking", "async", "core"]
 categories = ["network-programming", "asynchronous"]
 
 [dependencies]
-ferrotunnel-common = { version = "0.5.0", path = "../ferrotunnel-common" }
-ferrotunnel-protocol = { version = "0.5.0", path = "../ferrotunnel-protocol" }
+ferrotunnel-common = { version = "0.6.0", path = "../ferrotunnel-common" }
+ferrotunnel-protocol = { version = "0.6.0", path = "../ferrotunnel-protocol" }
 
 tokio = { workspace = true }
 tokio-util = { workspace = true }
@@ -22,6 +22,35 @@ uuid = { workspace = true }
 dashmap = "6.1"                   # Thread-safe map for sessions
 futures = "0.3.31"
 bytes = { workspace = true }
+
+# TLS support
+tokio-rustls = "0.26"
+rustls = { version = "0.23", default-features = false, features = [
+    "ring",
+    "std",
+] }
+rustls-pemfile = "2"
+
+# Auth hardening
+thiserror = { workspace = true }
+subtle = "2"
+sha2 = "0.10"
+
+# Rate limiting
+governor = "0.8"
+nonzero_ext = "0.3"
+rand = "0.8"
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["async_tokio"] }
+
+[[bench]]
+name = "transport"
+harness = false
+
+[[bench]]
+name = "multiplexer"
+harness = false
 
 [lints]
 workspace = true

@@ -280,7 +280,7 @@ GET  /                         # Dashboard UI
 
 ### 🛡️ Phase 7: Hardening (Weeks 13-14)
 
-**Status**: ⏳ Planned
+**Status**: ✅ Completed
 **Goal**: Production-ready reliability and security
 
 #### Deliverables
@@ -381,10 +381,10 @@ GET  /                         # Dashboard UI
 - **v0.2.0** - Basic tunnel (Week 4) ✅
 - **v0.3.0** - HTTP proxying (Week 6) - **MVP** ✅
 - **v0.4.0** - Library API (Week 8) - **Publish to crates.io** ✅
-- **v0.5.0** - Plugin system (Week 10) 🎯
-- **v0.6.0** - Dashboard (Week 12)
-- **v0.7.0** - Hardening (Week 14)
-- **v1.0.0-rc1** - Release candidate (Week 14)
+- **v0.5.0** - Plugin system (Week 10) ✅
+- **v0.6.0** - Hardening & Observability (Week 14) ✅
+- **v0.7.0** - Pre-release improvements
+- **v1.0.0-rc1** - Release candidate (Week 16)
 
 ### v1.0.0 (Week 16)
 
