@@ -24,20 +24,8 @@ jobs:
       - name: Run clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-  security-audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: rustsec/audit-check@v2.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-        env:
-          # Match the ignore list from deny.toml and VULNERABILITY_FIXES.md
-          CARGO_AUDIT_IGNORE: RUSTSEC-2024-0437 RUSTSEC-2025-0141 RUSTSEC-2025-0134
-
-  license-check:
-    name: License & Dependency Check
+  compliance-check:
+    name: Compliance & Security Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
