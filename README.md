@@ -17,7 +17,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ferrotunnel = "0.5"
+ferrotunnel = "0.6"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -154,12 +154,8 @@ cargo test --package ferrotunnel-protocol
 See [ROADMAP.md](ROADMAP.md) for the complete 16-week development plan.
 
 **Upcoming phases:**
-- Phase 2: Basic Tunnel (client-server communication)
-- Phase 3: HTTP Proxying
-- Phase 4: Library API (embeddable)
-- Phase 5: Plugin System (Completed)
 - Phase 6: Observability Dashboard
-- Phase 7-8: Production Hardening & Release
+- Phase 8: Final v1.0.0 Release
 
 ## Architecture
 
@@ -193,11 +189,12 @@ at your option.
 
 ## Contributing
 
-This project is in early development (Phase 1). Contributions are welcome!
+This project is in active development. Contributions are welcome!
 
 Before contributing, please:
-1. Read our [Code of Conduct](CODE_OF_CONDUCT.md)
-2. Review [ARCHITECTURE.md](ARCHITECTURE.md) to understand the project structure
-3. Check the [ROADMAP.md](ROADMAP.md) to see what's being worked on
+1. Read our [Contributing Guide](CONTRIBUTING.md)
+2. Review our [Code of Conduct](CODE_OF_CONDUCT.md)
+3. Review [ARCHITECTURE.md](ARCHITECTURE.md) to understand the project structure
+4. Check the [ROADMAP.md](ROADMAP.md) to see what's being worked on
 
 For security issues, see [SECURITY.md](SECURITY.md).
