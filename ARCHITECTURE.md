@@ -4,7 +4,7 @@
 
 FerroTunnel follows the **tokio-style workspace pattern** - the industry standard for multi-crate Rust projects.
 
-### Current Structure (Phase 5)
+### Current Structure (Phase 6)
 
 ```
 ferrotunnel/
@@ -43,7 +43,13 @@ ferrotunnel/
 │   └── src/
 │       ├── traits.rs
 │       ├── registry.rs
-│       └── builtin/
+│       ├── builtin/
+├── ferrotunnel-observability/  # Phase 6: Monitoring & Tracing
+│   ├── Cargo.toml
+│   └── src/
+│       ├── metrics.rs          # Prometheus metrics
+│       ├── tracing.rs          # OpenTelemetry
+│       └── lib.rs              # Initialization API
 ├── ferrotunnel-common/         # Shared types & errors
 │   └── src/
 ├── ferrotunnel-client/         # Client binary
@@ -159,7 +165,7 @@ ferrotunnel/
 3. ✅ **Phase 3**: `http` handling
 4. ✅ **Phase 4**: Complete main library API
 5. ✅ **Phase 5**: `plugin` system
-6. **Phase 6**: `observability` infrastructure (Backend)
+6. ✅ **Phase 6**: `observability` infrastructure (Backend)
 7. **Phase 7**: `observability` dashboard (UI + API)
 8. ✅ **Phase 8**: Hardening & Security
 9. **Phase 9**: v1.0.0 release
@@ -267,10 +273,16 @@ client.start().await?;
 - CLI binaries for running the tunnel and server standalone.
 - Built on top of the library API.
 
+### `ferrotunnel-observability` ✅
+
+**Metrics and Tracing** (Phase 6):
+- **Prometheus Metrics**: High-performance counters and histograms for tunnel health.
+- **OpenTelemetry**: Distributed tracing support for request-level visibility.
+- **Unified Init**: Convenience API for initializing observability in any binary.
+
 ### Future Crates
 
-- **`ferrotunnel-plugin`** (Phase 5): Plugin trait, registry, and built-in plugins
-- **`ferrotunnel-observability`** (Phase 6): Metrics, tracing, dashboard
+- **`ferrotunnel-observability` Dashboard** (Phase 7): Built-in WebUI and REST API.
 
 ## Building
 

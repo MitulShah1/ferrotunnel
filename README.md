@@ -17,7 +17,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ferrotunnel = "0.6"
+ferrotunnel = "0.7"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -80,6 +80,7 @@ async fn main() -> ferrotunnel::Result<()> {
 - ✅ HTTP ingress and proxy (`ferrotunnel-http`)
 - ✅ **Library API with builder pattern** (`ferrotunnel`)
 - ✅ **Plugin System for extensibility** (`ferrotunnel-plugin`)
+- ✅ **Observability Infrastructure (Backend)** (`ferrotunnel-observability`)
 - ✅ Comprehensive unit tests
 - ✅ Full documentation
 
@@ -104,6 +105,13 @@ Trait-based plugin system for intercepting traffic:
 - Request/Response hooks
 - Built-in Auth and Rate Limiting
 - Custom logic support
+
+### `ferrotunnel-observability`
+
+Metrics and tracing infrastructure:
+- Prometheus metrics endpoint (`:9090/metrics`)
+- OpenTelemetry distributed tracing
+- OTLP/gRPC exporter support
 
 ## Tools
 
@@ -154,8 +162,8 @@ cargo test --package ferrotunnel-protocol
 See [ROADMAP.md](ROADMAP.md) for the complete 16-week development plan.
 
 **Upcoming phases:**
-- Phase 6: Observability Dashboard
-- Phase 8: Final v1.0.0 Release
+- Phase 7: Observability Dashboard (UI + API)
+- Phase 9: Final v1.0.0 Release
 
 ## Architecture
 
