@@ -23,17 +23,17 @@ gantt
     title FerroTunnel 16-Week Roadmap
     dateFormat YYYY-MM-DD
     section Foundation
-    Protocol & Protocol Types     :p1, 2026-01-27, 2w
+    Protocol & Protocol Types     :done, p1, 2026-01-27, 2w
     section Core
     Basic Tunnel                   :done, p2, after p1, 2w
     HTTP Proxying (MVP)            :done, p3, after p2, 2w
     section Differentiators
     Library API (crates.io)        :done, p4, after p3, 2w
-    Plugin System                  :active, p5, after p4, 2w
+    Plugin System                  :done, p5, after p4, 2w
     Observability Dashboard        :crit, p6, after p5, 2w
     section Production
-    Hardening                      :p7, after p6, 2w
-    Release                        :p8, after p7, 2w
+    Hardening                      :done, p7, after p6, 2w
+    Release                        :active, p8, after p7, 2w
 ```
 
 ---
@@ -383,7 +383,6 @@ GET  /                         # Dashboard UI
 - **v0.4.0** - Library API (Week 8) - **Publish to crates.io** ✅
 - **v0.5.0** - Plugin system (Week 10) ✅
 - **v0.6.0** - Hardening & Observability (Week 14) ✅
-- **v0.7.0** - Pre-release improvements
 - **v1.0.0-rc1** - Release candidate (Week 16)
 
 ### v1.0.0 (Week 16)
@@ -523,9 +522,9 @@ Stable release with all three differentiators:
 | 3-4 | Basic Tunnel | ✅ Completed | CLI v0.2.0 |
 | 5-6 | HTTP Proxy | ✅ Completed | MVP v0.3.0 |
 | **7-8** | **Library API** | ✅ Completed | **🎯 crates.io v0.4.0** |
-| **9-10** | **Plugin System** | 🎯 Next | **🎯 Plugins v0.5.0** |
-| **11-12** | **Dashboard** | ⏳ Planned | **🎯 Observable v0.6.0** |
-| 13-14 | Hardening | ⏳ Planned | RC1 v1.0.0-rc1 |
+| 9-10 | Plugin System | ✅ Completed | **🎯 Plugins v0.5.0** |
+| **11-12** | **Dashboard** | ⏳ Planned | **🎯 Observable v0.6.5** |
+| 13-14 | Hardening | ✅ Completed | **🎯 Hardening v0.6.0** |
 | 15-16 | Release | ⏳ Planned | **v1.0.0 🎉** |
 
 **Total: 16 weeks to differentiated v1.0.0**

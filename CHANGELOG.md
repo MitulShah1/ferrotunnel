@@ -5,7 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] - 2026-01-27
+
+### Added
+
+#### Hardening (Phase 7) - Production Readiness
+- **Resilience & Reliability**:
+  - `CircuitBreakerPlugin` for failure isolation
+  - Rate limiting per tunnel/session
+  - Exponential backoff reconnection logic
+  - Resource limits (max connections, memory thresholds)
+- **Security**:
+  - TLS 1.3 support powered by `rustls`
+  - Automated security auditing with `deny.toml`
+  - Security policy and vulnerability reporting guidelines
+- **Transport**:
+  - Optimized TCP settings (NoDelay, Keepalive)
+- **Tooling & Infrastructure**:
+  - `tools/loadgen`: High-performance load generator
+  - `tools/soak`: Long-running soak test suite
+  - Protocol fuzzing suite for frame validation
+  - Performance benchmarks for core components
+- **Documentation**:
+  - Deployment guide (`docs/deployment.md`)
+  - Security guide (`docs/security.md`)
+  - Troubleshooting guide (`docs/troubleshooting.md`)
+
+### Changed
+- Updated all crates and workspace to version 0.6.0
+- Enhanced CI/CD with fuzzing, security audit, and benchmarks
 
 ## [0.5.0] - 2026-01-25
 
@@ -179,7 +207,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame serialization tests
 - Partial frame handling tests
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.1.0...v0.2.0
