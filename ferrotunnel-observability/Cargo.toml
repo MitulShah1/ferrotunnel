@@ -1,0 +1,50 @@
+[package]
+name = "ferrotunnel-observability"
+version = { workspace = true }
+edition = { workspace = true }
+rust-version = { workspace = true }
+authors = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+description = "Observability infrastructure for FerroTunnel (Metrics & Tracing)"
+keywords = [
+    "tunnel",
+    "observability",
+    "metrics",
+    "tracing",
+    "prometheus",
+    "opentelemetry",
+]
+categories = ["network-programming"]
+
+[dependencies]
+ferrotunnel-common = { path = "../ferrotunnel-common" }
+anyhow = { workspace = true }
+
+# Metrics
+prometheus = { version = "0.13", features = ["process"] }
+lazy_static = "1.4"
+
+# Tracing & OpenTelemetry
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry = "0.22"
+opentelemetry = { version = "0.21" }
+opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.14", features = [
+    "grpc-tonic",
+    "metrics",
+    "trace",
+] }
+
+# Async
+tokio = { workspace = true }
+async-trait = "0.1"
+
+# Web (for metrics endpoint if needed)
+axum = { version = "0.7", optional = true }
+
+[features]
+default = []
+axum = ["dep:axum"]
