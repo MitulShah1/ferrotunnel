@@ -26,7 +26,11 @@ ferrotunnel/
 │   └── src/
 │       ├── tunnel/             # Connection management
 │       ├── stream/             # Multiplexing
-│       └── transport/          # Transport layer
+│       ├── transport/          # Transport layer (TCP/TLS)
+│       ├── auth.rs             # Token-based authentication
+│       ├── rate_limit.rs       # Rate limiting logic
+│       ├── reconnect.rs        # Reconnect with backoff
+│       └── resource_limits.rs  # Resource monitoring
 ├── ferrotunnel-http/           # HTTP handling
 │   ├── Cargo.toml
 │   └── src/
@@ -46,9 +50,12 @@ ferrotunnel/
 │   └── src/main.rs
 ├── ferrotunnel-server/         # Server binary
 │   └── src/main.rs
-└── examples/                   # Embeddable examples
-    ├── embedded_client.rs
-    └── embedded_server.rs
+├── examples/                   # Embeddable examples
+│   ├── embedded_client.rs
+│   └── embedded_server.rs
+└── tools/                      # Testing & Diagnostic tools
+    ├── loadgen/                # v0.6.0: Load generator
+    └── soak/                   # v0.6.0: Soak tester
 ```
 
 **Key improvements over nested `crates/` folder:**
@@ -153,7 +160,8 @@ ferrotunnel/
 4. ✅ **Phase 4**: Complete main library API
 5. ✅ **Phase 5**: `plugin` system
 6. **Phase 6**: `observability` dashboard
-7. **Phase 7-8**: Hardening + v1.0.0 release
+7. ✅ **Phase 7**: Hardening & Security
+8. **Phase 8**: v1.0.0 release
 
 ## Why This Structure?
 
