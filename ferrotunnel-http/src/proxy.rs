@@ -1,42 +1,185 @@
+use bytes::Bytes;
 use ferrotunnel_core::stream::multiplexer::VirtualStream;
+use http_body_util::{BodyExt, Full};
+use hyper::body::Incoming;
+use hyper::server::conn::http1;
+use hyper::{Request, Response, StatusCode};
+use hyper_util::rt::TokioIo;
+use hyper_util::service::TowerToHyperService;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 use tokio::net::TcpStream;
-use tracing::{debug, error, info};
+use tower::{Layer, Service};
+#[derive(Debug)]
+pub enum ProxyError {
+    Hyper(hyper::Error),
+    Custom(String),
+}
 
+impl std::fmt::Display for ProxyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProxyError::Hyper(e) => write!(f, "Hyper error: {e}"),
+            ProxyError::Custom(s) => write!(f, "Proxy error: {s}"),
+        }
+    }
+}
+
+impl std::error::Error for ProxyError {}
+
+impl From<hyper::Error> for ProxyError {
+    fn from(e: hyper::Error) -> Self {
+        ProxyError::Hyper(e)
+    }
+}
+
+impl From<std::convert::Infallible> for ProxyError {
+    fn from(_: std::convert::Infallible) -> Self {
+        unreachable!()
+    }
+}
+
+use tracing::{debug, error};
+
+type BoxBody = http_body_util::combinators::BoxBody<Bytes, ProxyError>;
+
+/// Service that forwards requests to a local TCP port.
 #[derive(Clone)]
-pub struct HttpProxy {
+pub struct LocalProxyService {
     target_addr: String,
 }
 
-impl HttpProxy {
+impl LocalProxyService {
     pub fn new(target_addr: String) -> Self {
         Self { target_addr }
     }
+}
 
-    pub fn handle_stream(&self, mut stream: VirtualStream) {
+use hyper::body::Body;
+
+impl<B> Service<Request<B>> for LocalProxyService
+where
+    B: Body + Send + Sync + 'static,
+    B::Data: Send,
+    B::Error: Into<ProxyError>,
+{
+    type Response = Response<BoxBody>;
+    type Error = hyper::Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn call(&mut self, req: Request<B>) -> Self::Future {
         let target = self.target_addr.clone();
-        tokio::spawn(async move {
-            debug!("Connecting to local service {}", target);
-            match TcpStream::connect(&target).await {
-                Ok(mut local_stream) => {
-                    info!("Proxied HTTP request to {}", target);
-                    if let Err(e) =
-                        tokio::io::copy_bidirectional(&mut stream, &mut local_stream).await
-                    {
-                        // Connection reset or closed is normal sometimes
-                        debug!("Proxy stream ended: {}", e);
-                    }
+        Box::pin(async move {
+            let stream = match TcpStream::connect(&target).await {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Failed to connect to local service {target}: {e}");
+                    return Ok(error_response(
+                        StatusCode::BAD_GATEWAY,
+                        &format!("Failed to connect to local service: {e}"),
+                    ));
+                }
+            };
+
+            let io = TokioIo::new(stream);
+            let (mut sender, conn) = match hyper::client::conn::http1::handshake(io).await {
+                Ok(h) => h,
+                Err(e) => {
+                    error!("Local handshake failed: {e}");
+                    return Ok(error_response(
+                        StatusCode::BAD_GATEWAY,
+                        &format!("Local handshake failed: {e}"),
+                    ));
+                }
+            };
+
+            tokio::spawn(async move {
+                if let Err(e) = conn.await {
+                    error!("Connection error: {:?}", e);
+                }
+            });
+
+            // Map generic body to BoxBody for hyper client
+            let req = req.map(|b| BodyExt::boxed(b).map_err(Into::into));
+
+            match sender.send_request(req).await {
+                Ok(res) => {
+                    let (parts, body) = res.into_parts();
+                    // Map hyper::Error to ProxyError
+                    let boxed_body = body.map_err(Into::into).boxed();
+                    Ok(Response::from_parts(parts, boxed_body))
                 }
                 Err(e) => {
-                    error!("Failed to connect to local service {}: {}", target, e);
-                    // We should probably close the stream or send an error?
-                    // VirtualStream dropped here will send CloseStream effectively?
-                    // Dropping VirtualStream sends CloseStream if we implemented Drop?
-                    // No, VirtualStream implement AsyncWrite shutdown.
-                    // If we drop it, the sender is dropped. The Multiplexer sees channel closed.
-                    // But Multiplexer assumes "Stream receiver dropped, cleanup".
-                    // It doesn't necessarily send CloseStream to peer.
-                    // We should definitely shutdown the stream.
+                    error!("Failed to proxy request: {e}");
+                    Ok(error_response(StatusCode::BAD_GATEWAY, "Proxy error"))
                 }
+            }
+        })
+    }
+}
+
+#[allow(clippy::expect_used)]
+fn error_response(status: StatusCode, msg: &str) -> Response<BoxBody> {
+    Response::builder()
+        .status(status)
+        .body(
+            Full::new(Bytes::from(msg.to_string()))
+                .map_err(|_| ProxyError::Custom("Error construction failed".into()))
+                .boxed(),
+        )
+        .expect("building error response should never fail")
+}
+
+#[derive(Clone)]
+pub struct HttpProxy<L> {
+    target_addr: String,
+    layer: L,
+}
+
+impl HttpProxy<tower::layer::util::Identity> {
+    pub fn new(target_addr: String) -> Self {
+        Self {
+            target_addr,
+            layer: tower::layer::util::Identity::new(),
+        }
+    }
+}
+
+impl<L> HttpProxy<L> {
+    pub fn with_layer<NewL>(self, layer: NewL) -> HttpProxy<NewL> {
+        HttpProxy {
+            target_addr: self.target_addr,
+            layer,
+        }
+    }
+
+    pub fn handle_stream(&self, stream: VirtualStream)
+    where
+        L: Layer<LocalProxyService> + Clone + Send + 'static,
+        L::Service: Service<Request<Incoming>, Response = Response<BoxBody>, Error = hyper::Error>
+            + Send
+            + Clone
+            + 'static,
+        <L::Service as Service<Request<Incoming>>>::Future: Send,
+    {
+        let service = self
+            .layer
+            .clone()
+            .layer(LocalProxyService::new(self.target_addr.clone()));
+        let hyper_service = TowerToHyperService::new(service);
+        let io = TokioIo::new(stream);
+
+        tokio::spawn(async move {
+            if let Err(err) = http1::Builder::new()
+                .serve_connection(io, hyper_service)
+                .await
+            {
+                debug!("Error serving proxy connection: {err:?}");
             }
         });
     }

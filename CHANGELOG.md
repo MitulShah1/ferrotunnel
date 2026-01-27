@@ -20,8 +20,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Instrumented HTTP ingress and session management
 - **Client Integration**:
   - Automatic observability initialization for monitoring remote deployments
-- **Workspace**:
-  - Updated all crates and internal dependencies to version 0.7.0
+
+#### Real-Time Dashboard (Phase 7) - UI & API
+- **Web Dashboard** at `http://localhost:4040`:
+  - Live traffic chart with 2-second update intervals
+  - Request/response inspector with full headers and bodies
+  - Tunnel status monitoring with connection state
+  - Error rate tracking for 4xx/5xx responses
+- **Dashboard API Endpoints**:
+  - `GET /api/v1/health` - Health check with version info
+  - `GET /api/v1/tunnels` - List active tunnels
+  - `GET /api/v1/requests` - List captured requests
+  - `GET /api/v1/requests/:id` - Get full request details
+  - `POST /api/v1/requests/:id/replay` - Replay captured requests
+  - `GET /api/v1/events` - SSE stream for real-time updates
+- **Traffic Capture Middleware**:
+  - `DashboardCaptureLayer` for capturing request/response data
+  - Full header and body capture (up to 1MB)
+  - Duration and timestamp tracking
+- **Static Assets**: Embedded HTML/CSS/JS dashboard UI
+- **Testing**: `scripts/test-dashboard.sh` comprehensive test script
+
+### Changed
+- `TunnelStatus` enum now includes `Connecting` variant
+- Client middleware now tracks `tunnel_id` for proper request association
+- Updated all crates and internal dependencies to version 0.7.0
 
 ### Fixed
 - Resolved Clippy warnings related to `unwrap()` usage in background tasks
@@ -230,7 +253,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame serialization tests
 - Partial frame handling tests
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.3.0...v0.4.0

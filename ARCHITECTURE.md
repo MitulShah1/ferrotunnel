@@ -4,7 +4,7 @@
 
 FerroTunnel follows the **tokio-style workspace pattern** - the industry standard for multi-crate Rust projects.
 
-### Current Structure (Phase 6)
+### Current Structure (Phase 8)
 
 ```
 ferrotunnel/
@@ -15,53 +15,48 @@ ferrotunnel/
 ├── CHANGELOG.md
 ├── LICENSE
 ├── ferrotunnel/                # Main library (Facade & Builders)
-│   ├── Cargo.toml
-│   └── src/
-│       ├── lib.rs              # Re-exports & prelude
-│       ├── client.rs           # Client Builder API
-│       ├── server.rs           # Server Builder API
-│       └── config.rs           # Configuration types
+│   ├── src/
+│   │   ├── lib.rs              # Re-exports & prelude
+│   │   ├── client.rs           # Client Builder API
+│   │   ├── server.rs           # Server Builder API
+│   │   └── config.rs           # Configuration types
 ├── ferrotunnel-core/           # Core tunnel logic
-│   ├── Cargo.toml
-│   └── src/
-│       ├── tunnel/             # Connection management
-│       ├── stream/             # Multiplexing
-│       ├── transport/          # Transport layer (TCP/TLS)
-│       ├── auth.rs             # Token-based authentication
-│       ├── rate_limit.rs       # Rate limiting logic
-│       ├── reconnect.rs        # Reconnect with backoff
-│       └── resource_limits.rs  # Resource monitoring
+│   ├── src/
+│   │   ├── tunnel/             # Connection management
+│   │   ├── stream/             # Multiplexing
+│   │   ├── transport/          # Transport layer (TCP/TLS)
+│   │   ├── auth.rs             # Token-based authentication
+│   │   ├── rate_limit.rs       # Rate limiting logic
+│   │   ├── reconnect.rs        # Reconnect with backoff
+│   │   └── resource_limits.rs  # Resource monitoring
 ├── ferrotunnel-http/           # HTTP handling
-│   ├── Cargo.toml
-│   └── src/
-│       ├── ingress.rs          # HTTP Ingress
-│       └── proxy.rs            # HTTP/WS Proxy
+│   ├── src/
+│   │   ├── ingress.rs          # HTTP Ingress
+│   │   └── proxy.rs            # HTTP/WS Proxy
 ├── ferrotunnel-protocol/       # Wire protocol & codec
 │   └── src/
 ├── ferrotunnel-plugin/         # Plugin system
-│   ├── Cargo.toml
-│   └── src/
-│       ├── traits.rs
-│       ├── registry.rs
-│       ├── builtin/
-├── ferrotunnel-observability/  # Phase 6: Monitoring & Tracing
-│   ├── Cargo.toml
-│   └── src/
-│       ├── metrics.rs          # Prometheus metrics
-│       ├── tracing.rs          # OpenTelemetry
-│       └── lib.rs              # Initialization API
+│   ├── src/
+│   │   ├── traits.rs
+│   │   ├── registry.rs
+│   │   └── builtin/
+├── ferrotunnel-observability/  # Phase 6 & 7: Monitoring & Dashboard
+│   ├── src/
+│   │   ├── metrics.rs          # Prometheus metrics
+│   │   ├── tracing.rs          # OpenTelemetry
+│   │   ├── dashboard/          # Real-time Dashboard
+│   │   │   ├── server.rs       # Dashboard server (Axum + SSE)
+│   │   │   ├── api.rs          # REST API
+│   │   │   └── static/         # Embedded Web UI
+│   │   └── lib.rs              # Initialization API
 ├── ferrotunnel-common/         # Shared types & errors
 │   └── src/
 ├── ferrotunnel-client/         # Client binary
-│   └── src/main.rs
 ├── ferrotunnel-server/         # Server binary
-│   └── src/main.rs
 ├── examples/                   # Embeddable examples
-│   ├── embedded_client.rs
-│   └── embedded_server.rs
 └── tools/                      # Testing & Diagnostic tools
-    ├── loadgen/                # v0.6.0: Load generator
-    └── soak/                   # v0.6.0: Soak tester
+    ├── loadgen/                # Load generator
+    └── soak/                   # Soak tester
 ```
 
 **Key improvements over nested `crates/` folder:**
@@ -112,9 +107,9 @@ ferrotunnel/
 │       │   └── router.rs       # Request routing
 │       ├── transport/
 │       │   ├── tcp.rs          # TCP transport
-│       │   ├── tls.rs          # Phase 7: TLS support
+│       │   ├── tls.rs          # Phase 8: TLS support
 │       │   └── quic.rs         # Future: QUIC
-│       └── reconnect.rs        # Phase 7: Auto-reconnect
+│       └── reconnect.rs        # Phase 8: Auto-reconnect
 │
 ├── ferrotunnel-http/           # Phase 3: HTTP handling
 │   └── src/
@@ -166,7 +161,7 @@ ferrotunnel/
 4. ✅ **Phase 4**: Complete main library API
 5. ✅ **Phase 5**: `plugin` system
 6. ✅ **Phase 6**: `observability` infrastructure (Backend)
-7. **Phase 7**: `observability` dashboard (UI + API)
+7. ✅ **Phase 7**: `observability` dashboard (UI + API)
 8. ✅ **Phase 8**: Hardening & Security
 9. **Phase 9**: v1.0.0 release
 
@@ -275,14 +270,18 @@ client.start().await?;
 
 ### `ferrotunnel-observability` ✅
 
-**Metrics and Tracing** (Phase 6):
-- **Prometheus Metrics**: High-performance counters and histograms for tunnel health.
+**Metrics, Tracing, and Dashboard** (Phase 6 & 7):
+- **Dashboard server**: Axum-based server providing a real-time WebUI (port 4040) and SSE stream for live updates.
+- **REST API**: Endpoints for inspecting tunnels, requests, and replaying traffic.
+- **Prometheus Metrics**: High-performance counters and histograms on port 9090.
 - **OpenTelemetry**: Distributed tracing support for request-level visibility.
 - **Unified Init**: Convenience API for initializing observability in any binary.
 
-### Future Crates
+### `tools/` ✅
 
-- **`ferrotunnel-observability` Dashboard** (Phase 7): Built-in WebUI and REST API.
+**Diagnostic and Testing Suite** (Phase 8):
+- **loadgen**: High-performance load generator for throughput testing.
+- **soak**: Long-running suite for memory leak and stability detection.
 
 ## Building
 

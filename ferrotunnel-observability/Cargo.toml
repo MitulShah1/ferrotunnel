@@ -42,9 +42,23 @@ opentelemetry-otlp = { version = "0.14", features = [
 tokio = { workspace = true }
 async-trait = "0.1"
 
-# Web (for metrics endpoint if needed)
+# Serialization
+serde = { workspace = true }
+serde_json = "1"
+
+# Timestamps
+chrono = { version = "0.4", features = ["serde"] }
+
+# Request IDs
+uuid = { workspace = true }
+
+# Web (for metrics endpoint and dashboard)
 axum = { version = "0.7", optional = true }
+tower-http = { version = "0.5", features = ["cors", "trace", "compression-gzip", "fs"], optional = true }
+tokio-stream = { version = "0.1", features = ["sync"], optional = true }
+reqwest = { version = "0.13.1", features = ["json"] }
 
 [features]
 default = []
 axum = ["dep:axum"]
+dashboard = ["axum", "dep:tower-http", "dep:tokio-stream"]
