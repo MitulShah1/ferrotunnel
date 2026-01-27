@@ -159,9 +159,10 @@ ferrotunnel/
 3. ✅ **Phase 3**: `http` handling
 4. ✅ **Phase 4**: Complete main library API
 5. ✅ **Phase 5**: `plugin` system
-6. **Phase 6**: `observability` dashboard
-7. ✅ **Phase 7**: Hardening & Security
-8. **Phase 8**: v1.0.0 release
+6. **Phase 6**: `observability` infrastructure (Backend)
+7. **Phase 7**: `observability` dashboard (UI + API)
+8. ✅ **Phase 8**: Hardening & Security
+9. **Phase 9**: v1.0.0 release
 
 ## Why This Structure?
 
