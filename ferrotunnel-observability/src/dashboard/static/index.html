@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FerroTunnel Dashboard</title>
+    <link rel="stylesheet" href="style.css?v=2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="dark-theme">
+    <div id="app">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="brand">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                <span>FerroTunnel</span>
+            </div>
+            <ul class="nav-links">
+                <li class="active"><a href="#overview" data-view="overview">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                        Dashboard
+                    </a></li>
+                <li><a href="#tunnels" data-view="tunnels">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                            <polyline points="13 2 13 9 20 9"></polyline>
+                        </svg>
+                        Tunnels
+                    </a></li>
+                <li><a href="#requests" data-view="requests">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                        Requests
+                    </a></li>
+                <li><a href="#settings" data-view="settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                        Settings
+                    </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1 id="page-title">Dashboard</h1>
+                <div class="status-indicator online">
+                    <span class="dot"></span> Online
+                </div>
+            </header>
+
+            <!-- VIEW: OVERVIEW -->
+            <div id="view-overview" class="view active">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <h3>Active Tunnels</h3>
+                        <div class="value" id="stat-tunnels">0</div>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>Total Requests</h3>
+                        <div class="value" id="stat-requests">0</div>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>Error Rate</h3>
+                        <div class="value error" id="stat-error-rate">0%</div>
+                    </div>
+                </div>
+
+                <!-- Live Traffic Graph -->
+                <div class="card graph-card">
+                    <h3>Live Traffic</h3>
+                    <div class="chart-container">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Requests Table -->
+                <div class="card table-card">
+                    <div class="card-header">
+                        <h3>Recent Requests</h3>
+                        <button class="btn btn-sm" id="clear-requests">Clear</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Method</th>
+                                    <th>Path</th>
+                                    <th>Status</th>
+                                    <th>Size</th>
+                                    <th>Duration</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requests-table-body">
+                                <!-- Request rows will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: TUNNELS -->
+            <div id="view-tunnels" class="view">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Active Tunnels</h3>
+                    </div>
+                    <div id="tunnels-list" style="padding:1.5rem">
+                        <p style="color:var(--text-secondary)">No active tunnels.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: REQUESTS -->
+            <div id="view-requests" class="view">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>All Requests</h3>
+                    </div>
+                    <div style="padding:1.5rem">
+                        <p style="color:var(--text-secondary)">Full history of captured requests.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: SETTINGS -->
+            <div id="view-settings" class="view">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Settings</h3>
+                    </div>
+                    <div style="padding:1.5rem">
+                        <div class="stats-grid">
+                            <div class="card" style="padding:1rem; border:1px solid var(--border-color)">
+                                <h4 style="color:var(--text-secondary); margin-bottom:0.5rem">Client Version</h4>
+                                <div class="value" id="setting-version" style="font-size:1.2rem">Loading...</div>
+                            </div>
+                            <div class="card" style="padding:1rem; border:1px solid var(--border-color)">
+                                <h4 style="color:var(--text-secondary); margin-bottom:0.5rem">Dashboard Port</h4>
+                                <div class="value" style="font-size:1.2rem">4041</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:2rem">
+                            <h3 style="margin-bottom:1rem">Configuration</h3>
+                            <div class="kv-list">
+                                <div>
+                                    <dt>Theme</dt>
+                                    <dd>Dark Mode (Fixed)</dd>
+                                </div>
+                                <div>
+                                    <dt>Refresh Rate</dt>
+                                    <dd>Real-time (SSE)</dd>
+                                </div>
+                                <div>
+                                    <dt>Max History</dt>
+                                    <dd>100 Requests</dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Slide-over / Details Panel -->
+        <aside class="details-panel" id="details-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="method-badge" id="detail-method">GET</span>
+                    <span class="path-text" id="detail-path">/api/v1/users</span>
+                </div>
+                <div class="panel-actions">
+                    <button class="btn btn-primary" id="btn-replay">Replay</button>
+                    <button class="btn btn-icon" id="btn-close-panel">&times;</button>
+                </div>
+            </div>
+            <div class="panel-content">
+                <div class="tabs">
+                    <button class="tab-link active" data-tab="req-headers">Req Headers</button>
+                    <button class="tab-link" data-tab="req-body">Req Body</button>
+                    <button class="tab-link" data-tab="res-headers">Res Headers</button>
+                    <button class="tab-link" data-tab="res-body">Res Body</button>
+                </div>
+
+                <div id="req-headers" class="tab-content active">
+                    <div class="kv-list" id="detail-req-headers"></div>
+                </div>
+                <div id="req-body" class="tab-content">
+                    <div class="code-block language-json" id="detail-req-body"></div>
+                </div>
+                <div id="res-headers" class="tab-content">
+                    <div class="kv-list" id="detail-res-headers"></div>
+                </div>
+                <div id="res-body" class="tab-content">
+                    <div class="code-block language-json" id="detail-res-body"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Simple Chart.js CDN for graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

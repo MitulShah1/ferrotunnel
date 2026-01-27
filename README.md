@@ -9,7 +9,7 @@
 
 **The First Embeddable Rust Reverse Tunnel**
 
-FerroTunnel is a production-ready, secure reverse tunnel system in Rust. Unlike CLI-only alternatives, FerroTunnel can be **embedded directly into your applications** using a simple builder API.
+FerroTunnel is a secure reverse tunnel system in Rust. Unlike CLI-only alternatives, FerroTunnel can be **embedded directly into your applications** using a simple builder API.
 
 ## Quick Start: Library Usage
 
@@ -65,7 +65,7 @@ async fn main() -> ferrotunnel::Result<()> {
 ## Features
 
 - 🔒 **Secure** - Token-based authentication
-- ⚡ **Fast** - Built on Tokio for high-performance async I/O
+- ⚡  **Fast** - Built on Tokio for high-performance async I/O
 - 🔌 **Embeddable** - Use as a library in your own applications
 - 🛡️ **Resilient** - Automatic reconnection, heartbeat monitoring
 - 📦 **Modular** - Use only what you need

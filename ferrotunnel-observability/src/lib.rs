@@ -1,6 +1,9 @@
 pub mod metrics;
 pub mod tracing;
 
+#[cfg(feature = "dashboard")]
+pub mod dashboard;
+
 pub use metrics::{gather_metrics, init_metrics, REGISTRY};
 pub use tracing::{init_tracing, shutdown_tracing, TracingConfig};
 
