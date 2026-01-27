@@ -30,10 +30,11 @@ gantt
     section Differentiators
     Library API (crates.io)        :done, p4, after p3, 2w
     Plugin System                  :done, p5, after p4, 2w
-    Observability Dashboard        :crit, p6, after p5, 2w
+    Observability Infrastructure   :active, p6, after p5, 1w
+    Dashboard (UI + API)           :crit, p7, after p6, 1w
     section Production
-    Hardening                      :done, p7, after p6, 2w
-    Release                        :active, p8, after p7, 2w
+    Hardening                      :done, p8, after p7, 2w
+    Release                        :active, p9, after p8, 2w
 ```
 
 ---
@@ -215,7 +216,29 @@ impl Plugin for CustomAuth {
 
 ---
 
-### 📊 Phase 6: Observability (Weeks 11-12)
+### 📊 Phase 6: Observability (Weeks 11)
+
+**Status**: 🎯 Next
+**Goal**: 🎯 Third Differentiator - Observability Infrastructure
+
+#### Deliverables
+- Prometheus metrics endpoint (`/metrics`)
+- OpenTelemetry integration (tracing & logs)
+- Enhanced structured logging across all crates
+- Performance instrumentation (latency/throughput)
+
+#### Success Criteria
+- ✅ Prometheus scraping works
+- ✅ Distributed traces visible in Jaeger/Zipkin
+- ✅ Zero-overhead instrumentation in hot paths
+
+#### Key Files
+- `crates/ferrotunnel-observability/src/metrics.rs`
+- `crates/ferrotunnel-observability/src/tracing.rs`
+
+---
+
+### 🎨 Phase 7: Dashboard & API (Weeks 12)
 
 **Status**: ⏳ Planned
 **Goal**: 🎯 Third Differentiator - Built-in Dashboard
@@ -228,8 +251,6 @@ impl Plugin for CustomAuth {
   - Request/response viewer
   - Traffic graphs
   - Error monitoring
-- Prometheus metrics endpoint
-- OpenTelemetry integration
 - Dashboard documentation
 
 #### Dashboard Features
@@ -248,7 +269,7 @@ http://localhost:9090/
 │   ├── Request details
 │   └── Response details
 └── Metrics
-    └── Prometheus endpoint
+    └── Prometheus endpoint (from Phase 6)
 ```
 
 #### API Endpoints
@@ -265,20 +286,18 @@ GET  /                         # Dashboard UI
 - ✅ Dashboard accessible at `http://localhost:9090`
 - ✅ Real-time updates via Server-Sent Events
 - ✅ Request/response viewable (like ngrok inspect)
-- ✅ Prometheus metrics work
-- ✅ OpenTelemetry traces exported
+- ✅ API well-documented (OpenAPI/Swagger)
 
 #### Key Files
 - `crates/ferrotunnel-observability/src/dashboard/server.rs`
 - `crates/ferrotunnel-observability/src/dashboard/api.rs`
 - `crates/ferrotunnel-observability/src/dashboard/static/index.html`
-- `crates/ferrotunnel-observability/src/metrics.rs`
 
 **🎯 Differentiator #3: Only Rust tunnel with built-in dashboard!**
 
 ---
 
-### 🛡️ Phase 7: Hardening (Weeks 13-14)
+### 🛡️ Phase 8: Hardening (Weeks 13-14)
 
 **Status**: ✅ Completed
 **Goal**: Production-ready reliability and security
@@ -326,7 +345,7 @@ GET  /                         # Dashboard UI
 
 ---
 
-### 🚀 Phase 8: Release (Weeks 15-16)
+### 🚀 Phase 9: Release (Weeks 15-16)
 
 **Status**: ⏳ Planned
 **Goal**: Public launch of FerroTunnel v1.0.0
@@ -382,7 +401,9 @@ GET  /                         # Dashboard UI
 - **v0.3.0** - HTTP proxying (Week 6) - **MVP** ✅
 - **v0.4.0** - Library API (Week 8) - **Publish to crates.io** ✅
 - **v0.5.0** - Plugin system (Week 10) ✅
-- **v0.6.0** - Hardening & Observability (Week 14) ✅
+- **v0.6.0** - Hardening & Security (Week 14) ✅
+- **v0.7.0** - Observability (Backend) (Week 11)
+- **v0.8.0** - Dashboard (UI + API) (Week 12)
 - **v1.0.0-rc1** - Release candidate (Week 16)
 
 ### v1.0.0 (Week 16)
@@ -523,7 +544,8 @@ Stable release with all three differentiators:
 | 5-6 | HTTP Proxy | ✅ Completed | MVP v0.3.0 |
 | **7-8** | **Library API** | ✅ Completed | **🎯 crates.io v0.4.0** |
 | 9-10 | Plugin System | ✅ Completed | **🎯 Plugins v0.5.0** |
-| **11-12** | **Dashboard** | ⏳ Planned | **🎯 Observable v0.6.5** |
+| **11** | **Observability** | 🎯 Next | **🎯 Backend v0.7.0** |
+| **12** | **Dashboard** | ⏳ Planned | **🎯 UI + API v0.8.0** |
 | 13-14 | Hardening | ✅ Completed | **🎯 Hardening v0.6.0** |
 | 15-16 | Release | ⏳ Planned | **v1.0.0 🎉** |
 
