@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-01-27
+
+### Added
+
+#### Observability Infrastructure (Phase 6) - Backend
+- **New Crate**: `ferrotunnel-observability`
+  - High-performance Prometheus metrics (Counters, Gauges, Histograms)
+  - OpenTelemetry integration with OTLP/gRPC exporter support
+  - Structured logging with `tracing` layers
+- **Server Integration**:
+  - Background metrics server on port `9090` (Axum-based)
+  - Automatic observability initialization
+  - Instrumented HTTP ingress and session management
+- **Client Integration**:
+  - Automatic observability initialization for monitoring remote deployments
+- **Workspace**:
+  - Updated all crates and internal dependencies to version 0.7.0
+
+### Fixed
+- Resolved Clippy warnings related to `unwrap()` usage in background tasks
+- Fixed OpenTelemetry v0.21 dependency feature mismatches
+
+
 ## [0.6.0] - 2026-01-27
 
 ### Added

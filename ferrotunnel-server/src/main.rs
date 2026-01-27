@@ -1,8 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
 use ferrotunnel_core::TunnelServer;
+use ferrotunnel_observability::{gather_metrics, init_basic_observability};
 use std::net::SocketAddr;
-use tracing::info;
+use tracing::{error, info};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -28,13 +29,24 @@ struct Args {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    // Setup logging
-    tracing_subscriber::fmt()
-        .with_env_filter(format!(
-            "ferrotunnel_server={},ferrotunnel_core={},ferrotunnel_http={}",
-            args.log_level, args.log_level, args.log_level
-        ))
-        .init();
+    // Setup observability
+    init_basic_observability("ferrotunnel-server");
+
+    // Start metrics endpoint in background
+    let metrics_addr = SocketAddr::from(([0, 0, 0, 0], 9090));
+    tokio::spawn(async move {
+        use axum::{routing::get, Router};
+        let app = Router::new().route("/metrics", get(|| async { gather_metrics() }));
+        info!("Metrics server listening on http://{}", metrics_addr);
+        match tokio::net::TcpListener::bind(metrics_addr).await {
+            Ok(listener) => {
+                if let Err(e) = axum::serve(listener, app).await {
+                    error!("Metrics server error: {}", e);
+                }
+            }
+            Err(e) => error!("Failed to bind metrics server to {}: {}", metrics_addr, e),
+        }
+    });
 
     info!("Starting FerroTunnel Server v{}", env!("CARGO_PKG_VERSION"));
 

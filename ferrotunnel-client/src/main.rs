@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use ferrotunnel_core::TunnelClient;
+use ferrotunnel_observability::{init_basic_observability, shutdown_tracing};
 use std::time::Duration;
 use tracing::{error, info};
 
@@ -29,13 +30,8 @@ struct Args {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    // Setup logging
-    tracing_subscriber::fmt()
-        .with_env_filter(format!(
-            "ferrotunnel_client={},ferrotunnel_core={},ferrotunnel_http={}",
-            args.log_level, args.log_level, args.log_level
-        ))
-        .init();
+    // Setup observability
+    init_basic_observability("ferrotunnel-client");
 
     info!("Starting FerroTunnel Client v{}", env!("CARGO_PKG_VERSION"));
 
@@ -67,5 +63,6 @@ async fn main() -> Result<()> {
         }
     }
 
+    shutdown_tracing();
     Ok(())
 }

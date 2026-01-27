@@ -8,14 +8,16 @@ repository.workspace = true
 description = "FerroTunnel Client binary"
 
 [dependencies]
-ferrotunnel-core = { version = "0.6.0", path = "../ferrotunnel-core" }
-ferrotunnel-http = { version = "0.6.0", path = "../ferrotunnel-http" }
-ferrotunnel-common = { version = "0.6.0", path = "../ferrotunnel-common" }
+ferrotunnel-core = { version = "0.7.0", path = "../ferrotunnel-core" }
+ferrotunnel-http = { version = "0.7.0", path = "../ferrotunnel-http" }
+ferrotunnel-common = { version = "0.7.0", path = "../ferrotunnel-common" }
+ferrotunnel-observability = { workspace = true }
 
 tokio = { workspace = true }
 clap = { version = "4.4", features = ["derive", "env"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# tracing-subscriber handled by ferrotunnel-observability
+# tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = { workspace = true }
 
 [lints]
