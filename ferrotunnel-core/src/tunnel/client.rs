@@ -108,7 +108,7 @@ impl TunnelClient {
             }
         });
 
-        let (multiplexer, mut new_stream_rx) = Multiplexer::new(frame_tx);
+        let (multiplexer, mut new_stream_rx) = Multiplexer::new(frame_tx, true);
 
         // Spawn stream handler
         tokio::spawn(async move {

@@ -28,11 +28,14 @@ struct Inner {
 #[allow(clippy::expect_used)]
 #[allow(clippy::unwrap_used)]
 impl Multiplexer {
-    pub fn new(frame_tx: mpsc::Sender<Frame>) -> (Self, mpsc::Receiver<VirtualStream>) {
+    pub fn new(
+        frame_tx: mpsc::Sender<Frame>,
+        is_client: bool,
+    ) -> (Self, mpsc::Receiver<VirtualStream>) {
         let (new_stream_tx, new_stream_rx) = mpsc::channel(10);
         let inner = Inner {
             streams: HashMap::new(),
-            next_stream_id: 1,
+            next_stream_id: if is_client { 1 } else { 2 },
         };
         (
             Self {
@@ -253,5 +256,33 @@ impl AsyncWrite for VirtualStream {
             ))),
             Poll::Pending => Poll::Pending,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_stream_id_allocation() {
+        let (tx, _rx) = mpsc::channel(100);
+
+        // Client (Odd IDs)
+        let (client_mux, _client_streams) = Multiplexer::new(tx.clone(), true);
+
+        let s1 = client_mux.open_stream(Protocol::HTTP).await.unwrap();
+        assert_eq!(s1.id(), 1);
+
+        let s2 = client_mux.open_stream(Protocol::HTTP).await.unwrap();
+        assert_eq!(s2.id(), 3);
+
+        // Server (Even IDs)
+        let (server_mux, _server_streams) = Multiplexer::new(tx, false);
+
+        let s3 = server_mux.open_stream(Protocol::HTTP).await.unwrap();
+        assert_eq!(s3.id(), 2);
+
+        let s4 = server_mux.open_stream(Protocol::HTTP).await.unwrap();
+        assert_eq!(s4.id(), 4);
     }
 }

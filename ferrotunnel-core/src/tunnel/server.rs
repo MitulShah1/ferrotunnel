@@ -177,7 +177,7 @@ impl TunnelServer {
                         }
                     });
 
-                    let (multiplexer, mut new_stream_rx) = Multiplexer::new(frame_tx);
+                    let (multiplexer, mut new_stream_rx) = Multiplexer::new(frame_tx, false);
 
                     // Log unexpected streams from client (for now)
                     tokio::spawn(async move {
