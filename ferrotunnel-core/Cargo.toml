@@ -41,6 +41,9 @@ governor = "0.8"
 nonzero_ext = "0.3"
 rand = "0.8"
 
+# Socket tuning for performance
+socket2 = "0.5"
+
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
 
