@@ -2,7 +2,7 @@ use bytes::Bytes;
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use ferrotunnel_common::Result;
-use ferrotunnel_protocol::frame::{Frame, Protocol};
+use ferrotunnel_protocol::frame::{DataFrame, Frame, OpenStreamFrame, Protocol};
 use futures::channel::mpsc;
 use futures::{SinkExt, StreamExt};
 use std::io;
@@ -61,13 +61,13 @@ impl Multiplexer {
 
     /// Process an incoming frame from the wire
     pub async fn process_frame(&self, frame: Frame) -> Result<()> {
-        match frame {
-            Frame::OpenStream {
-                stream_id,
-                protocol,
-                ..
-            } => {
-                debug!("Accepting new stream {} ({:?})", stream_id, protocol);
+        match &frame {
+            Frame::OpenStream(open_stream) => {
+                let stream_id = open_stream.stream_id;
+                debug!(
+                    "Accepting new stream {} ({:?})",
+                    stream_id, open_stream.protocol
+                );
                 let (tx, rx) = mpsc::channel(10);
 
                 // Lock-free insertion using DashMap's entry API
@@ -86,13 +86,24 @@ impl Multiplexer {
                     warn!("Failed to queue new stream {}", stream_id);
                 }
             }
-            Frame::Data { stream_id, .. } | Frame::CloseStream { stream_id, .. } => {
-                // Lock-free lookup using DashMap
+            Frame::Data(data_frame) => {
+                let stream_id = data_frame.stream_id;
                 let tx = self.streams.get(&stream_id).map(|r| r.clone());
 
                 if let Some(mut tx) = tx {
                     if tx.send(Ok(frame)).await.is_err() {
-                        // Stream receiver dropped, cleanup (lock-free removal)
+                        self.streams.remove(&stream_id);
+                    }
+                } else {
+                    debug!("Received frame for unknown stream {}", stream_id);
+                }
+            }
+            Frame::CloseStream { stream_id, .. } => {
+                let stream_id = *stream_id;
+                let tx = self.streams.get(&stream_id).map(|r| r.clone());
+
+                if let Some(mut tx) = tx {
+                    if tx.send(Ok(frame)).await.is_err() {
                         self.streams.remove(&stream_id);
                     }
                 } else {
@@ -115,12 +126,12 @@ impl Multiplexer {
 
         let mut frame_tx = self.frame_tx.clone();
         frame_tx
-            .send(Frame::OpenStream {
+            .send(Frame::OpenStream(Box::new(OpenStreamFrame {
                 stream_id,
                 protocol,
                 headers: vec![],
                 body_hint: None,
-            })
+            })))
             .await
             .map_err(|e| io::Error::new(io::ErrorKind::BrokenPipe, e.to_string()))?;
 
@@ -166,8 +177,8 @@ impl AsyncRead for VirtualStream {
         }
 
         match self.rx.poll_next_unpin(cx) {
-            Poll::Ready(Some(Ok(Frame::Data { data, .. }))) => {
-                let bytes = data.to_vec();
+            Poll::Ready(Some(Ok(Frame::Data(data_frame)))) => {
+                let bytes = data_frame.data.to_vec();
                 let len = std::cmp::min(buf.remaining(), bytes.len());
                 buf.put_slice(&bytes[..len]);
                 if len < bytes.len() {
@@ -192,11 +203,11 @@ impl AsyncWrite for VirtualStream {
         // For simplicity/performance in this MVP, we assume the channel has capacity.
         // In a real impl, we should use poll_ready.
 
-        let frame = Frame::Data {
+        let frame = Frame::Data(Box::new(DataFrame {
             stream_id: self.stream_id,
             data: Bytes::copy_from_slice(buf),
             end_of_stream: false,
-        };
+        }));
 
         match self.tx.poll_ready(cx) {
             Poll::Ready(Ok(())) => {

@@ -6,7 +6,7 @@ use crate::tunnel::session::Session;
 use crate::tunnel::session::SessionStore;
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
-use ferrotunnel_protocol::frame::{Frame, HandshakeStatus};
+use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
 use futures::channel::mpsc;
 use futures::stream::SplitStream;
 use futures::{SinkExt, StreamExt};
@@ -120,12 +120,13 @@ impl TunnelServer {
         if let Some(result) = framed.next().await {
             let frame = result?;
             match frame {
-                Frame::Handshake {
-                    version,
-                    token,
-                    tunnel_id,
-                    capabilities,
-                } => {
+                Frame::Handshake(handshake) => {
+                    let HandshakeFrame {
+                        version,
+                        token,
+                        tunnel_id,
+                        capabilities,
+                    } = *handshake;
                     if let Err(e) = validate_token_format(&token, 256) {
                         warn!("Invalid token format from {}: {}", addr, e);
                         framed

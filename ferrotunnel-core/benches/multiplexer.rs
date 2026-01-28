@@ -4,7 +4,7 @@
 #![allow(unused_imports, unused_variables)]
 use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 use ferrotunnel_core::stream::multiplexer::Multiplexer;
-use ferrotunnel_protocol::frame::{Frame, Protocol};
+use ferrotunnel_protocol::frame::{DataFrame, Frame, Protocol};
 use futures::channel::mpsc;
 use futures::{SinkExt, StreamExt};
 use std::time::Duration;
@@ -25,11 +25,11 @@ fn bench_multiplexer_throughput(c: &mut Criterion) {
             // We need a dummy consumer for frame_rx so the channel doesn't fill up
             tokio::spawn(async move { while frame_rx.next().await.is_some() {} });
 
-            let frame = Frame::Data {
+            let frame = Frame::Data(Box::new(DataFrame {
                 stream_id: 1,
                 data: bytes::Bytes::from(vec![0u8; MSG_SIZE]),
                 end_of_stream: false,
-            };
+            }));
 
             let start = std::time::Instant::now();
             for _ in 0..iters {

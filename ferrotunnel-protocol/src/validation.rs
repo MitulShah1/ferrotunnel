@@ -46,24 +46,20 @@ impl Default for ValidationLimits {
 /// Validate a decoded frame against limits
 pub fn validate_frame(frame: &Frame, limits: &ValidationLimits) -> Result<(), ValidationError> {
     match frame {
-        Frame::Handshake {
-            token,
-            capabilities,
-            ..
-        } => {
-            if token.len() > limits.max_token_len {
+        Frame::Handshake(handshake) => {
+            if handshake.token.len() > limits.max_token_len {
                 return Err(ValidationError::TokenTooLong {
-                    len: token.len(),
+                    len: handshake.token.len(),
                     limit: limits.max_token_len,
                 });
             }
-            if capabilities.len() > limits.max_capabilities {
+            if handshake.capabilities.len() > limits.max_capabilities {
                 return Err(ValidationError::TooManyCapabilities {
-                    count: capabilities.len(),
+                    count: handshake.capabilities.len(),
                     limit: limits.max_capabilities,
                 });
             }
-            for cap in capabilities {
+            for cap in &handshake.capabilities {
                 if cap.len() > limits.max_capability_len {
                     return Err(ValidationError::CapabilityTooLong {
                         len: cap.len(),
@@ -91,10 +87,10 @@ pub fn validate_frame(frame: &Frame, limits: &ValidationLimits) -> Result<(), Va
                 }
             }
         }
-        Frame::Data { data, .. } => {
-            if data.len() > limits.max_payload_bytes {
+        Frame::Data(data_frame) => {
+            if data_frame.data.len() > limits.max_payload_bytes {
                 return Err(ValidationError::PayloadTooLarge {
-                    size: data.len(),
+                    size: data_frame.data.len(),
                     limit: limits.max_payload_bytes,
                 });
             }

@@ -3,7 +3,7 @@ use crate::stream::multiplexer::{Multiplexer, VirtualStream};
 use crate::transport::{self, TransportConfig};
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
-use ferrotunnel_protocol::frame::{Frame, HandshakeStatus};
+use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
 use futures::channel::mpsc;
 use futures::{SinkExt, StreamExt};
 use std::future::Future;
@@ -70,12 +70,12 @@ impl TunnelClient {
 
         debug!("Sending handshake...");
         framed
-            .send(Frame::Handshake {
+            .send(Frame::Handshake(Box::new(HandshakeFrame {
                 version: 1,
                 token: self.auth_token.clone(),
                 tunnel_id: self.tunnel_id.clone(),
                 capabilities: vec!["basic".to_string()],
-            })
+            })))
             .await?;
 
         // 2. Wait for Ack

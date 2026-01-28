@@ -8,7 +8,9 @@
 use bytes::{Bytes, BytesMut};
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use ferrotunnel_protocol::codec::TunnelCodec;
-use ferrotunnel_protocol::frame::{Frame, HandshakeStatus, Protocol};
+use ferrotunnel_protocol::frame::{
+    DataFrame, Frame, HandshakeFrame, HandshakeStatus, OpenStreamFrame, Protocol,
+};
 use std::collections::HashMap;
 use tokio_util::codec::{Decoder, Encoder};
 use uuid::Uuid;
@@ -17,12 +19,12 @@ fn create_test_frames() -> Vec<(&'static str, Frame)> {
     vec![
         (
             "handshake",
-            Frame::Handshake {
+            Frame::Handshake(Box::new(HandshakeFrame {
                 version: 1,
                 token: "test-token-12345678901234567890".to_string(),
                 tunnel_id: Some("benchmark-tunnel".to_string()),
                 capabilities: vec!["basic".to_string(), "tls".to_string()],
-            },
+            })),
         ),
         (
             "handshake_ack",
@@ -40,7 +42,7 @@ fn create_test_frames() -> Vec<(&'static str, Frame)> {
         ),
         (
             "open_stream",
-            Frame::OpenStream {
+            Frame::OpenStream(Box::new(OpenStreamFrame {
                 stream_id: 12345,
                 protocol: Protocol::HTTP,
                 headers: vec![
@@ -48,31 +50,31 @@ fn create_test_frames() -> Vec<(&'static str, Frame)> {
                     ("Content-Type".to_string(), "application/json".to_string()),
                 ],
                 body_hint: Some(1024),
-            },
+            })),
         ),
         (
             "data_small",
-            Frame::Data {
+            Frame::Data(Box::new(DataFrame {
                 stream_id: 12345,
                 data: Bytes::from(vec![0u8; 64]),
                 end_of_stream: false,
-            },
+            })),
         ),
         (
             "data_medium",
-            Frame::Data {
+            Frame::Data(Box::new(DataFrame {
                 stream_id: 12345,
                 data: Bytes::from(vec![0u8; 1024]),
                 end_of_stream: false,
-            },
+            })),
         ),
         (
             "data_large",
-            Frame::Data {
+            Frame::Data(Box::new(DataFrame {
                 stream_id: 12345,
                 data: Bytes::from(vec![0u8; 65536]),
                 end_of_stream: true,
-            },
+            })),
         ),
         (
             "register",
@@ -94,7 +96,7 @@ fn bench_encode(c: &mut Criterion) {
 
     for (name, frame) in &frames {
         let payload_size = match frame {
-            Frame::Data { data, .. } => data.len(),
+            Frame::Data(data_frame) => data_frame.data.len(),
             _ => 0,
         };
 
@@ -132,7 +134,7 @@ fn bench_decode(c: &mut Criterion) {
         let encoded_bytes = encoded.freeze();
 
         let payload_size = match frame {
-            Frame::Data { data, .. } => data.len(),
+            Frame::Data(data_frame) => data_frame.data.len(),
             _ => 0,
         };
 
@@ -167,11 +169,11 @@ fn bench_roundtrip(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(size as u64));
 
         group.bench_with_input(BenchmarkId::new("data_frame", size), &size, |b, &size| {
-            let frame = Frame::Data {
+            let frame = Frame::Data(Box::new(DataFrame {
                 stream_id: 1,
                 data: Bytes::from(vec![0u8; size]),
                 end_of_stream: false,
-            };
+            }));
             let mut codec = TunnelCodec::new();
             let mut buf = BytesMut::with_capacity(size + 128);
 
