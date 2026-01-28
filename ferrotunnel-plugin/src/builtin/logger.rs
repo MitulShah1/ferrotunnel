@@ -32,7 +32,7 @@ impl Plugin for LoggerPlugin {
 
     async fn on_request(
         &self,
-        req: &mut http::Request<Vec<u8>>,
+        req: &mut http::Request<()>,
         ctx: &RequestContext,
     ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
         info!(
@@ -44,9 +44,10 @@ impl Plugin for LoggerPlugin {
             "Incoming request"
         );
 
-        if self.log_bodies && !req.body().is_empty() {
-            info!(body_size = req.body().len(), "Request body");
-        }
+        // Body logging disabled until streaming support is added
+        // if self.log_bodies && !req.body().is_empty() {
+        //     info!(body_size = req.body().len(), "Request body");
+        // }
 
         Ok(PluginAction::Continue)
     }

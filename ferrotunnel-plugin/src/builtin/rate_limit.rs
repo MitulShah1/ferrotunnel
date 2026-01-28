@@ -27,7 +27,7 @@ impl Plugin for RateLimitPlugin {
 
     async fn on_request(
         &self,
-        _req: &mut http::Request<Vec<u8>>,
+        _req: &mut http::Request<()>,
         ctx: &RequestContext,
     ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let key = ctx.remote_addr.ip().to_string();

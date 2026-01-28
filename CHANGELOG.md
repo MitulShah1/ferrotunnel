@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking Changes
+- **Plugin API**: The `Plugin::on_request` trait method signature has changed to take `&mut http::Request<()>` instead of `&mut http::Request<Vec<u8>>`. This prevents plugins from forcing the ingress server to buffer the entire request body, which fixes a critical DoS vulnerability.
+  - **Migration**: Update your plugins to access headers only in `on_request`. If you need to inspect the body, you must implement a streaming body parser (future work).
+
+### Fixed
+- **Critical Security**: Fixed cross-tenant request routing where requests could be routed to any active tunnel instead of the specific tunnel requested via the Host header.
+- **Performance/Security**: Removed full request body buffering in the HTTP ingress to prevent memory exhaustion DoS attacks and improve latency for large payloads.
+
 ## [0.7.0] - 2026-01-27
 
 ### Added

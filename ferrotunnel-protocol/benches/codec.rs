@@ -20,6 +20,7 @@ fn create_test_frames() -> Vec<(&'static str, Frame)> {
             Frame::Handshake {
                 version: 1,
                 token: "test-token-12345678901234567890".to_string(),
+                tunnel_id: Some("benchmark-tunnel".to_string()),
                 capabilities: vec!["basic".to_string(), "tls".to_string()],
             },
         ),

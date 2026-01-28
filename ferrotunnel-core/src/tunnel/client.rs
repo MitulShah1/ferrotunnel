@@ -17,6 +17,7 @@ pub struct TunnelClient {
     server_addr: String,
     auth_token: String,
     session_id: Option<Uuid>,
+    tunnel_id: Option<String>,
     transport_config: TransportConfig,
 }
 
@@ -26,6 +27,7 @@ impl TunnelClient {
             server_addr,
             auth_token,
             session_id: None,
+            tunnel_id: None,
             transport_config: TransportConfig::default(),
         }
     }
@@ -33,6 +35,12 @@ impl TunnelClient {
     #[must_use]
     pub fn with_transport(mut self, config: TransportConfig) -> Self {
         self.transport_config = config;
+        self
+    }
+
+    #[must_use]
+    pub fn with_tunnel_id(mut self, tunnel_id: impl Into<String>) -> Self {
+        self.tunnel_id = Some(tunnel_id.into());
         self
     }
 
@@ -65,6 +73,7 @@ impl TunnelClient {
             .send(Frame::Handshake {
                 version: 1,
                 token: self.auth_token.clone(),
+                tunnel_id: self.tunnel_id.clone(),
                 capabilities: vec!["basic".to_string()],
             })
             .await?;

@@ -12,6 +12,7 @@ pub enum Frame {
     /// Initial handshake from client to server
     Handshake {
         token: String,
+        tunnel_id: Option<String>,
         version: u8,
         capabilities: Vec<String>,
     },
@@ -96,6 +97,7 @@ pub enum HandshakeStatus {
     InvalidToken,
     UnsupportedVersion,
     RateLimited,
+    TunnelIdTaken,
 }
 
 /// Registration status codes
@@ -155,6 +157,7 @@ mod tests {
     fn test_frame_serialization() {
         let frame = Frame::Handshake {
             token: "test-token".to_string(),
+            tunnel_id: Some("test-tunnel".to_string()),
             version: 1,
             capabilities: vec!["http".to_string()],
         };
