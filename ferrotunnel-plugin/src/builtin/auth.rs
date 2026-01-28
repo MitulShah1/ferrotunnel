@@ -30,7 +30,7 @@ impl Plugin for TokenAuthPlugin {
 
     async fn on_request(
         &self,
-        req: &mut http::Request<Vec<u8>>,
+        req: &mut http::Request<()>,
         _ctx: &RequestContext,
     ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let token = req
@@ -59,7 +59,7 @@ mod tests {
         let mut req = http::Request::builder()
             .header("X-Tunnel-Token", "secret123")
             .uri("/")
-            .body(vec![])
+            .body(())
             .unwrap();
 
         let ctx = RequestContext {
@@ -80,7 +80,7 @@ mod tests {
         let mut req = http::Request::builder()
             .header("X-Tunnel-Token", "wrong")
             .uri("/")
-            .body(vec![])
+            .body(())
             .unwrap();
 
         let ctx = RequestContext {

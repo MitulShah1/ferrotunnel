@@ -175,7 +175,7 @@ impl Plugin for CircuitBreakerPlugin {
 
     async fn on_request(
         &self,
-        _req: &mut http::Request<Vec<u8>>,
+        _req: &mut http::Request<()>,
         _ctx: &RequestContext,
     ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
         if self.should_allow() {

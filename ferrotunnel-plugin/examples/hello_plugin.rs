@@ -33,7 +33,7 @@ impl Plugin for HelloPlugin {
 
     async fn on_request(
         &self,
-        req: &mut http::Request<Vec<u8>>,
+        req: &mut http::Request<()>,
         _ctx: &RequestContext,
     ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
         // Add custom header to all requests
@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Simulate request
     let mut req = http::Request::builder()
         .uri("http://example.com")
-        .body(vec![])?;
+        .body(())?;
 
     let ctx = RequestContext {
         tunnel_id: "example-tunnel".to_string(),

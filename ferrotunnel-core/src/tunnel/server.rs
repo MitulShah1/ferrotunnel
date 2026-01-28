@@ -106,6 +106,7 @@ impl TunnelServer {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn handle_connection(
         stream: BoxedStream,
         addr: SocketAddr,
@@ -122,6 +123,7 @@ impl TunnelServer {
                 Frame::Handshake {
                     version,
                     token,
+                    tunnel_id,
                     capabilities,
                 } => {
                     if let Err(e) = validate_token_format(&token, 256) {
@@ -163,6 +165,9 @@ impl TunnelServer {
                     // Success
                     let session_id = Uuid::new_v4();
 
+                    // Determine tunnel ID: prefer requested, fallback to random session ID
+                    let tunnel_id = tunnel_id.unwrap_or_else(|| session_id.to_string());
+
                     // Setup multiplexer
                     let (mut sink, stream) = framed.split();
                     let (frame_tx, mut frame_rx) = mpsc::channel::<Frame>(100);
@@ -188,12 +193,26 @@ impl TunnelServer {
 
                     let session = Session::new(
                         session_id,
+                        tunnel_id.clone(),
                         addr,
                         token,
                         capabilities,
                         Some(multiplexer.clone()),
                     );
-                    sessions.add(session);
+
+                    if let Err(e) = sessions.add(session) {
+                        warn!("Failed to register session: {}", e);
+                        multiplexer
+                            .send_frame(Frame::HandshakeAck {
+                                status: HandshakeStatus::TunnelIdTaken,
+                                session_id,
+                                server_capabilities: vec![],
+                            })
+                            .await?;
+                        return Err(TunnelError::Protocol(format!(
+                            "Tunnel ID '{tunnel_id}' already in use"
+                        )));
+                    }
 
                     info!("Session established: {}", session_id);
                     multiplexer

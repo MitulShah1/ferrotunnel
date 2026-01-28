@@ -26,7 +26,7 @@ impl Plugin for IpBlocklistPlugin {
 
     async fn on_request(
         &self,
-        _req: &mut http::Request<Vec<u8>>,
+        _req: &mut http::Request<()>,
         ctx: &RequestContext,
     ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let client_ip = ctx.remote_addr.ip();
@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     // Test Allowed
     println!("Testing allowed IP...");
-    let mut req = http::Request::builder().body(vec![])?;
+    let mut req = http::Request::builder().body(())?;
     let allowed_ctx = RequestContext {
         tunnel_id: "test".into(),
         session_id: "test".into(),

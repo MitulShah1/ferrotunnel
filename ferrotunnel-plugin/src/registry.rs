@@ -33,7 +33,7 @@ impl PluginRegistry {
     /// Execute request hooks on all plugins
     pub async fn execute_request_hooks(
         &self,
-        req: &mut http::Request<Vec<u8>>,
+        req: &mut http::Request<()>,
         ctx: &RequestContext,
     ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
         for plugin_lock in &self.plugins {
@@ -89,7 +89,7 @@ mod tests {
 
         async fn on_request(
             &self,
-            _req: &mut http::Request<Vec<u8>>,
+            _req: &mut http::Request<()>,
             _ctx: &RequestContext,
         ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
             Ok(PluginAction::Reject {
@@ -105,7 +105,7 @@ mod tests {
         let mut registry = PluginRegistry::new();
         registry.register(plugin);
 
-        let mut req = http::Request::builder().body(vec![]).unwrap();
+        let mut req = http::Request::builder().body(()).unwrap();
         let ctx = RequestContext {
             tunnel_id: "test".into(),
             session_id: "sess".into(),

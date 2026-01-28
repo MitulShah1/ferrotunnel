@@ -33,7 +33,7 @@ impl Plugin for HeaderFilterPlugin {
 
     async fn on_request(
         &self,
-        req: &mut http::Request<Vec<u8>>,
+        req: &mut http::Request<()>,
         _ctx: &RequestContext,
     ) -> Result<PluginAction, Box<dyn std::error::Error + Send + Sync + 'static>> {
         // Remove sensitive headers
@@ -63,7 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut req = http::Request::builder()
         .header("X-Internal-Secret", "super-secret-value")
         .header("User-Agent", "Mozilla/5.0")
-        .body(vec![])?;
+        .body(())?;
 
     let ctx = RequestContext {
         tunnel_id: "test".into(),
