@@ -5,8 +5,7 @@
 use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 use ferrotunnel_core::stream::multiplexer::Multiplexer;
 use ferrotunnel_protocol::frame::{DataFrame, Frame, Protocol};
-use futures::channel::mpsc;
-use futures::{SinkExt, StreamExt};
+use kanal::bounded_async;
 use std::time::Duration;
 
 fn bench_multiplexer_throughput(c: &mut Criterion) {
@@ -19,11 +18,11 @@ fn bench_multiplexer_throughput(c: &mut Criterion) {
 
     group.bench_function("process_data_frame", |b| {
         b.to_async(&rt).iter_custom(|iters| async move {
-            let (frame_tx, mut frame_rx) = mpsc::channel(100);
+            let (frame_tx, frame_rx) = bounded_async(100);
             let (multiplexer, _new_stream_rx) = Multiplexer::new(frame_tx, true);
 
             // We need a dummy consumer for frame_rx so the channel doesn't fill up
-            tokio::spawn(async move { while frame_rx.next().await.is_some() {} });
+            tokio::spawn(async move { while frame_rx.recv().await.is_ok() {} });
 
             let frame = Frame::Data(Box::new(DataFrame {
                 stream_id: 1,
@@ -49,11 +48,11 @@ fn bench_multiplexer_stream_creation(c: &mut Criterion) {
 
     group.bench_function("open_stream", |b| {
         b.to_async(&rt).iter_custom(|iters| async move {
-            let (frame_tx, mut frame_rx) = mpsc::channel(100);
+            let (frame_tx, frame_rx) = bounded_async(100);
             let (multiplexer, _new_stream_rx) = Multiplexer::new(frame_tx, true);
 
             // Dummy consumer
-            tokio::spawn(async move { while frame_rx.next().await.is_some() {} });
+            tokio::spawn(async move { while frame_rx.recv().await.is_ok() {} });
 
             let start = std::time::Instant::now();
             for _ in 0..iters {

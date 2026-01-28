@@ -44,6 +44,9 @@ rand = "0.8"
 # Socket tuning for performance
 socket2 = "0.5"
 
+# High-performance async channels
+kanal = "0.1"
+
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
 
