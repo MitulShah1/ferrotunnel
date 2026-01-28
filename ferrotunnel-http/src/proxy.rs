@@ -184,3 +184,31 @@ impl<L> HttpProxy<L> {
         });
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use http_body_util::BodyExt;
+    use hyper::{body::Bytes, Request};
+    use tower::Service;
+
+    #[tokio::test]
+    async fn test_proxy_connection_error() {
+        // Create a service pointing to a closed port (assuming 127.0.0.1:12345 is closed)
+        let mut service = LocalProxyService::new("127.0.0.1:12345".to_string());
+
+        let req = Request::builder()
+            .uri("http://example.com")
+            .body(Full::new(Bytes::from("test")))
+            .unwrap();
+
+        // The service should return a 502 Bad Gateway response
+        let response = service.call(req).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
+
+        let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
+        assert!(body_str.contains("Failed to connect"));
+    }
+}
