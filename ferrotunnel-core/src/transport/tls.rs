@@ -1,5 +1,6 @@
 //! TLS transport using rustls
 
+use super::socket_tuning::configure_socket_silent;
 use super::BoxedStream;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{ClientConfig, RootCertStore, ServerConfig};
@@ -77,6 +78,7 @@ pub async fn connect(addr: &str, config: &TlsTransportConfig) -> io::Result<Boxe
     let connector = TlsConnector::from(client_config);
 
     let tcp_stream = TcpStream::connect(addr).await?;
+    configure_socket_silent(&tcp_stream);
 
     let server_name = config
         .server_name

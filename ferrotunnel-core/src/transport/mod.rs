@@ -1,5 +1,6 @@
 //! Transport layer abstraction for TCP and TLS
 
+pub mod socket_tuning;
 pub mod tcp;
 pub mod tls;
 
@@ -34,6 +35,7 @@ pub async fn accept(
     listener: &TcpListener,
 ) -> io::Result<(BoxedStream, SocketAddr)> {
     let (tcp_stream, addr) = listener.accept().await?;
+    socket_tuning::configure_socket_silent(&tcp_stream);
 
     match config {
         TransportConfig::Tcp => Ok((Box::pin(tcp_stream), addr)),

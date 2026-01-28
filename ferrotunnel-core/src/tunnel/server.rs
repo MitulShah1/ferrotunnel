@@ -6,10 +6,10 @@ use crate::tunnel::session::Session;
 use crate::tunnel::session::SessionStore;
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
-use ferrotunnel_protocol::frame::{Frame, HandshakeStatus};
-use futures::channel::mpsc;
+use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
 use futures::stream::SplitStream;
 use futures::{SinkExt, StreamExt};
+use kanal::bounded_async;
 use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::net::TcpListener;
@@ -120,12 +120,13 @@ impl TunnelServer {
         if let Some(result) = framed.next().await {
             let frame = result?;
             match frame {
-                Frame::Handshake {
-                    version,
-                    token,
-                    tunnel_id,
-                    capabilities,
-                } => {
+                Frame::Handshake(handshake) => {
+                    let HandshakeFrame {
+                        version,
+                        token,
+                        tunnel_id,
+                        capabilities,
+                    } = *handshake;
                     if let Err(e) = validate_token_format(&token, 256) {
                         warn!("Invalid token format from {}: {}", addr, e);
                         framed
@@ -168,13 +169,13 @@ impl TunnelServer {
                     // Determine tunnel ID: prefer requested, fallback to random session ID
                     let tunnel_id = tunnel_id.unwrap_or_else(|| session_id.to_string());
 
-                    // Setup multiplexer
+                    // Setup multiplexer with kanal channels
                     let (mut sink, stream) = framed.split();
-                    let (frame_tx, mut frame_rx) = mpsc::channel::<Frame>(100);
+                    let (frame_tx, frame_rx) = bounded_async::<Frame>(100);
 
                     // Spawn sender task: Rx -> Sink
                     tokio::spawn(async move {
-                        while let Some(frame) = frame_rx.next().await {
+                        while let Ok(frame) = frame_rx.recv().await {
                             if let Err(e) = sink.send(frame).await {
                                 warn!("Failed to send frame: {}", e);
                                 break;
@@ -182,11 +183,11 @@ impl TunnelServer {
                         }
                     });
 
-                    let (multiplexer, mut new_stream_rx) = Multiplexer::new(frame_tx, false);
+                    let (multiplexer, new_stream_rx) = Multiplexer::new(frame_tx, false);
 
                     // Log unexpected streams from client (for now)
                     tokio::spawn(async move {
-                        while let Some(_stream) = new_stream_rx.next().await {
+                        while let Ok(_stream) = new_stream_rx.recv().await {
                             warn!("Client tried to open stream (not supported in MVP)");
                         }
                     });

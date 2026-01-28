@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use ferrotunnel_core::stream::multiplexer::VirtualStream;
+use ferrotunnel_core::transport::socket_tuning::configure_socket_silent;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Incoming;
 use hyper::server::conn::http1;
@@ -76,7 +77,10 @@ where
         let target = self.target_addr.clone();
         Box::pin(async move {
             let stream = match TcpStream::connect(&target).await {
-                Ok(s) => s,
+                Ok(s) => {
+                    configure_socket_silent(&s);
+                    s
+                }
                 Err(e) => {
                     error!("Failed to connect to local service {target}: {e}");
                     return Ok(error_response(

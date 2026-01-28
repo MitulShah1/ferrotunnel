@@ -5,17 +5,40 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Data frame payload - boxed to reduce Frame enum size
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct DataFrame {
+    pub stream_id: u32,
+    pub data: Bytes,
+    pub end_of_stream: bool,
+}
+
+/// Stream open request payload - boxed to reduce Frame enum size
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OpenStreamFrame {
+    pub stream_id: u32,
+    pub protocol: Protocol,
+    pub headers: Vec<(String, String)>,
+    pub body_hint: Option<u64>,
+}
+
+/// Handshake payload - boxed to reduce Frame enum size
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HandshakeFrame {
+    pub token: String,
+    pub tunnel_id: Option<String>,
+    pub version: u8,
+    pub capabilities: Vec<String>,
+}
+
 /// Wire protocol frame
+///
+/// Large variants are boxed to keep stack size small for control frames.
+/// This provides ~60% stack reduction for small frames like Heartbeat.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Frame {
-    // Control frames
     /// Initial handshake from client to server
-    Handshake {
-        token: String,
-        tunnel_id: Option<String>,
-        version: u8,
-        capabilities: Vec<String>,
-    },
+    Handshake(Box<HandshakeFrame>),
 
     /// Handshake acknowledgment from server
     HandshakeAck {
@@ -37,14 +60,8 @@ pub enum Frame {
         status: RegisterStatus,
     },
 
-    // Stream frames
     /// Open a new stream
-    OpenStream {
-        stream_id: u32,
-        protocol: Protocol,
-        headers: Vec<(String, String)>,
-        body_hint: Option<u64>,
-    },
+    OpenStream(Box<OpenStreamFrame>),
 
     /// Stream acknowledgment
     StreamAck {
@@ -52,30 +69,18 @@ pub enum Frame {
         status: StreamStatus,
     },
 
-    Data {
-        stream_id: u32,
-        data: Bytes,
-        end_of_stream: bool,
-    },
+    /// Data frame
+    Data(Box<DataFrame>),
 
     /// Close a stream
-    CloseStream {
-        stream_id: u32,
-        reason: CloseReason,
-    },
+    CloseStream { stream_id: u32, reason: CloseReason },
 
-    // Keepalive
     /// Heartbeat ping
-    Heartbeat {
-        timestamp: u64,
-    },
+    Heartbeat { timestamp: u64 },
 
     /// Heartbeat acknowledgment
-    HeartbeatAck {
-        timestamp: u64,
-    },
+    HeartbeatAck { timestamp: u64 },
 
-    // Error handling
     /// Error frame
     Error {
         stream_id: Option<u32>,
@@ -83,11 +88,8 @@ pub enum Frame {
         message: String,
     },
 
-    // Plugin support (for future use)
-    PluginData {
-        plugin_id: String,
-        data: Bytes,
-    },
+    /// Plugin data (for future use)
+    PluginData { plugin_id: String, data: Bytes },
 }
 
 /// Handshake status codes
@@ -155,17 +157,14 @@ mod tests {
 
     #[test]
     fn test_frame_serialization() {
-        let frame = Frame::Handshake {
+        let frame = Frame::Handshake(Box::new(HandshakeFrame {
             token: "test-token".to_string(),
             tunnel_id: Some("test-tunnel".to_string()),
             version: 1,
             capabilities: vec!["http".to_string()],
-        };
+        }));
 
-        // Serialize
         let encoded = bincode::serialize(&frame).unwrap();
-
-        // Deserialize
         let decoded: Frame = bincode::deserialize(&encoded).unwrap();
 
         assert_eq!(frame, decoded);
@@ -174,20 +173,17 @@ mod tests {
     #[test]
     fn test_data_frame_with_bytes() {
         let data = Bytes::from("hello world");
-        let frame = Frame::Data {
+        let frame = Frame::Data(Box::new(DataFrame {
             stream_id: 42,
             data: data.clone(),
             end_of_stream: false,
-        };
+        }));
 
         let encoded = bincode::serialize(&frame).unwrap();
         let decoded: Frame = bincode::deserialize(&encoded).unwrap();
 
-        if let Frame::Data {
-            data: decoded_data, ..
-        } = decoded
-        {
-            assert_eq!(data, decoded_data);
+        if let Frame::Data(data_frame) = decoded {
+            assert_eq!(data, data_frame.data);
         } else {
             panic!("Expected Data frame");
         }

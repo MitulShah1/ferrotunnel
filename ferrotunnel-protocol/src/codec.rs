@@ -135,6 +135,7 @@ impl Encoder<Frame> for TunnelCodec {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::frame::DataFrame;
     use bytes::Bytes;
 
     #[test]
@@ -158,11 +159,11 @@ mod tests {
         let mut codec = TunnelCodec::new();
         let mut buf = BytesMut::new();
 
-        let frame = Frame::Data {
+        let frame = Frame::Data(Box::new(DataFrame {
             stream_id: 1,
             data: Bytes::from("hello world"),
             end_of_stream: false,
-        };
+        }));
 
         // Encode
         codec.encode(frame, &mut buf).unwrap();
@@ -214,11 +215,11 @@ mod tests {
 
         // Create a frame that's too large
         let large_data = vec![0u8; (MAX_FRAME_SIZE + 1) as usize];
-        let frame = Frame::Data {
+        let frame = Frame::Data(Box::new(DataFrame {
             stream_id: 1,
             data: Bytes::from(large_data),
             end_of_stream: false,
-        };
+        }));
 
         // Encoding should fail
         let result = codec.encode(frame, &mut buf);

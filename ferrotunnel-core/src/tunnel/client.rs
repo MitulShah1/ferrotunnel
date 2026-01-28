@@ -3,9 +3,9 @@ use crate::stream::multiplexer::{Multiplexer, VirtualStream};
 use crate::transport::{self, TransportConfig};
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
-use ferrotunnel_protocol::frame::{Frame, HandshakeStatus};
-use futures::channel::mpsc;
+use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
 use futures::{SinkExt, StreamExt};
+use kanal::bounded_async;
 use std::future::Future;
 use std::time::Duration;
 use tokio::time::interval;
@@ -70,12 +70,12 @@ impl TunnelClient {
 
         debug!("Sending handshake...");
         framed
-            .send(Frame::Handshake {
+            .send(Frame::Handshake(Box::new(HandshakeFrame {
                 version: 1,
                 token: self.auth_token.clone(),
                 tunnel_id: self.tunnel_id.clone(),
                 capabilities: vec!["basic".to_string()],
-            })
+            })))
             .await?;
 
         // 2. Wait for Ack
@@ -103,13 +103,13 @@ impl TunnelClient {
             return Err(TunnelError::Connection("Connection closed".into()));
         }
 
-        // 3. Setup Multiplexer
+        // 3. Setup Multiplexer with kanal channels
         let (mut sink, mut split_stream) = framed.split();
-        let (frame_tx, mut frame_rx) = mpsc::channel::<Frame>(100);
+        let (frame_tx, frame_rx) = bounded_async::<Frame>(100);
 
         // Spawn sender task: Rx -> Sink
         tokio::spawn(async move {
-            while let Some(frame) = frame_rx.next().await {
+            while let Ok(frame) = frame_rx.recv().await {
                 if let Err(e) = sink.send(frame).await {
                     error!("Failed to send frame: {}", e);
                     break;
@@ -117,11 +117,11 @@ impl TunnelClient {
             }
         });
 
-        let (multiplexer, mut new_stream_rx) = Multiplexer::new(frame_tx, true);
+        let (multiplexer, new_stream_rx) = Multiplexer::new(frame_tx, true);
 
         // Spawn stream handler
         tokio::spawn(async move {
-            while let Some(stream) = new_stream_rx.next().await {
+            while let Ok(stream) = new_stream_rx.recv().await {
                 stream_handler(stream).await;
             }
         });
