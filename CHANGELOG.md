@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Critical Security**: Fixed cross-tenant request routing where requests could be routed to any active tunnel instead of the specific tunnel requested via the Host header.
 - **Performance/Security**: Removed full request body buffering in the HTTP ingress to prevent memory exhaustion DoS attacks and improve latency for large payloads.
 
+### Performance
+- **Core Optimization**: Replaced `futures::channel::mpsc` with `kanal` for 2-3x faster async channel throughput in the multiplexer.
+- **Lock-Free Concurrency**: Replaced `Mutex<Inner>` with `DashMap` and `AtomicU32` in `Multiplexer` to reject lock contention.
+- **Memory Optimization**: Boxed large `Frame` variants (`Data`, `Handshake`, `OpenStream`) to reduce stack usage by ~60%.
+- **Network Tuning**: Enabled `TCP_NODELAY` and optimized buffer sizes for lower latency.
+
 ## [0.7.0] - 2026-01-27
 
 ### Added
