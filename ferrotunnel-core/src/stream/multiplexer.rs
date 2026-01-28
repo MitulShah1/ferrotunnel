@@ -1,50 +1,53 @@
 use bytes::Bytes;
+use dashmap::mapref::entry::Entry;
+use dashmap::DashMap;
 use ferrotunnel_common::Result;
 use ferrotunnel_protocol::frame::{Frame, Protocol};
 use futures::channel::mpsc;
 use futures::{SinkExt, StreamExt};
-use std::collections::HashMap;
 use std::io;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tracing::{debug, warn};
 
 /// Manages multiple virtual streams over a single connection
+///
+/// Uses lock-free data structures for high-concurrency performance:
+/// - `DashMap` for concurrent stream access without global locks
+/// - `AtomicU32` for lock-free stream ID allocation
 #[derive(Clone, Debug)]
 pub struct Multiplexer {
-    inner: Arc<Mutex<Inner>>,
+    streams: Arc<DashMap<u32, mpsc::Sender<Result<Frame>>>>,
+    next_stream_id: Arc<AtomicU32>,
     frame_tx: mpsc::Sender<Frame>,
     new_stream_tx: mpsc::Sender<VirtualStream>,
 }
 
-#[derive(Debug)]
-struct Inner {
-    streams: HashMap<u32, mpsc::Sender<Result<Frame>>>,
-    next_stream_id: u32,
-}
-
-#[allow(clippy::expect_used)]
-#[allow(clippy::unwrap_used)]
 impl Multiplexer {
     pub fn new(
         frame_tx: mpsc::Sender<Frame>,
         is_client: bool,
     ) -> (Self, mpsc::Receiver<VirtualStream>) {
         let (new_stream_tx, new_stream_rx) = mpsc::channel(10);
-        let inner = Inner {
-            streams: HashMap::new(),
-            next_stream_id: if is_client { 1 } else { 2 },
-        };
+        let initial_stream_id = if is_client { 1 } else { 2 };
         (
             Self {
-                inner: Arc::new(Mutex::new(inner)),
+                streams: Arc::new(DashMap::new()),
+                next_stream_id: Arc::new(AtomicU32::new(initial_stream_id)),
                 frame_tx,
                 new_stream_tx,
             },
             new_stream_rx,
         )
+    }
+
+    /// Allocate a new stream ID atomically (lock-free)
+    #[inline]
+    fn allocate_stream_id(&self) -> u32 {
+        self.next_stream_id.fetch_add(2, Ordering::Relaxed)
     }
 
     /// Send a frame directly to the wire
@@ -64,17 +67,18 @@ impl Multiplexer {
                 protocol,
                 ..
             } => {
-                // Incoming new stream request
                 debug!("Accepting new stream {} ({:?})", stream_id, protocol);
                 let (tx, rx) = mpsc::channel(10);
 
-                {
-                    let mut inner = self.inner.lock().unwrap();
-                    if inner.streams.contains_key(&stream_id) {
+                // Lock-free insertion using DashMap's entry API
+                match self.streams.entry(stream_id) {
+                    Entry::Occupied(_) => {
                         warn!("Stream {} already exists", stream_id);
                         return Ok(());
                     }
-                    inner.streams.insert(stream_id, tx);
+                    Entry::Vacant(entry) => {
+                        entry.insert(tx);
+                    }
                 }
 
                 let stream = VirtualStream::new(stream_id, rx, self.frame_tx.clone());
@@ -83,16 +87,13 @@ impl Multiplexer {
                 }
             }
             Frame::Data { stream_id, .. } | Frame::CloseStream { stream_id, .. } => {
-                let mut tx = {
-                    let inner = self.inner.lock().unwrap();
-                    inner.streams.get(&stream_id).cloned()
-                };
+                // Lock-free lookup using DashMap
+                let tx = self.streams.get(&stream_id).map(|r| r.clone());
 
-                if let Some(tx) = &mut tx {
-                    if let Err(_e) = tx.send(Ok(frame)).await {
-                        // Stream receiver dropped, cleanup
-                        let mut inner = self.inner.lock().unwrap();
-                        inner.streams.remove(&stream_id);
+                if let Some(mut tx) = tx {
+                    if tx.send(Ok(frame)).await.is_err() {
+                        // Stream receiver dropped, cleanup (lock-free removal)
+                        self.streams.remove(&stream_id);
                     }
                 } else {
                     debug!("Received frame for unknown stream {}", stream_id);
@@ -105,19 +106,12 @@ impl Multiplexer {
 
     /// Open a new outbound stream
     pub async fn open_stream(&self, protocol: Protocol) -> Result<VirtualStream> {
-        let stream_id = {
-            let mut inner = self.inner.lock().unwrap();
-            let id = inner.next_stream_id;
-            inner.next_stream_id += 2; // Increment by 2 to avoid collisions (client odd, server even)
-                                       // TODO: properly handle initiator ID parity
-            id
-        };
+        // Lock-free stream ID allocation
+        let stream_id = self.allocate_stream_id();
 
         let (tx, rx) = mpsc::channel(10);
-        {
-            let mut inner = self.inner.lock().unwrap();
-            inner.streams.insert(stream_id, tx);
-        }
+        // Lock-free insertion
+        self.streams.insert(stream_id, tx);
 
         let mut frame_tx = self.frame_tx.clone();
         frame_tx
