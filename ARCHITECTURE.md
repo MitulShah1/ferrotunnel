@@ -68,11 +68,19 @@ ferrotunnel/
 │       └── error_test.rs       # Error scenarios
 ├── examples/                   # Workspace-level examples
 │   ├── Cargo.toml              # ferrotunnel-examples crate
-│   ├── embedded_server.rs      # Embedded server usage
-│   └── embedded_client.rs      # Embedded client usage
-└── tools/                      # Testing & Diagnostic tools
-    ├── loadgen/                # Load generator
-    └── soak/                   # Soak tester
+│   ├── basic/                  # Basic usage (embedded)
+│   ├── plugins/                # Plugin system examples
+│   └── advanced/               # Advanced features (TLS, etc.)
+├── benches/                    # Workspace-level benchmarks
+│   ├── Cargo.toml              # ferrotunnel-benches crate
+│   ├── e2e_tunnel.rs           # Full stack benchmarks
+│   └── throughput.rs           # Throughput measurements
+├── tools/                      # Testing & Diagnostic tools
+│   ├── loadgen/                # Load generator
+│   ├── soak/                   # Soak tester
+│   └── profiler/               # Profiling scripts (flamegraph/heaptrack)
+└── scripts/                    # Utility scripts
+    └── test-examples.sh        # Verify all examples
 ```
 
 **Key improvements over nested `crates/` folder:**
@@ -82,6 +90,8 @@ ferrotunnel/
 - ✅ Clear separation without nesting confusion
 - ✅ Workspace-level `tests/` for true E2E integration testing
 - ✅ Workspace-level `examples/` demonstrating embedded usage
+- ✅ Dedicated `benches/` for performance tracking
+- ✅ Testing & Profiling scripts in `scripts/` and `tools/profiler/`
 
 ## Future Structure (v1.0.0)
 
@@ -300,6 +310,7 @@ client.start().await?;
 **Diagnostic and Testing Suite** (Phase 8):
 - **loadgen**: High-performance load generator for throughput testing.
 - **soak**: Long-running suite for memory leak and stability detection.
+- **profiler**: Scripts for CPU flamegraphs and memory profiling.
 
 ### `tests/` ✅
 
@@ -321,19 +332,37 @@ Integration tests live at the workspace root to enable true end-to-end testing a
 cargo test -p ferrotunnel-tests --test integration
 ```
 
+### `benches/` ✅
+
+**Workspace-Level Benchmarks** (`ferrotunnel-benches` crate):
+
+Performance tests for critical paths:
+- **`e2e_tunnel`**: Full stack benchmark (Frame encoding -> Tunnel -> Plugins)
+- **`throughput`**: Raw data transfer benchmarking
+
+```bash
+# Run benchmarks
+cargo bench -p ferrotunnel-benches
+```
+
 ### `examples/` ✅
 
 **Workspace-Level Examples** (`ferrotunnel-examples` crate):
 
-Demonstrates how to embed FerroTunnel in your own applications:
+Examples are organized by category:
 
-- **`embedded_server.rs`**: How to embed a FerroTunnel server
-- **`embedded_client.rs`**: How to embed a FerroTunnel client
+| Category | Examples | Description |
+|----------|----------|-------------|
+| **basic** | `embedded_server`, `embedded_client` | Minimal embedding examples |
+| **plugins** | `custom_plugin`, `header_filter`, `plugin_chain` | Plugin system usage |
+| **advanced** | `tls_config`, `multi_tunnel` | Security and complex setups |
 
 ```bash
-# Run examples
-cargo run -p ferrotunnel-examples --example embedded_server
-cargo run -p ferrotunnel-examples --example embedded_client
+# Run specific example
+cargo run -p ferrotunnel-examples --example custom_plugin
+
+# Test all examples
+./scripts/test-examples.sh
 ```
 
 ## Building
