@@ -1,5 +1,6 @@
 use crate::auth::validate_token_format;
 use crate::stream::multiplexer::{Multiplexer, VirtualStream};
+use crate::transport::batched_sender::run_batched_sender;
 use crate::transport::{self, TransportConfig};
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
@@ -104,18 +105,11 @@ impl TunnelClient {
         }
 
         // 3. Setup Multiplexer with kanal channels
-        let (mut sink, mut split_stream) = framed.split();
+        let (sink, mut split_stream) = framed.split();
         let (frame_tx, frame_rx) = bounded_async::<Frame>(100);
 
-        // Spawn sender task: Rx -> Sink
-        tokio::spawn(async move {
-            while let Ok(frame) = frame_rx.recv().await {
-                if let Err(e) = sink.send(frame).await {
-                    error!("Failed to send frame: {}", e);
-                    break;
-                }
-            }
-        });
+        // Spawn batched sender task for vectored I/O performance
+        tokio::spawn(run_batched_sender(frame_rx, sink));
 
         let (multiplexer, new_stream_rx) = Multiplexer::new(frame_tx, true);
 

@@ -47,6 +47,9 @@ socket2 = "0.5"
 # High-performance async channels
 kanal = "0.1"
 
+# Lock-free object pooling
+crossbeam-queue = "0.3"
+
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
 

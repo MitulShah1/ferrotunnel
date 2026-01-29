@@ -1,7 +1,8 @@
-//! High-performance stream multiplexer using lock-free data structures
+//! Stream multiplexer using lock-free data structures
 //!
-//! Uses kanal for 2-3x faster channel throughput compared to `futures::channel::mpsc`
+//! Manages multiple virtual streams over a single connection.
 
+use super::pool::ObjectPool;
 use bytes::Bytes;
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
@@ -16,18 +17,23 @@ use std::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tracing::{debug, warn};
 
+/// Pool for reusing read buffers in `VirtualStream`
+pub type ReadBufferPool = ObjectPool<Vec<u8>>;
+
 /// Manages multiple virtual streams over a single connection
 ///
 /// Uses lock-free data structures for high-concurrency performance:
 /// - `DashMap` for concurrent stream access without global locks
 /// - `AtomicU32` for lock-free stream ID allocation
-/// - `kanal` for 2-3x faster async channel throughput
+/// - `kanal` for fast async channel throughput
+/// - `ObjectPool` for read buffer reuse
 #[derive(Clone, Debug)]
 pub struct Multiplexer {
     streams: Arc<DashMap<u32, AsyncSender<Result<Frame>>>>,
     next_stream_id: Arc<AtomicU32>,
     frame_tx: AsyncSender<Frame>,
     new_stream_tx: AsyncSender<VirtualStream>,
+    buffer_pool: ReadBufferPool,
 }
 
 impl Multiplexer {
@@ -43,9 +49,15 @@ impl Multiplexer {
                 next_stream_id: Arc::new(AtomicU32::new(initial_stream_id)),
                 frame_tx,
                 new_stream_tx,
+                buffer_pool: ReadBufferPool::with_default_capacity(),
             },
             new_stream_rx,
         )
+    }
+
+    /// Get the buffer pool for reusing read buffers
+    pub fn buffer_pool(&self) -> &ReadBufferPool {
+        &self.buffer_pool
     }
 
     /// Allocate a new stream ID atomically (lock-free)
@@ -73,7 +85,6 @@ impl Multiplexer {
                 );
                 let (tx, rx) = bounded_async(10);
 
-                // Lock-free insertion using DashMap's entry API
                 match self.streams.entry(stream_id) {
                     Entry::Occupied(_) => {
                         warn!("Stream {} already exists", stream_id);
@@ -84,7 +95,14 @@ impl Multiplexer {
                     }
                 }
 
-                let stream = VirtualStream::new(stream_id, rx, self.frame_tx.clone());
+                let read_buffer = self.buffer_pool.try_acquire().unwrap_or_default();
+                let stream = VirtualStream::new_with_buffer(
+                    stream_id,
+                    rx,
+                    self.frame_tx.clone(),
+                    read_buffer,
+                    self.buffer_pool.clone(),
+                );
                 if self.new_stream_tx.send(stream).await.is_err() {
                     warn!("Failed to queue new stream {}", stream_id);
                 }
@@ -120,11 +138,9 @@ impl Multiplexer {
 
     /// Open a new outbound stream
     pub async fn open_stream(&self, protocol: Protocol) -> Result<VirtualStream> {
-        // Lock-free stream ID allocation
         let stream_id = self.allocate_stream_id();
 
         let (tx, rx) = bounded_async(10);
-        // Lock-free insertion
         self.streams.insert(stream_id, tx);
 
         self.frame_tx
@@ -137,7 +153,14 @@ impl Multiplexer {
             .await
             .map_err(|e| io::Error::new(io::ErrorKind::BrokenPipe, e.to_string()))?;
 
-        Ok(VirtualStream::new(stream_id, rx, self.frame_tx.clone()))
+        let read_buffer = self.buffer_pool.try_acquire().unwrap_or_default();
+        Ok(VirtualStream::new_with_buffer(
+            stream_id,
+            rx,
+            self.frame_tx.clone(),
+            read_buffer,
+            self.buffer_pool.clone(),
+        ))
     }
 }
 
@@ -152,14 +175,18 @@ type SendFuture =
 
 /// A virtual stream that implements `AsyncRead` + `AsyncWrite`
 ///
-/// Uses kanal channels for high-performance async communication.
+/// Uses kanal channels for async communication.
 /// The polling implementation uses boxed futures to bridge kanal's
 /// async API with tokio's poll-based traits.
+///
+/// Read buffers are pooled and returned when the stream is dropped.
 pub struct VirtualStream {
     stream_id: u32,
     rx: AsyncReceiver<Result<Frame>>,
     tx: AsyncSender<Frame>,
     read_buffer: Vec<u8>,
+    /// Pool to return `read_buffer` to when dropped
+    buffer_pool: Option<ReadBufferPool>,
     /// Pending receive future for `poll_read`
     pending_recv: Option<RecvFuture>,
     /// Pending send future for `poll_write`
@@ -178,12 +205,34 @@ impl std::fmt::Debug for VirtualStream {
 }
 
 impl VirtualStream {
+    /// Create a new `VirtualStream` without pooling (for backward compatibility)
     pub fn new(stream_id: u32, rx: AsyncReceiver<Result<Frame>>, tx: AsyncSender<Frame>) -> Self {
         Self {
             stream_id,
             rx,
             tx,
             read_buffer: Vec::new(),
+            buffer_pool: None,
+            pending_recv: None,
+            pending_send: None,
+            pending_send_frame: None,
+        }
+    }
+
+    /// Create a new `VirtualStream` with a pooled buffer
+    pub fn new_with_buffer(
+        stream_id: u32,
+        rx: AsyncReceiver<Result<Frame>>,
+        tx: AsyncSender<Frame>,
+        read_buffer: Vec<u8>,
+        buffer_pool: ReadBufferPool,
+    ) -> Self {
+        Self {
+            stream_id,
+            rx,
+            tx,
+            read_buffer,
+            buffer_pool: Some(buffer_pool),
             pending_recv: None,
             pending_send: None,
             pending_send_frame: None,
@@ -192,6 +241,16 @@ impl VirtualStream {
 
     pub fn id(&self) -> u32 {
         self.stream_id
+    }
+}
+
+impl Drop for VirtualStream {
+    fn drop(&mut self) {
+        // Return the read buffer to the pool if available
+        if let Some(pool) = self.buffer_pool.take() {
+            let buffer = std::mem::take(&mut self.read_buffer);
+            pool.release(buffer);
+        }
     }
 }
 

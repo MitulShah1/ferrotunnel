@@ -1,5 +1,6 @@
 //! Transport layer abstraction for TCP and TLS
 
+pub mod batched_sender;
 pub mod socket_tuning;
 pub mod tcp;
 pub mod tls;

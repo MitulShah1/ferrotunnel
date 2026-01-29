@@ -73,6 +73,23 @@ impl PluginRegistry {
         }
         Ok(())
     }
+
+    /// Returns true if any plugin needs to inspect/modify response bodies.
+    /// When false, responses can be streamed without buffering for better performance.
+    pub async fn needs_response_buffering(&self) -> bool {
+        for plugin_lock in &self.plugins {
+            let plugin = plugin_lock.read().await;
+            if plugin.needs_response_body() {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Returns true if no plugins are registered
+    pub fn is_empty(&self) -> bool {
+        self.plugins.is_empty()
+    }
 }
 
 #[cfg(test)]
