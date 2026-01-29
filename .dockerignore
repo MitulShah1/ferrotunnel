@@ -9,6 +9,5 @@ Cargo.lock
 docs/
 examples/
 scripts/
-tools/
-# Keep server and client crates
+# Keep workspace crates
 # target/ and other build artifacts are ignored above

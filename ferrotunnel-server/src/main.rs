@@ -23,6 +23,10 @@ struct Args {
     /// HTTP Ingress bind address
     #[arg(long, default_value = "0.0.0.0:8080", env = "FERROTUNNEL_HTTP_BIND")]
     http_bind: SocketAddr,
+
+    /// Metrics bind address
+    #[arg(long, default_value = "0.0.0.0:9090", env = "FERROTUNNEL_METRICS_BIND")]
+    metrics_bind: SocketAddr,
 }
 
 #[tokio::main]
@@ -33,7 +37,7 @@ async fn main() -> Result<()> {
     init_basic_observability("ferrotunnel-server");
 
     // Start metrics endpoint in background
-    let metrics_addr = SocketAddr::from(([0, 0, 0, 0], 9090));
+    let metrics_addr = args.metrics_bind;
     tokio::spawn(async move {
         use axum::{routing::get, Router};
         let app = Router::new().route("/metrics", get(|| async { gather_metrics() }));

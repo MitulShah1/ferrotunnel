@@ -1,22 +1,20 @@
-version: '3.8'
-
 services:
   ferrotunnel-server:
     build: .
     image: ferrotunnel-server:latest
     ports:
-      - "${FERROTUNNEL_HTTP_PORT:-8080}:8080"  # HTTP Ingress
-      - "${FERROTUNNEL_METRICS_PORT:-9090}:9090"  # Prometheus Metrics
+      - "${FERROTUNNEL_HTTP_PORT:-8080}:${FERROTUNNEL_HTTP_PORT:-8080}"  # HTTP Ingress
+      - "${FERROTUNNEL_METRICS_PORT:-9090}:${FERROTUNNEL_METRICS_PORT:-9090}"  # Prometheus Metrics
     environment:
       - RUST_LOG=info,ferrotunnel=debug
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - FERROTUNNEL_HTTP_BIND=0.0.0.0:${FERROTUNNEL_HTTP_PORT:-8080}
       - FERROTUNNEL_METRICS_BIND=0.0.0.0:${FERROTUNNEL_METRICS_PORT:-9090}
-      # - FERROTUNNEL_TOKEN=your-secret-token
+      - FERROTUNNEL_TOKEN=${FERROTUNNEL_TOKEN:-secret-token}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9090/metrics"]
-      interval: 30s
+      test: ["CMD", "curl", "-f", "http://localhost:${FERROTUNNEL_HTTP_PORT:-8080}/health"]
+      interval: 10s
       timeout: 10s
       retries: 3
 
@@ -27,7 +25,7 @@ services:
       - ferrotunnel-server
       - demo-app
     ports:
-      - "${FERROTUNNEL_DASHBOARD_PORT:-4040}:4040"
+      - "${FERROTUNNEL_DASHBOARD_PORT:-4040}:${FERROTUNNEL_DASHBOARD_PORT:-4040}"
     environment:
       - RUST_LOG=info
       - FERROTUNNEL_DASHBOARD_PORT=${FERROTUNNEL_DASHBOARD_PORT:-4040}
