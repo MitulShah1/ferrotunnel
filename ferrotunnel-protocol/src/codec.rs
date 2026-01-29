@@ -95,7 +95,7 @@ impl Decoder for TunnelCodec {
 
         let frame_bytes = src.split_to(frame_length).freeze();
 
-        let config = bincode_next::config::standard();
+        let config = bincode_next::config::standard().with_limit::<{ MAX_FRAME_SIZE as usize }>();
         let (frame, _) =
             bincode_next::serde::decode_from_slice(&frame_bytes, config).map_err(|e| {
                 io::Error::new(io::ErrorKind::InvalidData, format!("Decode error: {e}"))
