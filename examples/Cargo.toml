@@ -19,9 +19,34 @@ path = "embedded_server.rs"
 name = "embedded_client"
 path = "embedded_client.rs"
 
+[[example]]
+name = "custom_plugin"
+path = "custom_plugin.rs"
+
+[[example]]
+name = "tls_config"
+path = "tls_config.rs"
+
+[[example]]
+name = "auto_reconnect"
+path = "auto_reconnect.rs"
+
+[[example]]
+name = "multi_tunnel"
+path = "multi_tunnel.rs"
+
 [dependencies]
 # Core ferrotunnel library
 ferrotunnel = { path = "../ferrotunnel" }
+
+# Plugin system (for custom_plugin example)
+ferrotunnel-plugin = { path = "../ferrotunnel-plugin" }
+
+# HTTP types (for plugin examples)
+http = "1.4.0"
+
+# Async trait (for Plugin implementations)
+async-trait = "0.1"
 
 # Runtime and logging
 tokio = { workspace = true }
