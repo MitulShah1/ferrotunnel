@@ -12,7 +12,10 @@
 //! │   ├── embedded_client.rs
 //! │   └── auto_reconnect.rs
 //! ├── plugins/            # Plugin development examples
-//! │   └── custom_plugin.rs
+//! │   ├── custom_plugin.rs
+//! │   ├── hello_plugin.rs
+//! │   ├── header_filter.rs
+//! │   └── ip_blocklist.rs
 //! └── advanced/           # Production patterns
 //!     ├── tls_config.rs
 //!     └── multi_tunnel.rs
@@ -36,10 +39,16 @@
 //!
 //! Learn how to extend `FerroTunnel` with custom plugins:
 //!
-//! - **`custom_plugin`** - Create plugins to intercept/modify requests
+//! - **`hello_plugin`** - Simple "Hello World" plugin
+//! - **`custom_plugin`** - Request counting and path blocking
+//! - **`header_filter`** - Filter/modify HTTP headers
+//! - **`ip_blocklist`** - Block requests by IP address
 //!
 //! ```bash
+//! cargo run -p ferrotunnel-examples --example hello_plugin
 //! cargo run -p ferrotunnel-examples --example custom_plugin
+//! cargo run -p ferrotunnel-examples --example header_filter
+//! cargo run -p ferrotunnel-examples --example ip_blocklist
 //! ```
 //!
 //! ## Advanced Examples

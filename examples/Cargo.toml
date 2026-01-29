@@ -27,13 +27,22 @@ path = "basic/embedded_client.rs"
 name = "auto_reconnect"
 path = "basic/auto_reconnect.rs"
 
-# ============================================================================
-# Plugin Examples - Extending FerroTunnel with custom behavior
-# ============================================================================
-
+# Plugin Examples
 [[example]]
 name = "custom_plugin"
 path = "plugins/custom_plugin.rs"
+
+[[example]]
+name = "hello_plugin"
+path = "plugins/hello_plugin.rs"
+
+[[example]]
+name = "header_filter"
+path = "plugins/header_filter.rs"
+
+[[example]]
+name = "ip_blocklist"
+path = "plugins/ip_blocklist.rs"
 
 # ============================================================================
 # Advanced Examples - Production configurations and patterns
