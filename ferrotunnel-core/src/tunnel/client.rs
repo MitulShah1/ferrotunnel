@@ -52,6 +52,22 @@ impl TunnelClient {
         F: Fn(VirtualStream) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
+        self.connect_and_run_with_callback(stream_handler, |_| {})
+            .await
+    }
+
+    /// Connect to the server, call the callback on successful handshake, and run the session
+    #[allow(clippy::too_many_lines)]
+    pub async fn connect_and_run_with_callback<F, Fut, C>(
+        &mut self,
+        stream_handler: F,
+        on_connected: C,
+    ) -> Result<()>
+    where
+        F: Fn(VirtualStream) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+        C: FnOnce(Uuid) + Send + 'static,
+    {
         validate_token_format(&self.auth_token, 256)
             .map_err(|e| TunnelError::Authentication(format!("Invalid token: {e}")))?;
 
@@ -90,6 +106,8 @@ impl TunnelClient {
                     HandshakeStatus::Success => {
                         self.session_id = Some(session_id);
                         info!("Handshake successful. Session ID: {}", session_id);
+                        // Notify callback
+                        on_connected(session_id);
                     }
                     status => {
                         error!("Handshake failed: {:?}", status);

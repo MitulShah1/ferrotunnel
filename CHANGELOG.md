@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Critical Security**: Fixed cross-tenant request routing where requests could be routed to any active tunnel instead of the specific tunnel requested via the Host header.
 - **Performance/Security**: Removed full request body buffering in the HTTP ingress to prevent memory exhaustion DoS attacks and improve latency for large payloads.
+- **Client Stability**: Fixed a client hang during startup where the connection handshake callback blocked the main loop.
+- **Test Stability**: Fixed `Address already in use` errors in parallel tests by implementing atomic dynamic port allocation.
 
 ### Performance
 - **Core Optimization**: Replaced `futures::channel::mpsc` with `kanal` for 2-3x faster async channel throughput in the multiplexer.
@@ -34,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ferrotunnel` main crate: 23 tests (ClientBuilder, ServerBuilder, config validation)
   - `ferrotunnel-plugin`: 13 new tests (registry, rate_limit, logger)
   - `ferrotunnel-http`: 10 new tests (proxy, error handling)
+- **Integration Test Suite**: Added `tests/integration/` with 9 end-to-end scenarios:
+  - Tunnel establishment and server/client lifecycle
+  - Multi-client connection and reconnection stress testing
+  - Plugin interaction (Auth, Rate Limiting) and execution order
+  - HTTP routing verification through the tunnel
 
 ### Observability
 - **Error Tracking**: Added `ferrotunnel_errors_total` counter metric with type labels for granular error tracking.

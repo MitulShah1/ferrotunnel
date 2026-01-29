@@ -95,21 +95,33 @@ impl Client {
         let reconnect_delay = config.reconnect_delay;
         let transport_config = self.transport_config.clone();
 
+        let info_tx = Arc::new(std::sync::Mutex::new(Some(info_tx)));
+
         let task = tokio::spawn(async move {
             let proxy = Arc::new(HttpProxy::new(local_addr));
-            let mut info_tx = Some(info_tx);
             let mut shutdown_rx = shutdown_rx;
 
             loop {
                 let mut client = TunnelClient::new(server_addr.clone(), token.clone())
                     .with_transport(transport_config.clone());
                 let proxy_ref = proxy.clone();
+                let info_tx = info_tx.clone();
 
                 let connect_result = tokio::select! {
-                    result = client.connect_and_run(move |stream| {
+                    result = client.connect_and_run_with_callback(move |stream| {
                         let proxy = proxy_ref.clone();
                         async move {
                             proxy.handle_stream(stream);
+                        }
+                    }, move |session_id| {
+                        // Send connection info on successful handshake (only once)
+                        if let Ok(mut lock) = info_tx.lock() {
+                            if let Some(tx) = lock.take() {
+                                let _ = tx.send(TunnelInfo {
+                                    session_id: Some(session_id),
+                                    public_url: None,
+                                });
+                            }
                         }
                     }) => result,
                     _ = shutdown_rx.changed() => {
@@ -117,14 +129,6 @@ impl Client {
                         break;
                     }
                 };
-
-                // Send initial connection info (only once)
-                if let Some(tx) = info_tx.take() {
-                    let _ = tx.send(TunnelInfo {
-                        session_id: None, // Will be populated when core exposes it
-                        public_url: None,
-                    });
-                }
 
                 match connect_result {
                     Ok(()) => {

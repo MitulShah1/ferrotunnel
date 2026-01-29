@@ -149,8 +149,8 @@ ferrotunnel/
 │   ├── embedded_server.rs
 │   └── custom_plugin.rs
 │
-└── tests/                      # Phase 3+: Integration tests
-    └── integration/
+└── tests/                      # Phase 8: Integration tests
+    └── integration/            # End-to-end test suite
 ```
 
 ## Implementation Order

@@ -25,8 +25,13 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
+http = "1.4.0"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 
 [lints]
 workspace = true
+
+[[test]]
+name = "integration"
+path = "tests/integration/mod.rs"

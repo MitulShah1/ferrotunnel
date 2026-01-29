@@ -1,4 +1,4 @@
-.PHONY: help fmt check lint test build clean all
+.PHONY: help fmt check lint test test-integration build clean all
 
 # Default target
 all: fmt check test build
@@ -12,6 +12,7 @@ help:
 	@echo "  make check        - Run formatter and linter checks"
 	@echo "  make lint         - Run clippy linter"
 	@echo "  make test         - Run all tests"
+	@echo "  make test-integration - Run integration tests only"
 	@echo "  make build        - Build the project"
 	@echo "  make bench        - Run performance benchmarks"
 	@echo "  make audit        - Run security audit"
@@ -43,6 +44,11 @@ lint:
 test:
 	@echo "Running tests..."
 	cargo test --workspace --all-features
+
+# Run integration tests
+test-integration:
+	@echo "Running integration tests..."
+	cargo test -p ferrotunnel --test integration
 
 # Run benchmarks
 bench:
