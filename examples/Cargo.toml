@@ -1,0 +1,32 @@
+[package]
+name = "ferrotunnel-examples"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+# This crate exists only to provide examples
+[lib]
+path = "lib.rs"
+
+[[example]]
+name = "embedded_server"
+path = "embedded_server.rs"
+
+[[example]]
+name = "embedded_client"
+path = "embedded_client.rs"
+
+[dependencies]
+# Core ferrotunnel library
+ferrotunnel = { path = "../ferrotunnel" }
+
+# Runtime and logging
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[lints]
+workspace = true

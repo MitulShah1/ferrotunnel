@@ -13,6 +13,8 @@ members = [
     "tools/loadgen",
     "tools/soak",
     "ferrotunnel-protocol/fuzz",
+    "tests",
+    "examples",
 ]
 
 [workspace.package]
