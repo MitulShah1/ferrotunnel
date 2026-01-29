@@ -58,8 +58,14 @@ pub enum TunnelError {
 /// Result type alias
 pub type Result<T> = std::result::Result<T, TunnelError>;
 
-impl From<bincode::Error> for TunnelError {
-    fn from(err: bincode::Error) -> Self {
+impl From<bincode_next::error::EncodeError> for TunnelError {
+    fn from(err: bincode_next::error::EncodeError) -> Self {
+        TunnelError::Serialization(err.to_string())
+    }
+}
+
+impl From<bincode_next::error::DecodeError> for TunnelError {
+    fn from(err: bincode_next::error::DecodeError) -> Self {
         TunnelError::Serialization(err.to_string())
     }
 }

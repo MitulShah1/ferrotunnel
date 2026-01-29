@@ -95,9 +95,11 @@ impl Decoder for TunnelCodec {
 
         let frame_bytes = src.split_to(frame_length).freeze();
 
-        let frame = bincode::deserialize(&frame_bytes).map_err(|e| {
-            io::Error::new(io::ErrorKind::InvalidData, format!("Decode error: {e}"))
-        })?;
+        let config = bincode_next::config::standard().with_limit::<{ MAX_FRAME_SIZE as usize }>();
+        let (frame, _) =
+            bincode_next::serde::decode_from_slice(&frame_bytes, config).map_err(|e| {
+                io::Error::new(io::ErrorKind::InvalidData, format!("Decode error: {e}"))
+            })?;
 
         Ok(Some(frame))
     }
@@ -116,7 +118,8 @@ impl Encoder<Frame> for TunnelCodec {
             buf.clear();
 
             // Serialize into reusable buffer
-            bincode::serialize_into(&mut *buf, &frame).map_err(|e| {
+            let config = bincode_next::config::standard();
+            bincode_next::serde::encode_into_std_write(&frame, &mut *buf, config).map_err(|e| {
                 io::Error::new(io::ErrorKind::InvalidData, format!("Encode error: {e}"))
             })?;
 

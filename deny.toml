@@ -71,7 +71,6 @@ feature-depth = 1
 # output a note when they are encountered.
 ignore = [
     "RUSTSEC-2025-0134",
-    "RUSTSEC-2025-0141",
     "RUSTSEC-2024-0437",
     #"RUSTSEC-0000-0000",
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Breaking Changes
 - **Plugin API**: The `Plugin::on_request` trait method signature has changed to take `&mut http::Request<()>` instead of `&mut http::Request<Vec<u8>>`. This prevents plugins from forcing the ingress server to buffer the entire request body, which fixes a critical DoS vulnerability.
   - **Migration**: Update your plugins to access headers only in `on_request`. If you need to inspect the body, you must implement a streaming body parser (future work).
+- **Serialization**: Migrated from unmaintained `bincode` 1.x to `bincode-next` 2.x and adopted `standard()` configuration.
+  - **BREAKING**: Wire format has changed (e.g., Varint encoding). Incompatible with previous versions.
+  - **Migration**: Both client and server must be upgraded to v0.8.0+.
 
 ### Fixed
 - **Critical Security**: Fixed cross-tenant request routing where requests could be routed to any active tunnel instead of the specific tunnel requested via the Host header.

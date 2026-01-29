@@ -164,8 +164,10 @@ mod tests {
             capabilities: vec!["http".to_string()],
         }));
 
-        let encoded = bincode::serialize(&frame).unwrap();
-        let decoded: Frame = bincode::deserialize(&encoded).unwrap();
+        let config = bincode_next::config::standard();
+        let encoded = bincode_next::serde::encode_to_vec(&frame, config).unwrap();
+        let (decoded, _): (Frame, usize) =
+            bincode_next::serde::decode_from_slice(&encoded, config).unwrap();
 
         assert_eq!(frame, decoded);
     }
@@ -179,8 +181,10 @@ mod tests {
             end_of_stream: false,
         }));
 
-        let encoded = bincode::serialize(&frame).unwrap();
-        let decoded: Frame = bincode::deserialize(&encoded).unwrap();
+        let config = bincode_next::config::standard();
+        let encoded = bincode_next::serde::encode_to_vec(&frame, config).unwrap();
+        let (decoded, _): (Frame, usize) =
+            bincode_next::serde::decode_from_slice(&encoded, config).unwrap();
 
         if let Frame::Data(data_frame) = decoded {
             assert_eq!(data, data_frame.data);
@@ -206,8 +210,10 @@ mod tests {
         ];
 
         for frame in frames {
-            let encoded = bincode::serialize(&frame).unwrap();
-            let _decoded: Frame = bincode::deserialize(&encoded).unwrap();
+            let config = bincode_next::config::standard();
+            let encoded = bincode_next::serde::encode_to_vec(&frame, config).unwrap();
+            let (_decoded, _): (Frame, usize) =
+                bincode_next::serde::decode_from_slice(&encoded, config).unwrap();
         }
     }
 }
