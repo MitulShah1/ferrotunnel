@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ferrotunnel-plugin`: 13 new tests (registry, rate_limit, logger)
   - `ferrotunnel-http`: 10 new tests (proxy, error handling)
 
+### Observability
+- **Error Tracking**: Added `ferrotunnel_errors_total` counter metric with type labels for granular error tracking.
+
 ## [0.7.0] - 2026-01-27
 
 ### Added
