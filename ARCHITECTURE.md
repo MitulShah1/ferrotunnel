@@ -56,7 +56,20 @@ ferrotunnel/
 │   └── src/
 ├── ferrotunnel-client/         # Client binary
 ├── ferrotunnel-server/         # Server binary
-├── examples/                   # Embeddable examples
+├── tests/                      # Workspace-level integration tests
+│   ├── Cargo.toml              # ferrotunnel-tests crate
+│   └── integration/            # E2E test suite (14 tests)
+│       ├── mod.rs              # Test helpers
+│       ├── tunnel_test.rs      # Server/client tests
+│       ├── plugin_test.rs      # Plugin integration
+│       ├── tls_test.rs         # TLS end-to-end
+│       ├── concurrent_test.rs  # Concurrent requests
+│       ├── multi_client_test.rs # Multiple clients
+│       └── error_test.rs       # Error scenarios
+├── examples/                   # Workspace-level examples
+│   ├── Cargo.toml              # ferrotunnel-examples crate
+│   ├── embedded_server.rs      # Embedded server usage
+│   └── embedded_client.rs      # Embedded client usage
 └── tools/                      # Testing & Diagnostic tools
     ├── loadgen/                # Load generator
     └── soak/                   # Soak tester
@@ -67,6 +80,8 @@ ferrotunnel/
 - ✅ Each crate is a top-level folder (easier navigation)
 - ✅ Main `ferrotunnel` crate provides unified API
 - ✅ Clear separation without nesting confusion
+- ✅ Workspace-level `tests/` for true E2E integration testing
+- ✅ Workspace-level `examples/` demonstrating embedded usage
 
 ## Future Structure (v1.0.0)
 
@@ -285,6 +300,41 @@ client.start().await?;
 **Diagnostic and Testing Suite** (Phase 8):
 - **loadgen**: High-performance load generator for throughput testing.
 - **soak**: Long-running suite for memory leak and stability detection.
+
+### `tests/` ✅
+
+**Workspace-Level Integration Tests** (`ferrotunnel-tests` crate):
+
+Integration tests live at the workspace root to enable true end-to-end testing across all crates:
+
+| Test File | Coverage |
+|-----------|----------|
+| `tunnel_test.rs` | Server startup, client connection, HTTP proxying |
+| `plugin_test.rs` | Plugin execution order, auth, rate limiting |
+| `tls_test.rs` | TLS connections end-to-end |
+| `concurrent_test.rs` | Concurrent request handling |
+| `multi_client_test.rs` | Multiple clients, reconnection |
+| `error_test.rs` | Timeout, connection refused scenarios |
+
+```bash
+# Run integration tests
+cargo test -p ferrotunnel-tests --test integration
+```
+
+### `examples/` ✅
+
+**Workspace-Level Examples** (`ferrotunnel-examples` crate):
+
+Demonstrates how to embed FerroTunnel in your own applications:
+
+- **`embedded_server.rs`**: How to embed a FerroTunnel server
+- **`embedded_client.rs`**: How to embed a FerroTunnel client
+
+```bash
+# Run examples
+cargo run -p ferrotunnel-examples --example embedded_server
+cargo run -p ferrotunnel-examples --example embedded_client
+```
 
 ## Building
 
