@@ -1,6 +1,7 @@
 //! End-to-End Tunnel Benchmarks
 //!
 //! Benchmarks that measure complete tunnel operations.
+#![allow(clippy::unwrap_used)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ferrotunnel_protocol::frame::{DataFrame, HandshakeFrame};
@@ -84,7 +85,7 @@ fn bench_plugin_chain(c: &mut Criterion) {
     let registry = rt.block_on(async {
         let mut reg = PluginRegistry::new();
         reg.register(Arc::new(RwLock::new(TokenAuthPlugin::new(vec![
-            "token".to_string(),
+            "token".to_string()
         ]))));
         reg.register(Arc::new(RwLock::new(RateLimitPlugin::new(10000))));
         reg.register(Arc::new(RwLock::new(LoggerPlugin::new())));

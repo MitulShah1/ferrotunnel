@@ -1,4 +1,7 @@
 //! Example: Plugin Chain
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::print_stdout)]
+#![allow(clippy::uninlined_format_args)]
 //!
 //! This example demonstrates how multiple builtin plugins work together in a chain.
 //! Each plugin can:
@@ -28,9 +31,7 @@ use tokio::sync::RwLock;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Initialize logging for the LoggerPlugin
-    tracing_subscriber::fmt()
-        .with_env_filter("info")
-        .init();
+    tracing_subscriber::fmt().with_env_filter("info").init();
 
     println!("`FerroTunnel` Plugin Chain Example");
     println!("===================================");
@@ -45,11 +46,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut registry = PluginRegistry::new();
 
     // Plugin 1: Token authentication (valid tokens: "secret-123", "admin-token")
-    let auth = TokenAuthPlugin::new(vec![
-        "secret-123".to_string(),
-        "admin-token".to_string(),
-    ])
-    .with_header_name("X-API-Key".to_string());
+    let auth = TokenAuthPlugin::new(vec!["secret-123".to_string(), "admin-token".to_string()])
+        .with_header_name("X-API-Key".to_string());
     registry.register(Arc::new(RwLock::new(auth)));
 
     // Plugin 2: Rate limiting (10 requests per second per IP)
@@ -70,15 +68,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("Test 1: GET /api/data (no API key)");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    let result1 = execute_request(
-        &registry,
-        "GET",
-        "/api/data",
-        None,
-        "192.168.1.100:54321",
-    )
-    .await?;
-    println!("Result: {:?}", result1);
+    let result1 =
+        execute_request(&registry, "GET", "/api/data", None, "192.168.1.100:54321").await?;
+    println!("Result: {result1:?}");
     println!();
 
     // Test 2: Request with valid API key (should pass all plugins)
@@ -93,7 +85,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         "192.168.1.100:54322",
     )
     .await?;
-    println!("Result: {:?}", result2);
+    println!("Result: {result2:?}");
     println!();
 
     // Test 3: Request with admin token
@@ -108,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         "10.0.0.1:8080",
     )
     .await?;
-    println!("Result: {:?}", result3);
+    println!("Result: {result3:?}");
     println!();
 
     // Test 4: Request with invalid token
@@ -123,7 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         "192.168.1.200:12345",
     )
     .await?;
-    println!("Result: {:?}", result4);
+    println!("Result: {result4:?}");
     println!();
 
     // Test 5-7: Multiple requests to demonstrate rate limiting
@@ -134,12 +126,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let result = execute_request(
             &registry,
             "GET",
-            &format!("/api/item/{}", i),
+            &format!("/api/item/{i}"),
             Some("secret-123"),
             "10.10.10.10:9999", // Same IP for all requests
         )
         .await?;
-        println!("Request {}: {:?}", i, result);
+        println!("Request {i}: {result:?}");
     }
     println!();
 
@@ -181,5 +173,5 @@ async fn execute_request(
         timestamp: std::time::SystemTime::now(),
     };
 
-    Ok(registry.execute_request_hooks(&mut req, &ctx).await?)
+    registry.execute_request_hooks(&mut req, &ctx).await
 }

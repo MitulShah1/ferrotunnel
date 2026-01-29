@@ -1,4 +1,4 @@
-//! FerroTunnel End-to-End Benchmarks
+//! `FerroTunnel` End-to-End Benchmarks
 //!
 //! This crate contains benchmarks that test the complete tunnel stack,
 //! measuring real-world performance characteristics.

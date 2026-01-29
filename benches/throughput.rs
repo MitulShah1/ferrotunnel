@@ -1,6 +1,8 @@
 //! Throughput Benchmarks
 //!
 //! Measures raw data throughput for various payload sizes.
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::cast_sign_loss)]
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use ferrotunnel_protocol::frame::DataFrame;
@@ -23,7 +25,7 @@ fn bench_encode_throughput(c: &mut Criterion) {
     let mut group = c.benchmark_group("encode_throughput");
 
     // Test various payload sizes
-    for size in [64, 256, 1024, 4096, 16384, 65536].iter() {
+    for size in &[64, 256, 1024, 4096, 16384, 65536] {
         let payload = vec![0xABu8; *size];
 
         group.throughput(Throughput::Bytes(*size as u64));
@@ -45,7 +47,7 @@ fn bench_encode_throughput(c: &mut Criterion) {
 fn bench_decode_throughput(c: &mut Criterion) {
     let mut group = c.benchmark_group("decode_throughput");
 
-    for size in [64, 256, 1024, 4096, 16384, 65536].iter() {
+    for size in &[64, 256, 1024, 4096, 16384, 65536] {
         let payload = vec![0xABu8; *size];
         let frame = Frame::Data(Box::new(DataFrame {
             stream_id: 1,
@@ -67,7 +69,7 @@ fn bench_decode_throughput(c: &mut Criterion) {
 fn bench_roundtrip_throughput(c: &mut Criterion) {
     let mut group = c.benchmark_group("roundtrip_throughput");
 
-    for size in [1024, 4096, 16384, 65536].iter() {
+    for size in &[1024, 4096, 16384, 65536] {
         let payload = vec![0xABu8; *size];
 
         group.throughput(Throughput::Bytes(*size as u64));
@@ -92,7 +94,7 @@ fn bench_roundtrip_throughput(c: &mut Criterion) {
 fn bench_batch_encoding(c: &mut Criterion) {
     let mut group = c.benchmark_group("batch_encoding");
 
-    for batch_size in [10, 50, 100].iter() {
+    for batch_size in &[10, 50, 100] {
         let frames: Vec<Frame> = (0..*batch_size)
             .map(|i| {
                 Frame::Data(Box::new(DataFrame {
@@ -108,12 +110,7 @@ fn bench_batch_encoding(c: &mut Criterion) {
             BenchmarkId::from_parameter(batch_size),
             batch_size,
             |b, _| {
-                b.iter(|| {
-                    frames
-                        .iter()
-                        .map(|f| encode_frame(f))
-                        .collect::<Vec<_>>()
-                });
+                b.iter(|| frames.iter().map(encode_frame).collect::<Vec<_>>());
             },
         );
     }

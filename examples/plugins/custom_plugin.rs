@@ -1,4 +1,7 @@
 //! Example: Custom Plugin
+#![allow(clippy::unwrap_used)]
+#![allow(clippy::print_stdout)]
+#![allow(clippy::uninlined_format_args)]
 //!
 //! This example shows how to create a custom plugin for `FerroTunnel`.
 //!
@@ -42,11 +45,11 @@ impl Default for MetricsPlugin {
 
 #[async_trait]
 impl Plugin for MetricsPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "metrics"
     }
 
-    fn version(&self) -> &str {
+    fn version(&self) -> &'static str {
         "1.0.0"
     }
 
@@ -115,7 +118,7 @@ impl PathBlockerPlugin {
 
 #[async_trait]
 impl Plugin for PathBlockerPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "path-blocker"
     }
 
@@ -128,10 +131,10 @@ impl Plugin for PathBlockerPlugin {
 
         for blocked in &self.blocked_paths {
             if path.starts_with(blocked) {
-                println!("[PathBlockerPlugin] Blocked access to: {}", path);
+                println!("[PathBlockerPlugin] Blocked access to: {path}");
                 return Ok(PluginAction::Reject {
                     status: 403,
-                    reason: format!("Access to {} is forbidden", path),
+                    reason: format!("Access to {path} is forbidden"),
                 });
             }
         }
@@ -190,7 +193,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .unwrap();
 
     let action1 = registry.execute_request_hooks(&mut req1, &ctx).await?;
-    println!("  /api/users -> {:?}", action1);
+    println!("  /api/users -> {action1:?}");
 
     // Simulate request to blocked path
     let mut req2 = http::Request::builder()
@@ -200,7 +203,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .unwrap();
 
     let action2 = registry.execute_request_hooks(&mut req2, &ctx).await?;
-    println!("  /admin/settings -> {:?}", action2);
+    println!("  /admin/settings -> {action2:?}");
 
     // Simulate one more request to show the counter
     let mut req3 = http::Request::builder()
@@ -210,7 +213,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .unwrap();
 
     let action3 = registry.execute_request_hooks(&mut req3, &ctx).await?;
-    println!("  /api/data -> {:?}", action3);
+    println!("  /api/data -> {action3:?}");
 
     // Show final count
     println!();

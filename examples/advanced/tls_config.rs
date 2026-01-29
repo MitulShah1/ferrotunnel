@@ -1,4 +1,5 @@
 //! Example: TLS Configuration
+#![allow(clippy::unwrap_used)]
 //!
 //! This example demonstrates how to configure TLS for secure tunnel connections.
 //!
@@ -81,7 +82,7 @@ async fn run_server() -> ferrotunnel::Result<()> {
         println!("  openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365");
         println!();
         println!("Running in demo mode (showing configuration only)...");
-        demo_server_config(tls);
+        demo_server_config(&tls);
         return Ok(());
     }
 
@@ -120,7 +121,7 @@ async fn run_client() -> ferrotunnel::Result<()> {
         println!("⚠️  CA certificate not found!");
         println!();
         println!("Running in demo mode (showing configuration only)...");
-        demo_client_config(tls);
+        demo_client_config(&tls);
         return Ok(());
     }
 
@@ -149,7 +150,7 @@ async fn run_client() -> ferrotunnel::Result<()> {
     Ok(())
 }
 
-fn demo_server_config(tls: TlsConfig) {
+fn demo_server_config(tls: &TlsConfig) {
     println!();
     println!("Example server configuration:");
     println!("```rust");
@@ -171,7 +172,7 @@ fn demo_server_config(tls: TlsConfig) {
     println!("```");
 }
 
-fn demo_client_config(tls: TlsConfig) {
+fn demo_client_config(tls: &TlsConfig) {
     println!();
     println!("Example client configuration:");
     println!("```rust");
