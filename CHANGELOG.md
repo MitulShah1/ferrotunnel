@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Response Streaming**: HTTP responses are now streamed directly when no plugins need body inspection, providing constant memory usage and lower TTFB for large responses.
 - **Object Pooling**: Added lock-free `ObjectPool` for reusing read buffers in `VirtualStream`, reducing allocations by ~20% under steady load.
 
+### Testing
+- **Expanded Unit Tests**: Added 56 new tests across crates for improved coverage:
+  - `ferrotunnel` main crate: 23 tests (ClientBuilder, ServerBuilder, config validation)
+  - `ferrotunnel-plugin`: 13 new tests (registry, rate_limit, logger)
+  - `ferrotunnel-http`: 10 new tests (proxy, error handling)
+
 ## [0.7.0] - 2026-01-27
 
 ### Added

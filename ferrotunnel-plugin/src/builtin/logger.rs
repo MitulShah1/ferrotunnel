@@ -78,3 +78,62 @@ impl Plugin for LoggerPlugin {
         Ok(PluginAction::Continue)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_logger_plugin_name() {
+        let plugin = LoggerPlugin::new();
+        assert_eq!(plugin.name(), "logger");
+    }
+
+    #[test]
+    fn test_logger_plugin_default() {
+        let plugin = LoggerPlugin::default();
+        assert!(!plugin.log_bodies);
+    }
+
+    #[test]
+    fn test_logger_plugin_with_body_logging() {
+        let plugin = LoggerPlugin::new().with_body_logging();
+        assert!(plugin.log_bodies);
+    }
+
+    #[tokio::test]
+    async fn test_logger_on_request_returns_continue() {
+        let plugin = LoggerPlugin::new();
+        let mut req = http::Request::builder()
+            .method("GET")
+            .uri("/api/test")
+            .body(())
+            .unwrap();
+
+        let ctx = RequestContext {
+            tunnel_id: "tunnel123".into(),
+            session_id: "session456".into(),
+            remote_addr: "192.168.1.100:54321".parse().unwrap(),
+            timestamp: std::time::SystemTime::now(),
+        };
+
+        let action = plugin.on_request(&mut req, &ctx).await.unwrap();
+        assert_eq!(action, PluginAction::Continue);
+    }
+
+    #[tokio::test]
+    async fn test_logger_on_response_returns_continue() {
+        let plugin = LoggerPlugin::new();
+        let mut res = http::Response::builder().status(200).body(vec![]).unwrap();
+
+        let ctx = ResponseContext {
+            tunnel_id: "tunnel123".into(),
+            session_id: "session456".into(),
+            status_code: 200,
+            duration_ms: 42,
+        };
+
+        let action = plugin.on_response(&mut res, &ctx).await.unwrap();
+        assert_eq!(action, PluginAction::Continue);
+    }
+}

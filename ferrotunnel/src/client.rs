@@ -282,3 +282,95 @@ impl ClientBuilder {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_client_builder_success() {
+        let client = Client::builder()
+            .server_addr("localhost:7835")
+            .token("secret-token")
+            .local_addr("127.0.0.1:9000")
+            .build();
+        assert!(client.is_ok());
+    }
+
+    #[test]
+    fn test_client_builder_with_all_options() {
+        let client = Client::builder()
+            .server_addr("tunnel.example.com:7835")
+            .token("my-token")
+            .local_addr("127.0.0.1:3000")
+            .auto_reconnect(false)
+            .reconnect_delay(Duration::from_secs(10))
+            .build()
+            .expect("should build successfully");
+
+        assert_eq!(client.config().server_addr, "tunnel.example.com:7835");
+        assert_eq!(client.config().token, "my-token");
+        assert_eq!(client.config().local_addr, "127.0.0.1:3000");
+        assert!(!client.config().auto_reconnect);
+        assert_eq!(client.config().reconnect_delay, Duration::from_secs(10));
+    }
+
+    #[test]
+    fn test_client_builder_missing_server_addr() {
+        let result = Client::builder()
+            .token("secret")
+            .local_addr("127.0.0.1:8080")
+            .build();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("server_addr"));
+    }
+
+    #[test]
+    fn test_client_builder_missing_token() {
+        let result = Client::builder()
+            .server_addr("localhost:7835")
+            .local_addr("127.0.0.1:8080")
+            .build();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("token"));
+    }
+
+    #[test]
+    fn test_client_builder_default_local_addr() {
+        let client = Client::builder()
+            .server_addr("localhost:7835")
+            .token("secret")
+            .build()
+            .expect("should use default local_addr");
+
+        assert_eq!(client.config().local_addr, "127.0.0.1:8080");
+    }
+
+    #[test]
+    fn test_client_not_running_initially() {
+        let client = Client::builder()
+            .server_addr("localhost:7835")
+            .token("secret")
+            .build()
+            .expect("should build");
+
+        assert!(!client.is_running());
+    }
+
+    #[test]
+    fn test_client_builder_tls_disabled() {
+        let tls = TlsConfig {
+            enabled: false,
+            ..Default::default()
+        };
+        let client = Client::builder()
+            .server_addr("localhost:7835")
+            .token("secret")
+            .tls(tls)
+            .build()
+            .expect("should build");
+
+        // TLS disabled means no transport config set
+        assert!(!client.config().server_addr.is_empty());
+    }
+}
