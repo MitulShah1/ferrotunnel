@@ -15,6 +15,7 @@ members = [
     "ferrotunnel-protocol/fuzz",
     "tests",
     "examples",
+    "benches",
 ]
 
 [workspace.package]

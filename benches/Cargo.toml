@@ -1,0 +1,41 @@
+[package]
+name = "ferrotunnel-benches"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+path = "lib.rs"
+
+# ============================================================================
+# End-to-End Benchmarks
+# ============================================================================
+
+[[bench]]
+name = "e2e_tunnel"
+path = "e2e_tunnel.rs"
+harness = false
+
+[[bench]]
+name = "throughput"
+path = "throughput.rs"
+harness = false
+
+[dependencies]
+ferrotunnel = { path = "../ferrotunnel" }
+ferrotunnel-common = { path = "../ferrotunnel-common" }
+ferrotunnel-protocol = { path = "../ferrotunnel-protocol" }
+ferrotunnel-plugin = { path = "../ferrotunnel-plugin" }
+
+tokio = { workspace = true }
+criterion = { version = "0.5", features = ["async_tokio"] }
+bytes = { workspace = true }
+rand = "0.8"
+bincode-next = { workspace = true }
+http = "1.0"
+
+[lints]
+workspace = true
