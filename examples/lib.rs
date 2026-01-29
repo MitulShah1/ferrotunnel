@@ -42,11 +42,13 @@
 //! - **`custom_plugin`** - Request counting and path blocking
 //! - **`header_filter`** - Filter/modify HTTP headers
 //! - **`ip_blocklist`** - Block requests by IP address
+//! - **`plugin_chain`** - Multiple plugins working together
 //!
 //! ```bash
 //! cargo run -p ferrotunnel-examples --example custom_plugin
 //! cargo run -p ferrotunnel-examples --example header_filter
 //! cargo run -p ferrotunnel-examples --example ip_blocklist
+//! cargo run -p ferrotunnel-examples --example plugin_chain
 //! ```
 //!
 //! ## Advanced Examples

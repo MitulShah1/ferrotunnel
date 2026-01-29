@@ -40,6 +40,10 @@ path = "plugins/header_filter.rs"
 name = "ip_blocklist"
 path = "plugins/ip_blocklist.rs"
 
+[[example]]
+name = "plugin_chain"
+path = "plugins/plugin_chain.rs"
+
 # Advanced Examples
 [[example]]
 name = "tls_config"
