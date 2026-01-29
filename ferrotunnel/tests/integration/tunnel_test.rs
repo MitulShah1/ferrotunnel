@@ -110,14 +110,99 @@ async fn test_http_through_tunnel() {
         .build()
         .expect("Failed to build client");
 
-    let _ = client.start().await.expect("Client failed to connect");
+    let info = client.start().await.expect("Client failed to connect");
+    let session_id = info
+        .session_id
+        .expect("Session ID should be present")
+        .to_string();
 
     // Give time for tunnel to be registered
     tokio::time::sleep(Duration::from_millis(500)).await;
 
     // Make HTTP request through the tunnel
-    // Note: In a real test, we'd send a request to http_addr
-    // For now, verify the tunnel is established
+    let http_client = super::make_client();
+    let url = format!("http://{}/", config.http_addr);
+
+    let response = http_client
+        .get(&url)
+        .header("Host", session_id)
+        .send()
+        .await
+        .expect("Failed to send HTTP request");
+
+    assert_eq!(
+        response.status(),
+        200,
+        "Expected 200 OK, got {}",
+        response.status()
+    );
+    let text = response.text().await.expect("Failed to read response body");
+    assert!(
+        text.contains("Hello, World!"),
+        "Response should contain echo message"
+    );
+
+    let _ = client.shutdown().await;
+}
+
+/// Test large payload handling
+#[tokio::test]
+async fn test_large_payload() {
+    let config = TestConfig::default();
+
+    // Start local sink service that reads everything and replies OK
+    let _sink_handle = super::start_sink_server(config.local_service_addr).await;
+
+    // Start server
+    let mut server = Server::builder()
+        .bind(config.server_addr)
+        .http_bind(config.http_addr)
+        .token(config.token)
+        .build()
+        .expect("Failed to build server");
+
+    let _server_handle = tokio::spawn(async move {
+        let _ = server.start().await;
+    });
+
+    assert!(wait_for_server(config.server_addr, Duration::from_secs(5)).await);
+
+    // Start client
+    let mut client = Client::builder()
+        .server_addr(config.server_addr.to_string())
+        .token(config.token)
+        .local_addr(config.local_service_addr.to_string())
+        .build()
+        .expect("Failed to build client");
+
+    let info = client.start().await.expect("Client failed to connect");
+    let session_id = info
+        .session_id
+        .expect("Session ID should be present")
+        .to_string();
+
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    // Create 1MB payload
+    let payload = vec![b'x'; 1024 * 1024];
+
+    let http_client = super::make_client();
+    let url = format!("http://{}/", config.http_addr);
+
+    let response = http_client
+        .post(&url)
+        .header("Host", session_id)
+        .body(payload)
+        .send()
+        .await
+        .expect("Failed to send large payload request");
+
+    assert_eq!(
+        response.status(),
+        200,
+        "Expected 200 OK, got {}",
+        response.status()
+    );
 
     let _ = client.shutdown().await;
 }

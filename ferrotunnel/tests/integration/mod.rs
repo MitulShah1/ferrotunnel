@@ -4,8 +4,11 @@
 //!
 //! These tests verify end-to-end functionality of the tunnel system.
 
+mod concurrent_test;
+mod error_test;
 mod multi_client_test;
 mod plugin_test;
+mod tls_test;
 mod tunnel_test;
 
 use std::net::SocketAddr;
@@ -82,6 +85,65 @@ pub async fn start_echo_server(addr: SocketAddr) -> tokio::task::JoinHandle<()> 
                              Hello, World!"
                             .to_string();
                         let _ = socket.write_all(response.as_bytes()).await;
+                    }
+                });
+            }
+        }
+    })
+}
+
+/// Create a reqwest client configured for testing (no proxy, direct connection)
+pub fn make_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .expect("Failed to build reqwest client")
+}
+
+/// Generate a self-signed certificate for testing
+pub fn generate_self_signed_cert(subject_alt_names: Vec<String>) -> (String, String) {
+    let mut params = rcgen::CertificateParams::new(subject_alt_names);
+    params
+        .distinguished_name
+        .push(rcgen::DnType::CommonName, "localhost");
+
+    let cert = rcgen::Certificate::from_params(params).expect("Failed to generate cert");
+    let cert_pem = cert.serialize_pem().expect("Failed to serialize cert");
+    let key_pem = cert.serialize_private_key_pem();
+
+    (cert_pem, key_pem)
+}
+
+/// Start a server that reads the body and returns 200 OK
+pub async fn start_sink_server(addr: SocketAddr) -> tokio::task::JoinHandle<()> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpListener;
+
+    let listener = TcpListener::bind(addr)
+        .await
+        .expect("Failed to bind sink server");
+
+    tokio::spawn(async move {
+        loop {
+            if let Ok((mut socket, _)) = listener.accept().await {
+                tokio::spawn(async move {
+                    let mut buf = vec![0u8; 32 * 1024];
+                    loop {
+                        let n = socket.read(&mut buf).await.unwrap_or(0);
+                        if n == 0 {
+                            break;
+                        }
+
+                        let request = String::from_utf8_lossy(&buf[..n]);
+                        if request.contains("\r\n\r\n") {
+                            // Headers received.
+                            // Send Response.
+                            let response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+                            let _ = socket.write_all(response.as_bytes()).await;
+                            // For testing purposes, we assume 'large payload' is sent in one go or we just ack it.
+                            // If we want to drain, we should loop.
+                            // But for now let's just reply.
+                        }
                     }
                 });
             }
