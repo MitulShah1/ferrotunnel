@@ -30,7 +30,7 @@ categories = ["network-programming", "web-programming"]
 [workspace.dependencies]
 # Serialization
 serde = { version = "1", features = ["derive"] }
-bincode = "1"
+bincode-next = { version = "2.0.4", features = ["serde"] }
 bytes = { version = "1", features = ["serde"] }
 
 # Benchmarking
