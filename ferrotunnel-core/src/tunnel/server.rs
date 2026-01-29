@@ -1,6 +1,7 @@
 use crate::auth::{constant_time_eq, validate_token_format};
 use crate::resource_limits::{ServerResourceLimits, SessionPermit};
 use crate::stream::multiplexer::Multiplexer;
+use crate::transport::batched_sender::run_batched_sender;
 use crate::transport::{self, BoxedStream, TransportConfig};
 use crate::tunnel::session::Session;
 use crate::tunnel::session::SessionStore;
@@ -170,18 +171,11 @@ impl TunnelServer {
                     let tunnel_id = tunnel_id.unwrap_or_else(|| session_id.to_string());
 
                     // Setup multiplexer with kanal channels
-                    let (mut sink, stream) = framed.split();
+                    let (sink, stream) = framed.split();
                     let (frame_tx, frame_rx) = bounded_async::<Frame>(100);
 
-                    // Spawn sender task: Rx -> Sink
-                    tokio::spawn(async move {
-                        while let Ok(frame) = frame_rx.recv().await {
-                            if let Err(e) = sink.send(frame).await {
-                                warn!("Failed to send frame: {}", e);
-                                break;
-                            }
-                        }
-                    });
+                    // Spawn batched sender task for vectored I/O performance
+                    tokio::spawn(run_batched_sender(frame_rx, sink));
 
                     let (multiplexer, new_stream_rx) = Multiplexer::new(frame_tx, false);
 

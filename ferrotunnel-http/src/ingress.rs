@@ -281,7 +281,12 @@ async fn handle_request(
 
     let (parts, body) = res.into_parts();
 
-    // Buffer response with size limit (for plugin processing)
+    if !registry.needs_response_buffering().await {
+        let streaming_body = body.boxed();
+        return Ok(Response::from_parts(parts, streaming_body));
+    }
+
+    // Buffer response for plugin processing
     let body_bytes = match collect_body_with_limit(body, config.max_response_size).await {
         Ok(bytes) => bytes,
         Err(msg) => {

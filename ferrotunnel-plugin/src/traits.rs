@@ -94,6 +94,13 @@ pub trait Plugin: Send + Sync {
         Ok(PluginAction::Continue)
     }
 
+    /// Returns true if this plugin needs to inspect/modify response bodies.
+    /// Override to return true if your plugin uses on_response with body access.
+    /// When false, responses can be streamed without buffering for better performance.
+    fn needs_response_body(&self) -> bool {
+        false
+    }
+
     /// Hook: When stream data flows through tunnel
     async fn on_stream_data(
         &self,

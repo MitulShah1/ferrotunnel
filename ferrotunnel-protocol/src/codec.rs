@@ -1,10 +1,19 @@
 //! Codec for encoding and decoding protocol frames
+//!
+//! Uses zero-copy techniques and thread-local buffers for efficiency.
 
 use crate::constants::MAX_FRAME_SIZE;
 use crate::frame::Frame;
 use bytes::{Buf, BufMut, BytesMut};
+use std::cell::RefCell;
 use std::io;
 use tokio_util::codec::{Decoder, Encoder};
+
+thread_local! {
+    static ENCODE_BUFFER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+}
+
+const INITIAL_ENCODE_BUFFER_CAPACITY: usize = 8192;
 
 /// Tunnel protocol codec
 ///
@@ -84,13 +93,11 @@ impl Decoder for TunnelCodec {
         // Skip the length prefix
         src.advance(4);
 
-        // Deserialize the frame
-        let frame = bincode::deserialize(&src[..frame_length]).map_err(|e| {
+        let frame_bytes = src.split_to(frame_length).freeze();
+
+        let frame = bincode::deserialize(&frame_bytes).map_err(|e| {
             io::Error::new(io::ErrorKind::InvalidData, format!("Decode error: {e}"))
         })?;
-
-        // Advance past the frame data
-        src.advance(frame_length);
 
         Ok(Some(frame))
     }
@@ -100,35 +107,44 @@ impl Encoder<Frame> for TunnelCodec {
     type Error = io::Error;
 
     fn encode(&mut self, frame: Frame, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        // Serialize the frame
-        let encoded = bincode::serialize(&frame).map_err(|e| {
-            io::Error::new(io::ErrorKind::InvalidData, format!("Encode error: {e}"))
-        })?;
+        ENCODE_BUFFER.with(|buf| {
+            let mut buf = buf.borrow_mut();
 
-        let frame_length = encoded.len();
+            if buf.capacity() == 0 {
+                buf.reserve(INITIAL_ENCODE_BUFFER_CAPACITY);
+            }
+            buf.clear();
 
-        // Validate frame size
-        if frame_length > self.max_frame_size {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!(
-                    "Frame too large: {frame_length} bytes (max: {})",
-                    self.max_frame_size
-                ),
-            ));
-        }
+            // Serialize into reusable buffer
+            bincode::serialize_into(&mut *buf, &frame).map_err(|e| {
+                io::Error::new(io::ErrorKind::InvalidData, format!("Encode error: {e}"))
+            })?;
 
-        // Reserve space for length prefix + data
-        dst.reserve(4 + frame_length);
+            let frame_length = buf.len();
 
-        // Write length prefix
-        #[allow(clippy::cast_possible_truncation, clippy::expect_used)]
-        dst.put_u32(u32::try_from(frame_length).expect("Frame length validated"));
+            // Validate frame size
+            if frame_length > self.max_frame_size {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!(
+                        "Frame too large: {frame_length} bytes (max: {})",
+                        self.max_frame_size
+                    ),
+                ));
+            }
 
-        // Write frame data
-        dst.put_slice(&encoded);
+            // Reserve space for length prefix + data
+            dst.reserve(4 + frame_length);
 
-        Ok(())
+            // Write length prefix
+            #[allow(clippy::cast_possible_truncation, clippy::expect_used)]
+            dst.put_u32(u32::try_from(frame_length).expect("Frame length validated"));
+
+            // Write frame data
+            dst.put_slice(&buf);
+
+            Ok(())
+        })
     }
 }
 
