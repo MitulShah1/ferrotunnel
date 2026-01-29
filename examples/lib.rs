@@ -1,47 +1,62 @@
 //! `FerroTunnel` Examples
 //!
 //! This crate provides examples demonstrating how to use `FerroTunnel`
-//! in your own Rust applications.
+//! in your own Rust applications, organized by category.
 //!
-//! ## Available Examples
+//! ## Directory Structure
 //!
-//! ### Basic Usage
+//! ```text
+//! examples/
+//! ├── basic/              # Getting started examples
+//! │   ├── embedded_server.rs
+//! │   ├── embedded_client.rs
+//! │   └── auto_reconnect.rs
+//! ├── plugins/            # Plugin development examples
+//! │   └── custom_plugin.rs
+//! └── advanced/           # Production patterns
+//!     ├── tls_config.rs
+//!     └── multi_tunnel.rs
+//! ```
 //!
-//! - **`embedded_server`** - Embed a `FerroTunnel` server in your application
-//! - **`embedded_client`** - Embed a `FerroTunnel` client in your application
+//! ## Basic Examples
 //!
-//! ### Advanced Features
+//! Start here if you're new to `FerroTunnel`:
 //!
-//! - **`custom_plugin`** - Create custom plugins to intercept/modify requests
-//! - **`tls_config`** - Configure TLS for secure tunnel connections
-//! - **`auto_reconnect`** - Demonstrate auto-reconnect with custom settings
-//! - **`multi_tunnel`** - Run multiple tunnel clients for different services
-//!
-//! ## Running Examples
+//! - **`embedded_server`** - Embed a tunnel server in your application
+//! - **`embedded_client`** - Embed a tunnel client in your application
+//! - **`auto_reconnect`** - Client with auto-reconnect and custom settings
 //!
 //! ```bash
-//! # Basic examples
 //! cargo run -p ferrotunnel-examples --example embedded_server
 //! cargo run -p ferrotunnel-examples --example embedded_client
-//!
-//! # Custom plugin example
-//! cargo run -p ferrotunnel-examples --example custom_plugin
-//!
-//! # TLS example (server mode)
-//! cargo run -p ferrotunnel-examples --example tls_config -- --mode server
-//!
-//! # Auto-reconnect example
 //! cargo run -p ferrotunnel-examples --example auto_reconnect
+//! ```
 //!
-//! # Multi-tunnel example
+//! ## Plugin Examples
+//!
+//! Learn how to extend `FerroTunnel` with custom plugins:
+//!
+//! - **`custom_plugin`** - Create plugins to intercept/modify requests
+//!
+//! ```bash
+//! cargo run -p ferrotunnel-examples --example custom_plugin
+//! ```
+//!
+//! ## Advanced Examples
+//!
+//! Production configurations and patterns:
+//!
+//! - **`tls_config`** - Configure TLS for secure connections
+//! - **`multi_tunnel`** - Run multiple tunnels for different services
+//!
+//! ```bash
+//! cargo run -p ferrotunnel-examples --example tls_config -- --mode server
 //! cargo run -p ferrotunnel-examples --example multi_tunnel
 //! ```
 //!
 //! ## Quick Start
 //!
-//! The fastest way to get started is with the embedded examples:
-//!
-//! 1. Start a local HTTP server (e.g., `python3 -m http.server 8000`)
+//! 1. Start a local HTTP server: `python3 -m http.server 8000`
 //! 2. Run the server: `cargo run -p ferrotunnel-examples --example embedded_server`
 //! 3. Run the client: `cargo run -p ferrotunnel-examples --example embedded_client`
 //! 4. Access your local server through the tunnel!
