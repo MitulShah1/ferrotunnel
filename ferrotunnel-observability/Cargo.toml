@@ -59,7 +59,16 @@ tower-http = { version = "0.5", features = [
 tokio-stream = { version = "0.1", features = ["sync"], optional = true }
 reqwest = { version = "0.13.1", features = ["json"] }
 
+rust-embed = { version = "8.5", optional = true }
+mime_guess = { version = "2.0", optional = true }
+
 [features]
 default = []
 axum = ["dep:axum"]
-dashboard = ["axum", "dep:tower-http", "dep:tokio-stream"]
+dashboard = [
+    "axum",
+    "dep:tower-http",
+    "dep:tokio-stream",
+    "dep:rust-embed",
+    "dep:mime_guess",
+]

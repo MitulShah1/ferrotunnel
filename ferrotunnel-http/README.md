@@ -32,7 +32,7 @@ Handles tunneled HTTP requests by:
 use ferrotunnel_http::{HttpIngress, HttpProxy};
 
 // Server-side: Create ingress
-let ingress = HttpIngress::new("0.0.0.0:8080".parse()?, sessions);
+let ingress = HttpIngress::new("0.0.0.0:8080".parse()?, sessions, registry);
 ingress.start().await?;
 
 // Client-side: Create proxy

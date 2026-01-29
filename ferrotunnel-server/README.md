@@ -32,6 +32,7 @@ ferrotunnel-server \
 
 - **7835** - Tunnel control plane (clients connect here)
 - **8080** - HTTP ingress (public traffic enters here)
+- **9090** - Prometheus metrics (http://0.0.0.0:9090/metrics)
 
 ## Example
 

@@ -26,6 +26,8 @@ ferrotunnel-client \
 | `--server` | `FERROTUNNEL_SERVER` | (required) | Server address (host:port) |
 | `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
 | `--local-addr` | - | `127.0.0.1:8000` | Local service to forward to |
+| `--dashboard-port` | - | `4040` | Dashboard UI port |
+| `--no-dashboard` | - | `false` | Disable dashboard |
 | `--log-level` | `RUST_LOG` | `info` | Log level |
 
 ## Example

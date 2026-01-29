@@ -1,0 +1,14 @@
+target/
+**/*.rs.bk
+Cargo.lock
+.git/
+.github/
+.vscode/
+.env
+*.md
+docs/
+examples/
+scripts/
+tools/
+# Keep server and client crates
+# target/ and other build artifacts are ignored above
