@@ -39,13 +39,11 @@
 //!
 //! Learn how to extend `FerroTunnel` with custom plugins:
 //!
-//! - **`hello_plugin`** - Simple "Hello World" plugin
 //! - **`custom_plugin`** - Request counting and path blocking
 //! - **`header_filter`** - Filter/modify HTTP headers
 //! - **`ip_blocklist`** - Block requests by IP address
 //!
 //! ```bash
-//! cargo run -p ferrotunnel-examples --example hello_plugin
 //! cargo run -p ferrotunnel-examples --example custom_plugin
 //! cargo run -p ferrotunnel-examples --example header_filter
 //! cargo run -p ferrotunnel-examples --example ip_blocklist

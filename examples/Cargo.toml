@@ -33,10 +33,6 @@ name = "custom_plugin"
 path = "plugins/custom_plugin.rs"
 
 [[example]]
-name = "hello_plugin"
-path = "plugins/hello_plugin.rs"
-
-[[example]]
 name = "header_filter"
 path = "plugins/header_filter.rs"
 
@@ -44,10 +40,7 @@ path = "plugins/header_filter.rs"
 name = "ip_blocklist"
 path = "plugins/ip_blocklist.rs"
 
-# ============================================================================
-# Advanced Examples - Production configurations and patterns
-# ============================================================================
-
+# Advanced Examples
 [[example]]
 name = "tls_config"
 path = "advanced/tls_config.rs"
