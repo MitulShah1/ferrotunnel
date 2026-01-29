@@ -57,11 +57,11 @@ struct Args {
     log_level: String,
 
     /// Local service address to forward to (host:port)
-    #[arg(long, default_value = "127.0.0.1:8000")]
+    #[arg(long, default_value = "127.0.0.1:8000", env = "FERROTUNNEL_LOCAL_ADDR")]
     local_addr: String,
 
     /// Dashboard port
-    #[arg(long, default_value = "4040")]
+    #[arg(long, default_value = "4040", env = "FERROTUNNEL_DASHBOARD_PORT")]
     dashboard_port: u16,
 
     /// Disable dashboard
@@ -97,7 +97,7 @@ async fn main() -> Result<()> {
         // No loop_broadcaster.run_loop() needed for broadcast channel
 
         let app = create_router(dashboard_state.clone(), broadcaster.clone());
-        let addr = std::net::SocketAddr::from(([127, 0, 0, 1], args.dashboard_port));
+        let addr = std::net::SocketAddr::from(([0, 0, 0, 0], args.dashboard_port));
 
         info!("Starting Dashboard at http://{}", addr);
         tokio::spawn(async move {

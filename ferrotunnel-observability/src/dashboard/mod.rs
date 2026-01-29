@@ -34,6 +34,8 @@ pub use models::{
 use std::sync::Arc;
 
 use axum::{
+    http::StatusCode,
+    response::IntoResponse,
     routing::{get, post},
     Router,
 };
@@ -60,6 +62,28 @@ use tower_http::{
 /// - `GET /api/v1/requests/:id/replay` - Replay a request
 /// - `GET /api/v1/metrics` - Prometheus metrics
 /// - `GET /api/v1/events` - SSE event stream
+// Embedded assets
+#[derive(rust_embed::RustEmbed)]
+#[folder = "src/dashboard/static/"]
+struct Assets;
+
+async fn static_handler(uri: axum::http::Uri) -> impl axum::response::IntoResponse {
+    let path = uri.path().trim_start_matches('/');
+    let path = if path.is_empty() { "index.html" } else { path };
+
+    match Assets::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            (
+                [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
+                content.data,
+            )
+                .into_response()
+        }
+        None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
+    }
+}
+
 pub fn create_router(state: SharedDashboardState, broadcaster: Arc<EventBroadcaster>) -> Router {
     let api_routes = Router::new()
         .route("/health", get(handlers::health_handler))
@@ -76,18 +100,9 @@ pub fn create_router(state: SharedDashboardState, broadcaster: Arc<EventBroadcas
         .route("/events", get(events::events_handler))
         .with_state(broadcaster);
 
-    // Serve static files from the "static" directory if it exists,
-    // otherwise just serve the API (useful for development)
-    let static_dir = std::env::current_dir()
-        .unwrap_or_default()
-        .join("ferrotunnel-observability/src/dashboard/static");
-
-    let serve_dir =
-        tower_http::services::ServeDir::new(static_dir).append_index_html_on_directories(true);
-
     Router::new()
         .nest("/api/v1", api_routes)
-        .fallback_service(serve_dir)
+        .fallback(static_handler)
         .layer(CompressionLayer::new())
         .layer(TraceLayer::new_for_http())
         .layer(

@@ -116,9 +116,4 @@ jobs:
       - name: Wait for crates.io
         run: sleep 60
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -1,7 +1,9 @@
+use opentelemetry::trace::TracerProvider as _;
 use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
-use opentelemetry_sdk::{runtime, trace as sdktrace, Resource};
+use opentelemetry_sdk::trace::Config;
+use opentelemetry_sdk::Resource;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry};
@@ -26,17 +28,19 @@ pub fn init_tracing(config: TracingConfig) -> Result<(), anyhow::Error> {
 
     // 2. OpenTelemetry layer (if endpoint provided)
     if let Some(endpoint) = config.otlp_endpoint {
-        let tracer = opentelemetry_otlp::new_pipeline()
+        let exporter = opentelemetry_otlp::new_exporter()
+            .tonic()
+            .with_endpoint(endpoint);
+
+        let resource = Resource::new(vec![KeyValue::new("service.name", config.service_name)]);
+
+        let tracer_provider = opentelemetry_otlp::new_pipeline()
             .tracing()
-            .with_exporter(
-                opentelemetry_otlp::new_exporter()
-                    .tonic()
-                    .with_endpoint(endpoint),
-            )
-            .with_trace_config(sdktrace::config().with_resource(Resource::new(vec![
-                KeyValue::new("service.name", config.service_name),
-            ])))
-            .install_batch(runtime::Tokio)?;
+            .with_exporter(exporter)
+            .with_trace_config(Config::default().with_resource(resource))
+            .install_simple()?;
+
+        let tracer = tracer_provider.tracer("ferrotunnel");
 
         let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 

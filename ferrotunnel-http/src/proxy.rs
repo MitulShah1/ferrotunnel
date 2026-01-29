@@ -196,6 +196,34 @@ mod tests {
     use hyper::{body::Bytes, Request};
     use tower::Service;
 
+    #[test]
+    fn test_proxy_error_display_hyper() {
+        // We can't easily create a real hyper error, but we can test Custom
+        let err = ProxyError::Custom("test error".to_string());
+        assert!(err.to_string().contains("test error"));
+    }
+
+    #[test]
+    fn test_proxy_error_custom_display() {
+        let err = ProxyError::Custom("connection failed".to_string());
+        let display = format!("{err}");
+        assert!(display.contains("Proxy error"));
+        assert!(display.contains("connection failed"));
+    }
+
+    #[test]
+    fn test_local_proxy_service_new() {
+        let service = LocalProxyService::new("127.0.0.1:8080".to_string());
+        assert_eq!(service.target_addr, "127.0.0.1:8080");
+    }
+
+    #[test]
+    fn test_local_proxy_service_clone() {
+        let service = LocalProxyService::new("localhost:3000".to_string());
+        let cloned = service.clone();
+        assert_eq!(cloned.target_addr, "localhost:3000");
+    }
+
     #[tokio::test]
     async fn test_proxy_connection_error() {
         // Create a service pointing to a closed port (assuming 127.0.0.1:12345 is closed)
@@ -214,5 +242,36 @@ mod tests {
         let body_bytes = response.into_body().collect().await.unwrap().to_bytes();
         let body_str = String::from_utf8(body_bytes.to_vec()).unwrap();
         assert!(body_str.contains("Failed to connect"));
+    }
+
+    #[test]
+    fn test_error_response_bad_gateway() {
+        let resp = error_response(StatusCode::BAD_GATEWAY, "Backend unavailable");
+        assert_eq!(resp.status(), StatusCode::BAD_GATEWAY);
+    }
+
+    #[test]
+    fn test_error_response_not_found() {
+        let resp = error_response(StatusCode::NOT_FOUND, "Route not found");
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn test_error_response_internal_error() {
+        let resp = error_response(StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error");
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_http_proxy_new() {
+        let proxy = HttpProxy::new("127.0.0.1:8080".to_string());
+        assert_eq!(proxy.target_addr, "127.0.0.1:8080");
+    }
+
+    #[test]
+    fn test_http_proxy_with_layer() {
+        let proxy = HttpProxy::new("127.0.0.1:8080".to_string());
+        let _layered = proxy.with_layer(tower::layer::util::Identity::new());
+        // Just verify it compiles and runs
     }
 }

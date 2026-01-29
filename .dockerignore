@@ -1,0 +1,13 @@
+target/
+**/*.rs.bk
+Cargo.lock
+.git/
+.github/
+.vscode/
+.env
+*.md
+docs/
+examples/
+scripts/
+# Keep workspace crates
+# target/ and other build artifacts are ignored above

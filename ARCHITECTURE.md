@@ -14,6 +14,9 @@ ferrotunnel/
 ├── ARCHITECTURE.md
 ├── CHANGELOG.md
 ├── LICENSE
+├── Dockerfile                  # Container definition
+├── docker-compose.yml          # Container orchestration
+├── .dockerignore
 ├── ferrotunnel/                # Main library (Facade & Builders)
 │   ├── src/
 │   │   ├── lib.rs              # Re-exports & prelude
@@ -149,8 +152,8 @@ ferrotunnel/
 │   ├── embedded_server.rs
 │   └── custom_plugin.rs
 │
-└── tests/                      # Phase 3+: Integration tests
-    └── integration/
+└── tests/                      # Phase 8: Integration tests
+    └── integration/            # End-to-end test suite
 ```
 
 ## Implementation Order
@@ -324,7 +327,7 @@ Or use automated GitHub Actions (see `.github/workflows/publish.yml`).
 2. **Run checks**: `make check` (format + lint)
 3. **Run tests**: `make test`
 4. **Commit**: Changes pass CI automatically
-5. **Release**: Tag version, CI publishes to crates.io
+5. **Release**: Tag release (`v*`), CI builds binaries and publishes Docker images automatically.
 
 ## References
 

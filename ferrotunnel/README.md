@@ -12,7 +12,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ferrotunnel = "0.1"
+ferrotunnel = "0.7"
 ```
 
 ## Features

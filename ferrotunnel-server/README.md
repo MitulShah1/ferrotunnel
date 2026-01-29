@@ -27,11 +27,13 @@ ferrotunnel-server \
 | `--http-bind` | `FERROTUNNEL_HTTP_BIND` | `0.0.0.0:8080` | HTTP ingress address |
 | `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
 | `--log-level` | `RUST_LOG` | `info` | Log level |
+| `--metrics-bind` | `FERROTUNNEL_METRICS_BIND` | `0.0.0.0:9090` | Prometheus metrics address |
 
 ## Ports
 
 - **7835** - Tunnel control plane (clients connect here)
 - **8080** - HTTP ingress (public traffic enters here)
+- **9090** - Prometheus metrics (configurable via `--metrics-bind`)
 
 ## Example
 

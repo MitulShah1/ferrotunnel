@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Critical Security**: Fixed cross-tenant request routing where requests could be routed to any active tunnel instead of the specific tunnel requested via the Host header.
 - **Performance/Security**: Removed full request body buffering in the HTTP ingress to prevent memory exhaustion DoS attacks and improve latency for large payloads.
+- **Client Stability**: Fixed a client hang during startup where the connection handshake callback blocked the main loop.
+- **Test Stability**: Fixed `Address already in use` errors in parallel tests by implementing atomic dynamic port allocation.
 
 ### Performance
 - **Core Optimization**: Replaced `futures::channel::mpsc` with `kanal` for 2-3x faster async channel throughput in the multiplexer.
@@ -28,6 +30,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batched I/O**: New `batched_sender` collects frames and flushes in batches to reduce syscall overhead (15-25% throughput improvement).
 - **Response Streaming**: HTTP responses are now streamed directly when no plugins need body inspection, providing constant memory usage and lower TTFB for large responses.
 - **Object Pooling**: Added lock-free `ObjectPool` for reusing read buffers in `VirtualStream`, reducing allocations by ~20% under steady load.
+
+### Testing
+- **Expanded Unit Tests**: Added 56 new tests across crates for improved coverage:
+  - `ferrotunnel` main crate: 23 tests (ClientBuilder, ServerBuilder, config validation)
+  - `ferrotunnel-plugin`: 13 new tests (registry, rate_limit, logger)
+  - `ferrotunnel-http`: 10 new tests (proxy, error handling)
+- **Integration Test Suite**: Added `tests/integration/` with 9 end-to-end scenarios:
+  - Tunnel establishment and server/client lifecycle
+  - Multi-client connection and reconnection stress testing
+  - Plugin interaction (Auth, Rate Limiting) and execution order
+  - HTTP routing verification through the tunnel
+
+### Observability
+- **Error Tracking**: Added `ferrotunnel_errors_total` counter metric with type labels for granular error tracking.
+
+### Documentation
+- **Plugin Development Guide**: Added `docs/plugin-development.md` with plugin architecture, examples, best practices, and testing instructions.
+
+### Dependencies
+- **OpenTelemetry Upgrade**: Updated from 0.21 to 0.26 to resolve `axum` version duplication (`tonic` now uses axum 0.7).
+
+### Deployment
+- **Docker Support**: Added production-ready `Dockerfile` (multistage, non-root) and `docker-compose.yml`.
+- **Automated Releases**: Added `.github/workflows/release.yml` for cross-platform binary releases.
+- **Container Registry**: Added `.github/workflows/docker-publish.yml` to publish images to GHCR.
 
 ## [0.7.0] - 2026-01-27
 

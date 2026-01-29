@@ -125,7 +125,12 @@ async fn handle_request(
     peer_addr: SocketAddr,
     config: IngressConfig,
 ) -> std::result::Result<Response<BoxBody>, hyper::Error> {
-    // 0. Parse and normalize Host header
+    // 0. Global Health Check
+    if req.uri().path() == "/health" {
+        return Ok(full_response(StatusCode::OK, "OK"));
+    }
+
+    // 1. Parse and normalize Host header
     let tunnel_id = match parse_and_normalize_host(req.headers().get("host")) {
         Ok(host) => host,
         Err(msg) => {

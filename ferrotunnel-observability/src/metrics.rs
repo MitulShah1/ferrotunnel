@@ -40,6 +40,13 @@ lazy_static! {
         "ferrotunnel_active_streams",
         "Number of currently active multiplexed streams"
     ).unwrap();
+
+    // Error metrics
+    pub static ref ERRORS_TOTAL: CounterVec = register_counter_vec!(
+        "ferrotunnel_errors_total",
+        "Total number of errors by type",
+        &["type"] // "connection", "request", "plugin", "protocol"
+    ).unwrap();
 }
 
 /// Initialize the metrics system

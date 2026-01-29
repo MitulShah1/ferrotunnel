@@ -83,6 +83,8 @@ async fn main() -> ferrotunnel::Result<()> {
 - ✅ **Observability Infrastructure (Backend)** (`ferrotunnel-observability`)
 - ✅ Comprehensive unit tests
 - ✅ Full documentation
+- ✅ **Docker Containerization**
+- ✅ **Automated Binary Releases**
 
 ## Crates
 
@@ -127,6 +129,26 @@ We prioritize security and stability. See our [Hardening Overview](extra/hardeni
 - 🛡️ **Fuzz Testing**: Continuous fuzzing to catch edge cases.
 - ⚡ **Benchmarks**: Performance tracking for latency and throughput.
 - 🔒 **Security Audits**: Automated dependency auditing.
+
+## Deployment
+
+### Docker
+
+Quick start with Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+Build production image manually:
+
+```bash
+docker build -t ferrotunnel-server .
+```
+
+### Pre-compiled Binaries
+
+Binaries for Linux, macOS, and Windows are available on the [GitHub Releases](https://github.com/MitulShah1/ferrotunnel/releases) page.
 
 ## Building
 

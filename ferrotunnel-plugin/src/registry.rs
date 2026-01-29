@@ -97,6 +97,7 @@ mod tests {
     use super::*;
     use async_trait::async_trait;
 
+    // Test plugin that always rejects
     struct RejectPlugin;
     #[async_trait]
     impl Plugin for RejectPlugin {
@@ -116,6 +117,50 @@ mod tests {
         }
     }
 
+    // Test plugin that always continues
+    struct PassthroughPlugin;
+    #[async_trait]
+    impl Plugin for PassthroughPlugin {
+        fn name(&self) -> &str {
+            "passthrough"
+        }
+    }
+
+    // Test plugin that needs response body
+    struct BodyInspectorPlugin;
+    #[async_trait]
+    impl Plugin for BodyInspectorPlugin {
+        fn name(&self) -> &str {
+            "body-inspector"
+        }
+
+        fn needs_response_body(&self) -> bool {
+            true
+        }
+    }
+
+    fn make_request_ctx() -> RequestContext {
+        RequestContext {
+            tunnel_id: "test".into(),
+            session_id: "sess".into(),
+            remote_addr: "127.0.0.1:80".parse().unwrap(),
+            timestamp: std::time::SystemTime::now(),
+        }
+    }
+
+    #[test]
+    fn test_registry_new_is_empty() {
+        let registry = PluginRegistry::new();
+        assert!(registry.is_empty());
+    }
+
+    #[test]
+    fn test_registry_not_empty_after_register() {
+        let mut registry = PluginRegistry::new();
+        registry.register(Arc::new(RwLock::new(PassthroughPlugin)));
+        assert!(!registry.is_empty());
+    }
+
     #[tokio::test]
     async fn test_registry_executes_plugins() {
         let plugin = Arc::new(RwLock::new(RejectPlugin));
@@ -123,12 +168,7 @@ mod tests {
         registry.register(plugin);
 
         let mut req = http::Request::builder().body(()).unwrap();
-        let ctx = RequestContext {
-            tunnel_id: "test".into(),
-            session_id: "sess".into(),
-            remote_addr: "127.0.0.1:80".parse().unwrap(),
-            timestamp: std::time::SystemTime::now(),
-        };
+        let ctx = make_request_ctx();
 
         let action = registry
             .execute_request_hooks(&mut req, &ctx)
@@ -137,6 +177,86 @@ mod tests {
         match action {
             PluginAction::Reject { status, .. } => assert_eq!(status, 403),
             _ => panic!("Expected reject"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_registry_empty_returns_continue() {
+        let registry = PluginRegistry::new();
+        let mut req = http::Request::builder().body(()).unwrap();
+        let ctx = make_request_ctx();
+
+        let action = registry
+            .execute_request_hooks(&mut req, &ctx)
+            .await
+            .unwrap();
+        assert_eq!(action, PluginAction::Continue);
+    }
+
+    #[tokio::test]
+    async fn test_registry_passthrough_returns_continue() {
+        let mut registry = PluginRegistry::new();
+        registry.register(Arc::new(RwLock::new(PassthroughPlugin)));
+
+        let mut req = http::Request::builder().body(()).unwrap();
+        let ctx = make_request_ctx();
+
+        let action = registry
+            .execute_request_hooks(&mut req, &ctx)
+            .await
+            .unwrap();
+        assert_eq!(action, PluginAction::Continue);
+    }
+
+    #[tokio::test]
+    async fn test_registry_init_all_success() {
+        let mut registry = PluginRegistry::new();
+        registry.register(Arc::new(RwLock::new(PassthroughPlugin)));
+
+        let result = registry.init_all().await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_registry_shutdown_all_success() {
+        let mut registry = PluginRegistry::new();
+        registry.register(Arc::new(RwLock::new(PassthroughPlugin)));
+
+        let result = registry.shutdown_all().await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_registry_needs_response_buffering_false_when_empty() {
+        let registry = PluginRegistry::new();
+        assert!(!registry.needs_response_buffering().await);
+    }
+
+    #[tokio::test]
+    async fn test_registry_needs_response_buffering_detects_plugin() {
+        let mut registry = PluginRegistry::new();
+        registry.register(Arc::new(RwLock::new(BodyInspectorPlugin)));
+        assert!(registry.needs_response_buffering().await);
+    }
+
+    #[tokio::test]
+    async fn test_registry_short_circuits_on_reject() {
+        let mut registry = PluginRegistry::new();
+        // RejectPlugin first, then PassthroughPlugin
+        registry.register(Arc::new(RwLock::new(RejectPlugin)));
+        registry.register(Arc::new(RwLock::new(PassthroughPlugin)));
+
+        let mut req = http::Request::builder().body(()).unwrap();
+        let ctx = make_request_ctx();
+
+        let action = registry
+            .execute_request_hooks(&mut req, &ctx)
+            .await
+            .unwrap();
+        // Should get Reject (short-circuited), not Continue
+        match action {
+            PluginAction::Reject { status, .. } => assert_eq!(status, 403),
+            _ => panic!("Expected reject - should short-circuit"),
         }
     }
 }

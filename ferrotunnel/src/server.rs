@@ -246,3 +246,87 @@ impl ServerBuilder {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_server_builder_success() {
+        let server = Server::builder()
+            .bind("127.0.0.1:7835".parse().unwrap())
+            .http_bind("127.0.0.1:8080".parse().unwrap())
+            .token("secret-token")
+            .build();
+        assert!(server.is_ok());
+    }
+
+    #[test]
+    fn test_server_builder_with_all_options() {
+        let server = Server::builder()
+            .bind("0.0.0.0:9000".parse().unwrap())
+            .http_bind("0.0.0.0:9001".parse().unwrap())
+            .token("my-token")
+            .build()
+            .expect("should build successfully");
+
+        assert_eq!(server.config().bind_addr, "0.0.0.0:9000".parse().unwrap());
+        assert_eq!(
+            server.config().http_bind_addr,
+            "0.0.0.0:9001".parse().unwrap()
+        );
+        assert_eq!(server.config().token, "my-token");
+    }
+
+    #[test]
+    fn test_server_builder_missing_token() {
+        let result = Server::builder()
+            .bind("127.0.0.1:7835".parse().unwrap())
+            .build();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("token"));
+    }
+
+    #[test]
+    fn test_server_builder_default_addresses() {
+        let server = Server::builder()
+            .token("secret")
+            .build()
+            .expect("should use default addresses");
+
+        assert_eq!(
+            server.config().bind_addr,
+            SocketAddr::from(([0, 0, 0, 0], 7835))
+        );
+        assert_eq!(
+            server.config().http_bind_addr,
+            SocketAddr::from(([0, 0, 0, 0], 8080))
+        );
+    }
+
+    #[test]
+    fn test_server_not_running_initially() {
+        let server = Server::builder()
+            .token("secret")
+            .build()
+            .expect("should build");
+
+        assert!(!server.is_running());
+    }
+
+    #[test]
+    fn test_server_builder_tls_disabled() {
+        let tls = TlsConfig {
+            enabled: false,
+            ..Default::default()
+        };
+        let server = Server::builder()
+            .token("secret")
+            .tls(tls)
+            .build()
+            .expect("should build");
+
+        // Server should work with TLS disabled
+        assert!(!server.config().token.is_empty());
+    }
+}
