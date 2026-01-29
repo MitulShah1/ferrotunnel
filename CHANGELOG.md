@@ -41,6 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 - **Plugin Development Guide**: Added `docs/plugin-development.md` with plugin architecture, examples, best practices, and testing instructions.
 
+### Dependencies
+- **OpenTelemetry Upgrade**: Updated from 0.21 to 0.26 to resolve `axum` version duplication (`tonic` now uses axum 0.7).
+
 ## [0.7.0] - 2026-01-27
 
 ### Added
