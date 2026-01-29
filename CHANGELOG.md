@@ -38,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Observability
 - **Error Tracking**: Added `ferrotunnel_errors_total` counter metric with type labels for granular error tracking.
 
+### Documentation
+- **Plugin Development Guide**: Added `docs/plugin-development.md` with plugin architecture, examples, best practices, and testing instructions.
+
 ## [0.7.0] - 2026-01-27
 
 ### Added
