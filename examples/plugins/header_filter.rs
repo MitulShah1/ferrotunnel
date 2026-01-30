@@ -1,3 +1,5 @@
+//! Example: Header Filter Plugin
+#![allow(clippy::print_stdout)]
 use async_trait::async_trait;
 use ferrotunnel_plugin::{Plugin, PluginAction, PluginRegistry, RequestContext};
 use std::sync::Arc;
@@ -27,7 +29,7 @@ impl Default for HeaderFilterPlugin {
 
 #[async_trait]
 impl Plugin for HeaderFilterPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "header-filter"
     }
 
@@ -39,7 +41,7 @@ impl Plugin for HeaderFilterPlugin {
         // Remove sensitive headers
         for header in &self.blocked_headers {
             if req.headers().contains_key(header) {
-                println!("Removing forbidden header: {}", header);
+                println!("Removing forbidden header: {header}");
                 req.headers_mut().remove(header);
             }
         }

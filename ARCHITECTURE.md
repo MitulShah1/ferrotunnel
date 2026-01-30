@@ -56,10 +56,31 @@ ferrotunnel/
 │   └── src/
 ├── ferrotunnel-client/         # Client binary
 ├── ferrotunnel-server/         # Server binary
-├── examples/                   # Embeddable examples
-└── tools/                      # Testing & Diagnostic tools
-    ├── loadgen/                # Load generator
-    └── soak/                   # Soak tester
+├── tests/                      # Workspace-level integration tests
+│   ├── Cargo.toml              # ferrotunnel-tests crate
+│   └── integration/            # E2E test suite (14 tests)
+│       ├── mod.rs              # Test helpers
+│       ├── tunnel_test.rs      # Server/client tests
+│       ├── plugin_test.rs      # Plugin integration
+│       ├── tls_test.rs         # TLS end-to-end
+│       ├── concurrent_test.rs  # Concurrent requests
+│       ├── multi_client_test.rs # Multiple clients
+│       └── error_test.rs       # Error scenarios
+├── examples/                   # Workspace-level examples
+│   ├── Cargo.toml              # ferrotunnel-examples crate
+│   ├── basic/                  # Basic usage (embedded)
+│   ├── plugins/                # Plugin system examples
+│   └── advanced/               # Advanced features (TLS, etc.)
+├── benches/                    # Workspace-level benchmarks
+│   ├── Cargo.toml              # ferrotunnel-benches crate
+│   ├── e2e_tunnel.rs           # Full stack benchmarks
+│   └── throughput.rs           # Throughput measurements
+├── tools/                      # Testing & Diagnostic tools
+│   ├── loadgen/                # Load generator
+│   ├── soak/                   # Soak tester
+│   └── profiler/               # Profiling scripts (flamegraph/heaptrack)
+└── scripts/                    # Utility scripts
+    └── test-examples.sh        # Verify all examples
 ```
 
 **Key improvements over nested `crates/` folder:**
@@ -67,6 +88,10 @@ ferrotunnel/
 - ✅ Each crate is a top-level folder (easier navigation)
 - ✅ Main `ferrotunnel` crate provides unified API
 - ✅ Clear separation without nesting confusion
+- ✅ Workspace-level `tests/` for true E2E integration testing
+- ✅ Workspace-level `examples/` demonstrating embedded usage
+- ✅ Dedicated `benches/` for performance tracking
+- ✅ Testing & Profiling scripts in `scripts/` and `tools/profiler/`
 
 ## Future Structure (v1.0.0)
 
@@ -285,6 +310,60 @@ client.start().await?;
 **Diagnostic and Testing Suite** (Phase 8):
 - **loadgen**: High-performance load generator for throughput testing.
 - **soak**: Long-running suite for memory leak and stability detection.
+- **profiler**: Scripts for CPU flamegraphs and memory profiling.
+
+### `tests/` ✅
+
+**Workspace-Level Integration Tests** (`ferrotunnel-tests` crate):
+
+Integration tests live at the workspace root to enable true end-to-end testing across all crates:
+
+| Test File | Coverage |
+|-----------|----------|
+| `tunnel_test.rs` | Server startup, client connection, HTTP proxying |
+| `plugin_test.rs` | Plugin execution order, auth, rate limiting |
+| `tls_test.rs` | TLS connections end-to-end |
+| `concurrent_test.rs` | Concurrent request handling |
+| `multi_client_test.rs` | Multiple clients, reconnection |
+| `error_test.rs` | Timeout, connection refused scenarios |
+
+```bash
+# Run integration tests
+cargo test -p ferrotunnel-tests --test integration
+```
+
+### `benches/` ✅
+
+**Workspace-Level Benchmarks** (`ferrotunnel-benches` crate):
+
+Performance tests for critical paths:
+- **`e2e_tunnel`**: Full stack benchmark (Frame encoding -> Tunnel -> Plugins)
+- **`throughput`**: Raw data transfer benchmarking
+
+```bash
+# Run benchmarks
+cargo bench -p ferrotunnel-benches
+```
+
+### `examples/` ✅
+
+**Workspace-Level Examples** (`ferrotunnel-examples` crate):
+
+Examples are organized by category:
+
+| Category | Examples | Description |
+|----------|----------|-------------|
+| **basic** | `embedded_server`, `embedded_client` | Minimal embedding examples |
+| **plugins** | `custom_plugin`, `header_filter`, `plugin_chain` | Plugin system usage |
+| **advanced** | `tls_config`, `multi_tunnel` | Security and complex setups |
+
+```bash
+# Run specific example
+cargo run -p ferrotunnel-examples --example custom_plugin
+
+# Test all examples
+./scripts/test-examples.sh
+```
 
 ## Building
 

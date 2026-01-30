@@ -13,10 +13,13 @@ members = [
     "tools/loadgen",
     "tools/soak",
     "ferrotunnel-protocol/fuzz",
+    "tests",
+    "examples",
+    "benches",
 ]
 
 [workspace.package]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 rust-version = "1.75"
 authors = ["Mitul Shah <shahmitul005@gmail.com>"]

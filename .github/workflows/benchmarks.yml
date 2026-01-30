@@ -1,0 +1,125 @@
+name: Benchmarks
+
+on:
+  # Run on main branch pushes
+  push:
+    branches: [main]
+    paths:
+      - 'ferrotunnel-protocol/**'
+      - 'ferrotunnel-core/**'
+      - 'ferrotunnel-plugin/**'
+      - 'benches/**'
+      - 'Cargo.toml'
+
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      save_baseline:
+        description: 'Save results as baseline'
+        required: false
+        default: false
+        type: boolean
+      baseline_name:
+        description: 'Baseline name (for comparison)'
+        required: false
+        default: 'main'
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      # Restore previous benchmark results for comparison
+      - name: Download previous benchmark data
+        uses: actions/cache@v4
+        with:
+          path: ./target/criterion
+          key: benchmark-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            benchmark-${{ runner.os }}-
+
+      - name: Run Protocol Benchmarks
+        run: |
+          echo "## Protocol Benchmarks" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo bench -p ferrotunnel-protocol --bench codec 2>&1 | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Run E2E Benchmarks
+        run: |
+          echo "## E2E Benchmarks" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cargo bench -p ferrotunnel-benches 2>&1 | tee -a $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      # Save benchmark results for future comparisons
+      - name: Save benchmark cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ./target/criterion
+          key: benchmark-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
+
+      # Upload criterion reports as artifacts
+      - name: Upload Benchmark Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-reports
+          path: target/criterion
+          retention-days: 30
+
+  # Optional: Track benchmarks over time with github-action-benchmark
+  track-benchmarks:
+    name: Track Performance
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: benchmark
+
+    permissions:
+      contents: write
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+
+      - name: Run benchmarks (JSON output)
+        run: |
+          cargo bench -p ferrotunnel-protocol --bench codec -- --output-format bencher | tee protocol-bench.txt
+          cargo bench -p ferrotunnel-benches -- --output-format bencher | tee e2e-bench.txt
+          cat protocol-bench.txt e2e-bench.txt > benchmark-results.txt
+
+      # Store benchmark results and create trend charts
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: FerroTunnel Benchmarks
+          tool: 'cargo'
+          output-file-path: benchmark-results.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Don't auto-push until benchmarks are stable
+          auto-push: false
+          # Alert if regression > 20%
+          alert-threshold: '120%'
+          comment-on-alert: true
+          fail-on-alert: false

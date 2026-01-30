@@ -1,3 +1,5 @@
+//! Example: IP Blocklist Plugin
+#![allow(clippy::print_stdout)]
 use async_trait::async_trait;
 use ferrotunnel_plugin::{Plugin, PluginAction, PluginRegistry, RequestContext};
 use std::collections::HashSet;
@@ -20,7 +22,7 @@ impl IpBlocklistPlugin {
 
 #[async_trait]
 impl Plugin for IpBlocklistPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "ip-blocklist"
     }
 
@@ -32,7 +34,7 @@ impl Plugin for IpBlocklistPlugin {
         let client_ip = ctx.remote_addr.ip();
 
         if self.blocked_ips.contains(&client_ip) {
-            println!("Blocking request from denied IP: {}", client_ip);
+            println!("Blocking request from denied IP: {client_ip}");
             return Ok(PluginAction::Reject {
                 status: 403,
                 reason: "IP Address Blocked".to_string(),
@@ -75,7 +77,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let blocked_ctx = RequestContext {
         tunnel_id: "test".into(),
         session_id: "test".into(),
-        remote_addr: format!("{}:1234", blocked_ip).parse()?,
+        remote_addr: format!("{blocked_ip}:1234").parse()?,
         timestamp: std::time::SystemTime::now(),
     };
 
@@ -84,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .await?;
     match action {
         PluginAction::Reject { status, reason } => {
-            println!("Blocked IP rejected as expected: {} ({})", status, reason);
+            println!("Blocked IP rejected as expected: {status} ({reason})");
             assert_eq!(status, 403);
         }
         _ => panic!("Expected rejection!"),
