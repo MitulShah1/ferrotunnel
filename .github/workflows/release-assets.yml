@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["Publish"]
     types: [completed]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,6 +16,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Build Binaries
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -78,6 +80,7 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Build & Publish Docker
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: write
@@ -132,6 +135,8 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Create GitHub Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
