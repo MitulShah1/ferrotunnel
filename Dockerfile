@@ -1,11 +1,10 @@
-FROM rust:1.85-slim-bookworm AS chef
+FROM rust:1.88-slim-bookworm AS chef
 RUN apt-get update && apt-get install -y build-essential pkg-config && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef
 WORKDIR /app
 
 FROM chef AS planner
 COPY . .
-RUN ls -F /app/examples || echo "examples missing"
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder

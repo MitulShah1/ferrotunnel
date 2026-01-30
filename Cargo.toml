@@ -1,6 +1,5 @@
 [workspace]
 resolver = "2"
-# Force docker cache invalidation
 members = [
     "ferrotunnel-protocol",
     "ferrotunnel-common",
