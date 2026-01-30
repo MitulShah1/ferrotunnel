@@ -1,0 +1,31 @@
+name: Nightly Fuzzing
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # 2 AM UTC daily
+  workflow_dispatch: # Allow manual trigger for testing
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fuzz-nightly:
+    name: Nightly Fuzzing
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - uses: swatinem/rust-cache@v2
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+
+      - name: Run Fuzzer (Deep Scan)
+        # Run for 30 minutes (1800 seconds)
+        run: cd ferrotunnel-protocol && cargo +nightly fuzz run codec_decode --sanitizer=none -- -max_total_time=1800
