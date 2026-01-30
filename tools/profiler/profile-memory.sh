@@ -13,6 +13,12 @@ OUTPUT_DIR="${PROFILE_OUTPUT:-./target/profiles}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BINARY="${1:-ferrotunnel-server}"
 shift || true
+ARGS="$@"
+
+# If profiling server and no args provided, add default args
+if [ "$BINARY" == "ferrotunnel-server" ] && [ -z "$ARGS" ]; then
+    ARGS="--bind 127.0.0.1:9000 --token profiling-test-token --http-bind 127.0.0.1:8080"
+fi
 
 # Colors
 GREEN='\033[0;32m'
@@ -48,7 +54,7 @@ if command -v heaptrack &> /dev/null; then
 
     OUTPUT_FILE="${OUTPUT_DIR}/heaptrack_${BINARY}_${TIMESTAMP}.gz"
 
-    heaptrack -o "$OUTPUT_FILE" "$BINARY_PATH" "$@"
+    heaptrack -o "$OUTPUT_FILE" "$BINARY_PATH" $ARGS
 
     echo ""
     echo -e "${GREEN}Profiling complete!${NC}"
@@ -63,7 +69,7 @@ elif command -v valgrind &> /dev/null; then
 
     OUTPUT_FILE="${OUTPUT_DIR}/massif_${BINARY}_${TIMESTAMP}.out"
 
-    valgrind --tool=massif --massif-out-file="$OUTPUT_FILE" "$BINARY_PATH" "$@"
+    valgrind --tool=massif --massif-out-file="$OUTPUT_FILE" "$BINARY_PATH" $ARGS
 
     echo ""
     echo -e "${GREEN}Profiling complete!${NC}"

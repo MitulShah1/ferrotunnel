@@ -34,9 +34,10 @@ echo -e "${YELLOW}Building release with debug symbols...${NC}"
 CARGO_PROFILE_RELEASE_DEBUG=true cargo build --release -p ferrotunnel-server
 
 # Check if cargo-flamegraph is installed
-if ! command -v cargo-flamegraph &> /dev/null; then
-    echo -e "${YELLOW}Installing cargo-flamegraph...${NC}"
-    cargo install flamegraph
+# Check for perf on Linux
+if [ "$(uname)" == "Linux" ] && ! command -v perf &> /dev/null; then
+    echo -e "${YELLOW}perf not found! Please install linux-tools-generic.${NC}"
+    exit 1
 fi
 
 # Start the server in background with profiling
@@ -47,11 +48,11 @@ echo ""
 OUTPUT_FILE="${OUTPUT_DIR}/server_${TIMESTAMP}.svg"
 
 # Use flamegraph to profile
-timeout "$DURATION" cargo flamegraph \
+timeout --signal=SIGINT "$DURATION" cargo flamegraph \
     --root \
     --output "$OUTPUT_FILE" \
     --bin ferrotunnel-server \
-    -- --bind "127.0.0.1:9000" \
+    -- --bind "127.0.0.1:9000" --token "profiling-test-token" --http-bind "127.0.0.1:8080" \
     2>/dev/null || true
 
 echo ""

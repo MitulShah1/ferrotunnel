@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-01-30
+
 ### Breaking Changes
 - **Plugin API**: The `Plugin::on_request` trait method signature has changed to take `&mut http::Request<()>` instead of `&mut http::Request<Vec<u8>>`. This prevents plugins from forcing the ingress server to buffer the entire request body, which fixes a critical DoS vulnerability.
   - **Migration**: Update your plugins to access headers only in `on_request`. If you need to inspect the body, you must implement a streaming body parser (future work).
@@ -55,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docker Support**: Added production-ready `Dockerfile` (multistage, non-root) and `docker-compose.yml`.
 - **Automated Releases**: Added `.github/workflows/release.yml` for cross-platform binary releases.
 - **Container Registry**: Added `.github/workflows/docker-publish.yml` to publish images to GHCR.
+
+### 🔧 Tools
+
+- Fixed profiler scripts (`profile-server.sh`, `profile-memory.sh`) to use correct CLI arguments.
+- Improved error handling for missing profiler dependencies.
+- Updated profiler documentation.
 
 ## [0.7.0] - 2026-01-27
 
