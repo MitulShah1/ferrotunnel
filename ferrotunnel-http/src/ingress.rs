@@ -474,3 +474,44 @@ mod tests {
         assert!(parse_and_normalize_host(None).is_err());
     }
 }
+
+/// A simple TCP ingress that forwards all traffic to the first available tunnel.
+/// Useful for raw TCP benchmarking or simple port mapping.
+pub struct TcpIngress {
+    addr: SocketAddr,
+    sessions: SessionStore,
+}
+
+impl TcpIngress {
+    pub fn new(addr: SocketAddr, sessions: SessionStore) -> Self {
+        Self { addr, sessions }
+    }
+
+    pub async fn start(self) -> Result<()> {
+        let listener = TcpListener::bind(self.addr).await?;
+        info!("TCP Ingress listening on {}", self.addr);
+
+        loop {
+            let (mut stream, peer_addr) = listener.accept().await?;
+            let sessions = self.sessions.clone();
+
+            tokio::spawn(async move {
+                tracing::debug!("Accepted TCP connection from {}", peer_addr);
+                // For raw TCP ingress, we pick the first available multiplexer.
+                if let Some(mux) = sessions.find_multiplexer() {
+                    match mux.open_stream(Protocol::TCP).await {
+                        Ok(mut tunnel_stream) => {
+                            let _ = tokio::io::copy_bidirectional(&mut stream, &mut tunnel_stream)
+                                .await;
+                        }
+                        Err(e) => {
+                            error!("Failed to open TCP stream: {}", e);
+                        }
+                    }
+                } else {
+                    warn!("No active tunnel session for TCP ingress");
+                }
+            });
+        }
+    }
+}

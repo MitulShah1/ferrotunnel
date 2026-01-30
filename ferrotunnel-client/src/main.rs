@@ -146,12 +146,31 @@ async fn main() -> Result<()> {
     loop {
         let mut client = TunnelClient::new(args.server.clone(), args.token.clone());
         let proxy_ref = proxy.clone();
+        let local_addr_cloned = args.local_addr.clone();
 
         match client
-            .connect_and_run(move |stream| {
+            .connect_and_run(move |mut stream| {
                 let proxy = proxy_ref.clone();
+                let local_addr = local_addr_cloned.clone();
                 async move {
-                    proxy.handle(stream);
+                    if stream.protocol() == ferrotunnel_protocol::frame::Protocol::TCP {
+                        tokio::spawn(async move {
+                            match tokio::net::TcpStream::connect(&local_addr).await {
+                                Ok(mut local) => {
+                                    let _ = tokio::io::copy_bidirectional(&mut stream, &mut local)
+                                        .await;
+                                }
+                                Err(e) => {
+                                    error!(
+                                        "Failed to connect to local service {}: {}",
+                                        local_addr, e
+                                    );
+                                }
+                            }
+                        });
+                    } else {
+                        proxy.handle(stream);
+                    }
                 }
             })
             .await

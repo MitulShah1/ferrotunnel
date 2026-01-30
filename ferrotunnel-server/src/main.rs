@@ -24,6 +24,10 @@ struct Args {
     #[arg(long, default_value = "0.0.0.0:8080", env = "FERROTUNNEL_HTTP_BIND")]
     http_bind: SocketAddr,
 
+    /// TCP Ingress bind address (optional)
+    #[arg(long, env = "FERROTUNNEL_TCP_BIND")]
+    tcp_bind: Option<SocketAddr>,
+
     /// Metrics bind address
     #[arg(long, default_value = "0.0.0.0:9090", env = "FERROTUNNEL_METRICS_BIND")]
     metrics_bind: SocketAddr,
@@ -79,9 +83,15 @@ async fn main() -> Result<()> {
     let registry = std::sync::Arc::new(registry);
 
     info!("Starting HTTP Ingress on {}", args.http_bind);
-    let ingress = ferrotunnel_http::HttpIngress::new(args.http_bind, sessions, registry);
+    let ingress = ferrotunnel_http::HttpIngress::new(args.http_bind, sessions.clone(), registry);
 
-    tokio::try_join!(server.run(), ingress.start())?;
+    if let Some(tcp_addr) = args.tcp_bind {
+        info!("Starting TCP Ingress on {}", tcp_addr);
+        let tcp_ingress = ferrotunnel_http::TcpIngress::new(tcp_addr, sessions);
+        let _: ((), (), ()) = tokio::try_join!(server.run(), ingress.start(), tcp_ingress.start())?;
+    } else {
+        let _: ((), ()) = tokio::try_join!(server.run(), ingress.start())?;
+    }
 
     Ok(())
 }

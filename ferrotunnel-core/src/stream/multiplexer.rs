@@ -98,6 +98,7 @@ impl Multiplexer {
                 let read_buffer = self.buffer_pool.try_acquire().unwrap_or_default();
                 let stream = VirtualStream::new_with_buffer(
                     stream_id,
+                    open_stream.protocol,
                     rx,
                     self.frame_tx.clone(),
                     read_buffer,
@@ -156,6 +157,7 @@ impl Multiplexer {
         let read_buffer = self.buffer_pool.try_acquire().unwrap_or_default();
         Ok(VirtualStream::new_with_buffer(
             stream_id,
+            protocol,
             rx,
             self.frame_tx.clone(),
             read_buffer,
@@ -182,6 +184,7 @@ type SendFuture =
 /// Read buffers are pooled and returned when the stream is dropped.
 pub struct VirtualStream {
     stream_id: u32,
+    protocol: Protocol,
     rx: AsyncReceiver<Result<Frame>>,
     tx: AsyncSender<Frame>,
     read_buffer: Vec<u8>,
@@ -206,9 +209,15 @@ impl std::fmt::Debug for VirtualStream {
 
 impl VirtualStream {
     /// Create a new `VirtualStream` without pooling (for backward compatibility)
-    pub fn new(stream_id: u32, rx: AsyncReceiver<Result<Frame>>, tx: AsyncSender<Frame>) -> Self {
+    pub fn new(
+        stream_id: u32,
+        protocol: Protocol,
+        rx: AsyncReceiver<Result<Frame>>,
+        tx: AsyncSender<Frame>,
+    ) -> Self {
         Self {
             stream_id,
+            protocol,
             rx,
             tx,
             read_buffer: Vec::new(),
@@ -222,6 +231,7 @@ impl VirtualStream {
     /// Create a new `VirtualStream` with a pooled buffer
     pub fn new_with_buffer(
         stream_id: u32,
+        protocol: Protocol,
         rx: AsyncReceiver<Result<Frame>>,
         tx: AsyncSender<Frame>,
         read_buffer: Vec<u8>,
@@ -229,6 +239,7 @@ impl VirtualStream {
     ) -> Self {
         Self {
             stream_id,
+            protocol,
             rx,
             tx,
             read_buffer,
@@ -241,6 +252,10 @@ impl VirtualStream {
 
     pub fn id(&self) -> u32 {
         self.stream_id
+    }
+
+    pub fn protocol(&self) -> Protocol {
+        self.protocol
     }
 }
 
