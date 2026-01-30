@@ -5,6 +5,7 @@ WORKDIR /app
 
 FROM chef AS planner
 COPY . .
+RUN ls -F /app/examples || echo "examples missing"
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder

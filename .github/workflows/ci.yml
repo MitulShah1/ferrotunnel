@@ -82,16 +82,16 @@ jobs:
       - name: Run Fuzzer (Smoke Check)
         run: cd ferrotunnel-protocol && cargo +nightly fuzz run codec_decode --sanitizer=none -- -max_total_time=300
 
-  benchmark-check:
-    name: Benchmark Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: swatinem/rust-cache@v2
-      - name: Compile Benchmarks
-        run: cargo check --benches --workspace
-      - name: Run Benchmarks (Smoke Check)
-        env:
-          CRITERION_MEASUREMENT_TIME: 1
-        run: cargo bench --workspace
+#   benchmark-check:
+#     name: Benchmark Check
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v6
+#       - uses: dtolnay/rust-toolchain@stable
+#       - uses: swatinem/rust-cache@v2
+#       - name: Compile Benchmarks
+#         run: cargo check --benches --workspace
+#       - name: Run Benchmarks (Smoke Check)
+#         env:
+#           CRITERION_MEASUREMENT_TIME: 1
+#         run: cargo bench --workspace

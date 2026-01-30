@@ -70,21 +70,6 @@ async fn main() -> ferrotunnel::Result<()> {
 - 🛡️ **Resilient** - Automatic reconnection, heartbeat monitoring
 - 📦 **Modular** - Use only what you need
 
-## Current Status
-
-**What's implemented:**
-- ✅ Complete wire protocol (`ferrotunnel-protocol`)
-- ✅ Frame types and codec with length-prefixed bincode encoding
-- ✅ Common error types (`ferrotunnel-common`)
-- ✅ Core tunnel client/server (`ferrotunnel-core`)
-- ✅ HTTP ingress and proxy (`ferrotunnel-http`)
-- ✅ **Library API with builder pattern** (`ferrotunnel`)
-- ✅ **Plugin System for extensibility** (`ferrotunnel-plugin`)
-- ✅ **Observability Infrastructure (Backend)** (`ferrotunnel-observability`)
-- ✅ Comprehensive unit tests
-- ✅ Full documentation
-- ✅ **Docker Containerization**
-- ✅ **Automated Binary Releases**
 
 ## Crates
 
@@ -184,7 +169,6 @@ cargo test --package ferrotunnel-protocol
 See [ROADMAP.md](ROADMAP.md) for the complete 16-week development plan.
 
 **Upcoming phases:**
-- Phase 7: Observability Dashboard (UI + API)
 - Phase 9: Final v1.0.0 Release
 
 ## Architecture
