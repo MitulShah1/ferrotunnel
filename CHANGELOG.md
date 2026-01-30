@@ -56,6 +56,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automated Releases**: Added `.github/workflows/release.yml` for cross-platform binary releases.
 - **Container Registry**: Added `.github/workflows/docker-publish.yml` to publish images to GHCR.
 
+## [0.8.0] - 2026-01-30
+
+### 🔧 Tools
+
+- Fixed profiler scripts (`profile-server.sh`, `profile-memory.sh`) to use correct CLI arguments.
+- Improved error handling for missing profiler dependencies.
+- Updated profiler documentation.
+
 ## [0.7.0] - 2026-01-27
 
 ### Added
