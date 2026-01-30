@@ -104,3 +104,8 @@ publish-dry-run:
 	cargo publish -p ferrotunnel-protocol --dry-run --allow-dirty
 	cargo publish -p ferrotunnel-core --dry-run --allow-dirty
 	cargo publish -p ferrotunnel-plugin --dry-run --allow-dirty
+
+# Publish release manually
+publish:
+	@echo "Starting manual publish..."
+	./scripts/publish.sh
