@@ -17,7 +17,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ferrotunnel = "0.8"
+ferrotunnel = "0.9"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -65,6 +65,7 @@ async fn main() -> ferrotunnel::Result<()> {
 ## Features
 
 - 🔒 **Secure** - Token-based authentication
+- 🛡️ **Encrypted** - Native TLS 1.3 support for secure transit
 - ⚡  **Fast** - Built on Tokio for high-performance async I/O
 - 🔌 **Embeddable** - Use as a library in your own applications
 - 🛡️ **Resilient** - Automatic reconnection, heartbeat monitoring

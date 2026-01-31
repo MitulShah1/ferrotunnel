@@ -8,18 +8,11 @@ license = { workspace = true }
 repository = { workspace = true }
 homepage = { workspace = true }
 description = "Observability infrastructure for FerroTunnel (Metrics & Tracing)"
-keywords = [
-    "tunnel",
-    "observability",
-    "metrics",
-    "tracing",
-    "prometheus",
-    "opentelemetry",
-]
+keywords = ["tunnel", "observability", "metrics", "tracing", "opentelemetry"]
 categories = ["network-programming"]
 
 [dependencies]
-ferrotunnel-common = { path = "../ferrotunnel-common" }
+ferrotunnel-common = { version = "0.9.0", path = "../ferrotunnel-common" }
 anyhow = { workspace = true }
 
 # Metrics

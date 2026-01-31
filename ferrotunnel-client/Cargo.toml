@@ -8,9 +8,9 @@ repository.workspace = true
 description = "FerroTunnel Client binary"
 
 [dependencies]
-ferrotunnel-core = { version = "0.8.0", path = "../ferrotunnel-core" }
-ferrotunnel-http = { version = "0.8.0", path = "../ferrotunnel-http" }
-ferrotunnel-common = { version = "0.8.0", path = "../ferrotunnel-common" }
+ferrotunnel-core = { version = "0.9.0", path = "../ferrotunnel-core" }
+ferrotunnel-http = { version = "0.9.0", path = "../ferrotunnel-http" }
+ferrotunnel-common = { version = "0.9.0", path = "../ferrotunnel-common" }
 ferrotunnel-observability = { workspace = true, features = ["dashboard"] }
 
 tokio = { workspace = true }

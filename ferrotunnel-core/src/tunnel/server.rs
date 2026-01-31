@@ -51,6 +51,48 @@ impl TunnelServer {
         self
     }
 
+    /// Configure TLS for the server using certificate and key files.
+    #[must_use]
+    pub fn with_tls(
+        mut self,
+        cert_path: impl Into<std::path::PathBuf>,
+        key_path: impl Into<std::path::PathBuf>,
+    ) -> Self {
+        let (cert, key) = (
+            cert_path.into().to_string_lossy().to_string(),
+            key_path.into().to_string_lossy().to_string(),
+        );
+
+        if let TransportConfig::Tls(ref mut tls) = self.transport_config {
+            tls.cert_path = cert;
+            tls.key_path = key;
+        } else {
+            self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+                cert_path: cert,
+                key_path: key,
+                ..Default::default()
+            });
+        }
+        self
+    }
+
+    /// Enable client certificate authentication (Mutual TLS) using the provided CA.
+    #[must_use]
+    pub fn with_client_auth(mut self, ca_path: impl Into<std::path::PathBuf>) -> Self {
+        let ca = Some(ca_path.into().to_string_lossy().to_string());
+        if let TransportConfig::Tls(ref mut tls) = self.transport_config {
+            tls.ca_cert_path = ca;
+            tls.client_auth = true;
+        } else {
+            self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+                ca_cert_path: ca,
+                client_auth: true,
+                ..Default::default()
+            });
+        }
+        self
+    }
+
     pub fn sessions(&self) -> SessionStore {
         self.sessions.clone()
     }

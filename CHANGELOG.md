@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-01-31
+
+### Added
+- **TLS CLI Flags**: Comprehensive command-line TLS support for both server and client:
+  - **Server**: `--tls-cert`, `--tls-key`, `--tls-ca`, and `--tls-client-auth` for mutual TLS.
+  - **Client**: `--tls`, `--tls-ca`, `--tls-skip-verify`, `--tls-server-name` (SNI), `--tls-cert`, and `--tls-key` (mTLS).
+  - All TLS flags support corresponding environment variables (e.g., `FERROTUNNEL_TLS_CERT`).
+- **Mutual TLS (mTLS)**: Support for client certificate authentication in both the core library and binaries.
+- **SNI Support**: Ability to specify the SNI hostname for TLS verification on the client.
+- **Improved Core TLS API**:
+  - `TunnelServer::with_client_auth(ca_path)`
+  - `TunnelClient::with_tls(cert_path, key_path)`
+  - `TunnelClient::with_server_name(name)`
+
+### Changed
+- **CLI Standardized**: Converged on a **long-form only** flag policy across the entire project (`server`, `client`, `loadgen`, `soak`) for consistent ergonomics.
+- **Rustls Migration**: Updated core transport layer to be compatible with `rustls` 0.23 API.
+
 ## [0.8.0] - 2026-01-30
 
 ### Breaking Changes
@@ -312,7 +330,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame serialization tests
 - Partial frame handling tests
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.4.0...v0.5.0

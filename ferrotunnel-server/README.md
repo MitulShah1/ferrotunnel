@@ -28,6 +28,10 @@ ferrotunnel-server \
 | `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
 | `--log-level` | `RUST_LOG` | `info` | Log level |
 | `--metrics-bind` | `FERROTUNNEL_METRICS_BIND` | `0.0.0.0:9090` | Prometheus metrics address |
+| `--tls-cert` | `FERROTUNNEL_TLS_CERT` | - | Path to TLS certificate file |
+| `--tls-key` | `FERROTUNNEL_TLS_KEY` | - | Path to TLS private key file |
+| `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | Path to CA certificate for client authentication (PEM format) |
+| `--tls-client-auth` | `FERROTUNNEL_TLS_CLIENT_AUTH` | `false` | Require client certificate authentication (boolean flag) |
 
 ## Ports
 
@@ -38,10 +42,10 @@ ferrotunnel-server \
 ## Example
 
 ```bash
-# Start the server
-ferrotunnel-server --token my-secret-token
+# Start the server with TLS
+ferrotunnel-server --token secret --tls-cert cert.pem --tls-key key.pem
 
-# Now clients can connect and HTTP traffic on :8080 is tunneled
+# Now clients can connect via TLS and HTTP traffic on :8080 is tunneled
 ```
 
 ## Library Usage

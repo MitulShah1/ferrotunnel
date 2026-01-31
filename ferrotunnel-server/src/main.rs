@@ -3,6 +3,7 @@ use clap::Parser;
 use ferrotunnel_core::TunnelServer;
 use ferrotunnel_observability::{gather_metrics, init_basic_observability};
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use tracing::{error, info};
 
 #[derive(Parser, Debug)]
@@ -27,6 +28,22 @@ struct Args {
     /// Metrics bind address
     #[arg(long, default_value = "0.0.0.0:9090", env = "FERROTUNNEL_METRICS_BIND")]
     metrics_bind: SocketAddr,
+
+    /// Path to TLS certificate file (PEM format)
+    #[arg(long, env = "FERROTUNNEL_TLS_CERT")]
+    tls_cert: Option<PathBuf>,
+
+    /// Path to TLS private key file (PEM format)
+    #[arg(long, env = "FERROTUNNEL_TLS_KEY")]
+    tls_key: Option<PathBuf>,
+
+    /// Path to CA certificate for client authentication (PEM format)
+    #[arg(long, env = "FERROTUNNEL_TLS_CA")]
+    tls_ca: Option<PathBuf>,
+
+    /// Require client certificate authentication
+    #[arg(long, env = "FERROTUNNEL_TLS_CLIENT_AUTH")]
+    tls_client_auth: bool,
 }
 
 #[tokio::main]
@@ -54,7 +71,23 @@ async fn main() -> Result<()> {
 
     info!("Starting FerroTunnel Server v{}", env!("CARGO_PKG_VERSION"));
 
-    let server = TunnelServer::new(args.bind, args.token.clone());
+    let mut server = TunnelServer::new(args.bind, args.token.clone());
+
+    if let (Some(cert_path), Some(key_path)) = (&args.tls_cert, &args.tls_key) {
+        info!(
+            "TLS enabled with cert: {:?}, key: {:?}",
+            cert_path, key_path
+        );
+        server = server.with_tls(cert_path.clone(), key_path.clone());
+
+        if let Some(ca_path) = &args.tls_ca {
+            info!("TLS Client Authentication enabled with CA: {:?}", ca_path);
+            server = server.with_client_auth(ca_path.clone());
+        } else if args.tls_client_auth {
+            error!("--tls-client-auth requires --tls-ca to be provided");
+            std::process::exit(1);
+        }
+    }
     let sessions = server.sessions();
 
     info!("Initializing Plugin System");

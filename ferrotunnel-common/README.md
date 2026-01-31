@@ -33,6 +33,7 @@ fn example() -> Result<()> {
 - `Timeout` - Operation timeout
 - `Config` - Configuration errors
 - `Connection` - Connection failures
+- `Tls` - TLS handshake or certificate errors
 
 ## License
 

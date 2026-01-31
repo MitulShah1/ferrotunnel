@@ -19,7 +19,7 @@ use tracing::{error, info};
 #[command(about = "Soak testing tool for FerroTunnel")]
 struct Args {
     /// Target server address
-    #[arg(short, long, default_value = "127.0.0.1:9999")]
+    #[arg(long, default_value = "127.0.0.1:9999")]
     target: String,
 
     /// Tunnel server address
@@ -31,11 +31,11 @@ struct Args {
     token: String,
 
     /// Number of concurrent tunnels
-    #[arg(short, long, default_value = "10")]
+    #[arg(long, default_value = "10")]
     concurrency: usize,
 
     /// Test duration in minutes (0 = infinite)
-    #[arg(short, long, default_value = "0")]
+    #[arg(long, default_value = "0")]
     duration: u64,
 
     /// Metrics output file

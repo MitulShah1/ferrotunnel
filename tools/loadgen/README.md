@@ -12,18 +12,20 @@ A high-performance load generation tool designed to stress test FerroTunnel inst
 ## Usage
 
 ```bash
-# Run a load test against a local server
+# Run a baseline load test against a local server
 cargo run -p ferrotunnel-loadgen -- \
-    --target http://localhost:8080 \
-    --connections 100 \
-    --rate 1000 \
-    --duration 30s
+    --mode baseline \
+    --target 127.0.0.1:8080 \
+    --concurrency 100 \
+    --requests 1000
 ```
 
-### Arguments
+### Options
 
-- `--target`: URL or address to stress test.
-- `--connections`: Number of concurrent connections to maintain.
-- `--rate`: Target requests per second (RPS).
-- `--duration`: Duration of the test (e.g., `30s`, `5m`).
-- `--payload-size`: Size of the payload in bytes (default: 0).
+- `--mode <MODE>`: Test mode: `echo-server`, `echo-client`, or `baseline` (default: `baseline`).
+- `--target <TARGET>`: Target address for client mode (default: `127.0.0.1:9999`).
+- `--bind <BIND>`: Bind address for server mode (default: `127.0.0.1:9999`).
+- `--concurrency <CONCURRENCY>`: Number of concurrent connections/streams (default: `100`).
+- `--requests <REQUESTS>`: Number of requests per connection (default: `1000`).
+- `--payload-size <PAYLOAD_SIZE>`: Payload size in bytes (default: `1024`).
+- `--duration <DURATION>`: Test duration in seconds (0 = run until requests complete) (default: `0`).
