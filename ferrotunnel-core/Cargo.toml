@@ -37,7 +37,7 @@ subtle = "2"
 sha2 = "0.10"
 
 # Rate limiting
-governor = "0.8"
+governor = "0.10"
 nonzero_ext = "0.3"
 rand = "0.8"
 
