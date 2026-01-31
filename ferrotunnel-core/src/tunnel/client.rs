@@ -4,6 +4,7 @@ use crate::transport::batched_sender::run_batched_sender;
 use crate::transport::{self, TransportConfig};
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
+use ferrotunnel_protocol::constants::{MAX_PROTOCOL_VERSION, MIN_PROTOCOL_VERSION};
 use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
 use futures::{SinkExt, StreamExt};
 use kanal::bounded_async;
@@ -155,10 +156,14 @@ impl TunnelClient {
             .unwrap_or_default()
             .as_millis() as u64;
 
-        debug!("Sending handshake...");
+        debug!(
+            "Sending handshake (v{}-{})",
+            MIN_PROTOCOL_VERSION, MAX_PROTOCOL_VERSION
+        );
         framed
             .send(Frame::Handshake(Box::new(HandshakeFrame {
-                version: 1,
+                min_version: MIN_PROTOCOL_VERSION,
+                max_version: MAX_PROTOCOL_VERSION,
                 token: self.auth_token.clone(),
                 tunnel_id: self.tunnel_id.clone(),
                 capabilities: vec!["basic".to_string()],
@@ -171,13 +176,23 @@ impl TunnelClient {
                 Frame::HandshakeAck {
                     status,
                     session_id,
+                    version,
                     server_capabilities: _,
                 } => match status {
                     HandshakeStatus::Success => {
                         self.session_id = Some(session_id);
-                        info!("Handshake successful. Session ID: {}", session_id);
+                        info!(
+                            "Handshake successful. Session ID: {}, Protocol v{}",
+                            session_id, version
+                        );
                         // Notify callback
                         on_connected(session_id);
+                    }
+                    HandshakeStatus::VersionMismatch => {
+                        error!("Protocol version mismatch. Server requires different version.");
+                        return Err(TunnelError::Protocol(
+                            "No compatible protocol version found".into(),
+                        ));
                     }
                     status => {
                         error!("Handshake failed: {:?}", status);

@@ -17,7 +17,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ferrotunnel = "0.9"
+ferrotunnel = "0.9.5"
 tokio = { version = "1", features = ["full"] }
 ```
 

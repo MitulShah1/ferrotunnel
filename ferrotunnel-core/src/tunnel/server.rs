@@ -7,6 +7,7 @@ use crate::tunnel::session::Session;
 use crate::tunnel::session::SessionStore;
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
+use ferrotunnel_protocol::constants::{MAX_PROTOCOL_VERSION, MIN_PROTOCOL_VERSION};
 use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
 use futures::stream::SplitStream;
 use futures::{SinkExt, StreamExt};
@@ -165,7 +166,8 @@ impl TunnelServer {
             match frame {
                 Frame::Handshake(handshake) => {
                     let HandshakeFrame {
-                        version,
+                        min_version,
+                        max_version,
                         token,
                         tunnel_id,
                         capabilities,
@@ -176,6 +178,7 @@ impl TunnelServer {
                             .send(Frame::HandshakeAck {
                                 status: HandshakeStatus::InvalidToken,
                                 session_id: Uuid::nil(),
+                                version: 0,
                                 server_capabilities: vec![],
                             })
                             .await?;
@@ -188,23 +191,34 @@ impl TunnelServer {
                             .send(Frame::HandshakeAck {
                                 status: HandshakeStatus::InvalidToken,
                                 session_id: Uuid::nil(),
+                                version: 0,
                                 server_capabilities: vec![],
                             })
                             .await?;
                         return Ok(());
                     }
 
-                    if version != 1 {
-                        warn!("Unsupported protocol version {} from {}", version, addr);
-                        framed
-                            .send(Frame::HandshakeAck {
-                                status: HandshakeStatus::UnsupportedVersion,
-                                session_id: Uuid::nil(),
-                                server_capabilities: vec![],
-                            })
-                            .await?;
-                        return Ok(());
-                    }
+                    // Version negotiation
+                    let negotiated_version = match negotiate_version(min_version, max_version) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            warn!("Version negotiation failed for {}: {}", addr, e);
+                            framed
+                                .send(Frame::HandshakeAck {
+                                    status: HandshakeStatus::VersionMismatch,
+                                    session_id: Uuid::nil(),
+                                    version: 0,
+                                    server_capabilities: vec![],
+                                })
+                                .await?;
+                            return Ok(());
+                        }
+                    };
+
+                    info!(
+                        "Client {} supports v{}-{}, negotiated v{}",
+                        addr, min_version, max_version, negotiated_version
+                    );
 
                     // Success
                     let session_id = Uuid::new_v4();
@@ -243,6 +257,7 @@ impl TunnelServer {
                             .send_frame(Frame::HandshakeAck {
                                 status: HandshakeStatus::TunnelIdTaken,
                                 session_id,
+                                version: 0,
                                 server_capabilities: vec![],
                             })
                             .await?;
@@ -256,6 +271,7 @@ impl TunnelServer {
                         .send_frame(Frame::HandshakeAck {
                             status: HandshakeStatus::Success,
                             session_id,
+                            version: negotiated_version,
                             server_capabilities: vec!["basic".to_string()],
                         })
                         .await?;
@@ -313,5 +329,43 @@ impl TunnelServer {
         info!("Client disconnected: {}", session_id);
         sessions.remove(&session_id);
         Ok(())
+    }
+}
+
+/// Negotiate protocol version between client and server
+fn negotiate_version(client_min: u8, client_max: u8) -> Result<u8> {
+    // Find highest common version
+    let server_min = MIN_PROTOCOL_VERSION;
+    let server_max = MAX_PROTOCOL_VERSION;
+
+    if client_max < server_min || client_min > server_max {
+        // No overlap
+        return Err(TunnelError::Protocol(format!(
+            "No compatible protocol version. Server: {server_min}-{server_max}, Client: {client_min}-{client_max}"
+        )));
+    }
+
+    // Use highest common version
+    let negotiated = std::cmp::min(client_max, server_max);
+    Ok(negotiated)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_version_negotiation_success() {
+        // Client supports 1-2, Server supports 1-1 → v1
+        assert_eq!(negotiate_version(1, 2).unwrap(), 1);
+
+        // Client supports 1-1, Server supports 1-2 → v1
+        assert_eq!(negotiate_version(1, 1).unwrap(), 1);
+    }
+
+    #[test]
+    fn test_version_negotiation_failure() {
+        // Client requires 3+, Server only has 1
+        assert!(negotiate_version(3, 5).is_err());
     }
 }

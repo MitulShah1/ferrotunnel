@@ -27,7 +27,10 @@ pub struct OpenStreamFrame {
 pub struct HandshakeFrame {
     pub token: String,
     pub tunnel_id: Option<String>,
-    pub version: u8,
+    /// Minimum protocol version supported by this peer
+    pub min_version: u8,
+    /// Maximum protocol version supported by this peer
+    pub max_version: u8,
     pub capabilities: Vec<String>,
 }
 
@@ -44,6 +47,8 @@ pub enum Frame {
     HandshakeAck {
         session_id: Uuid,
         status: HandshakeStatus,
+        /// Negotiated protocol version
+        version: u8,
         server_capabilities: Vec<String>,
     },
 
@@ -98,6 +103,7 @@ pub enum HandshakeStatus {
     Success,
     InvalidToken,
     UnsupportedVersion,
+    VersionMismatch,
     RateLimited,
     TunnelIdTaken,
 }
@@ -160,7 +166,8 @@ mod tests {
         let frame = Frame::Handshake(Box::new(HandshakeFrame {
             token: "test-token".to_string(),
             tunnel_id: Some("test-tunnel".to_string()),
-            version: 1,
+            min_version: 1,
+            max_version: 1,
             capabilities: vec!["http".to_string()],
         }));
 

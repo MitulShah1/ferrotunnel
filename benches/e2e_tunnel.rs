@@ -26,7 +26,8 @@ fn bench_tunnel_setup(c: &mut Criterion) {
     // Benchmark protocol frame encoding (lightweight, no actual network)
     group.bench_function("frame_encode_handshake", |b| {
         let frame = Frame::Handshake(Box::new(HandshakeFrame {
-            version: 1,
+            min_version: 1,
+            max_version: 1,
             tunnel_id: Some("test-tunnel-id".to_string()),
             token: "secret-token-12345".to_string(),
             capabilities: vec![],
@@ -54,7 +55,8 @@ fn bench_tunnel_setup(c: &mut Criterion) {
 
     group.bench_function("frame_decode_roundtrip", |b| {
         let frame = Frame::Handshake(Box::new(HandshakeFrame {
-            version: 1,
+            min_version: 1,
+            max_version: 1,
             tunnel_id: Some("test-tunnel-id".to_string()),
             token: "secret-token-12345".to_string(),
             capabilities: vec![],

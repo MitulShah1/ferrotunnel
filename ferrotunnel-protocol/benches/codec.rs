@@ -20,7 +20,8 @@ fn create_test_frames() -> Vec<(&'static str, Frame)> {
         (
             "handshake",
             Frame::Handshake(Box::new(HandshakeFrame {
-                version: 1,
+                min_version: 1,
+                max_version: 1,
                 token: "test-token-12345678901234567890".to_string(),
                 tunnel_id: Some("benchmark-tunnel".to_string()),
                 capabilities: vec!["basic".to_string(), "tls".to_string()],
@@ -31,6 +32,7 @@ fn create_test_frames() -> Vec<(&'static str, Frame)> {
             Frame::HandshakeAck {
                 status: HandshakeStatus::Success,
                 session_id: Uuid::new_v4(),
+                version: 1,
                 server_capabilities: vec!["basic".to_string()],
             },
         ),

@@ -567,6 +567,7 @@ Stable release with all three differentiators:
 | **11** | **Observability** | ✅ Completed | **🎯 Backend v0.7.0** |
 | **12** | **Dashboard** | ✅ Completed | **🎯 UI + API v0.8.0** |
 | **13** | **TLS CLI** | ✅ Completed | **🎯 TLS Support v0.9.0** |
+| 13 | Protocol Versioning | ✅ Completed | **🎯 Versioning & TCP Ingress v0.9.5** |
 | 14 | Hardening | ✅ Completed | **🎯 Hardening v0.6.0** |
 | 15-16 | Release | 🎯 Next | **v1.0.0 🎉** |
 
