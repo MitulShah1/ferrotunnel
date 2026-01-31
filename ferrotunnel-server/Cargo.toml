@@ -19,7 +19,7 @@ clap = { version = "4.4", features = ["derive", "env"] }
 tracing = "0.1"
 # tracing-subscriber handled by ferrotunnel-observability
 # tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-axum = "0.7"
+axum = "0.8"
 anyhow = { workspace = true }
 
 [lints]

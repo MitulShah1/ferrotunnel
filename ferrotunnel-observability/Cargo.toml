@@ -42,7 +42,7 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { workspace = true }
 
 # Web (for metrics endpoint and dashboard)
-axum = { version = "0.7", optional = true }
+axum = { version = "0.8", optional = true }
 tower-http = { version = "0.5", features = [
     "cors",
     "trace",
