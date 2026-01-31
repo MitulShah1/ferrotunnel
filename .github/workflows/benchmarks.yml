@@ -50,7 +50,7 @@ jobs:
 
       # Restore previous benchmark results for comparison
       - name: Download previous benchmark data
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./target/criterion
           key: benchmark-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
@@ -73,7 +73,7 @@ jobs:
 
       # Save benchmark results for future comparisons
       - name: Save benchmark cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: always()
         with:
           path: ./target/criterion
