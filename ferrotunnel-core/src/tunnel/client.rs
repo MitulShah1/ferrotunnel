@@ -45,6 +45,28 @@ impl TunnelClient {
         self
     }
 
+    /// Enable TLS for the connection with certificate verification skipped.
+    ///
+    /// This is insecure and should only be used for self-signed certificates.
+    #[must_use]
+    pub fn with_tls_skip_verify(mut self) -> Self {
+        self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+            skip_verify: true,
+            ..Default::default()
+        });
+        self
+    }
+
+    /// Enable TLS for the connection with a custom CA certificate.
+    #[must_use]
+    pub fn with_tls_ca(mut self, ca_cert_path: impl Into<std::path::PathBuf>) -> Self {
+        self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+            ca_cert_path: Some(ca_cert_path.into().to_string_lossy().to_string()),
+            ..Default::default()
+        });
+        self
+    }
+
     /// Connect to the server and start the session
     #[allow(clippy::too_many_lines)]
     pub async fn connect_and_run<F, Fut>(&mut self, stream_handler: F) -> Result<()>

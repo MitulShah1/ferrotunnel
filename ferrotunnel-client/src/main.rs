@@ -67,6 +67,18 @@ struct Args {
     /// Disable dashboard
     #[arg(long)]
     no_dashboard: bool,
+
+    /// Enable TLS for server connection
+    #[arg(long, env = "FERROTUNNEL_TLS")]
+    tls: bool,
+
+    /// Skip TLS certificate verification (insecure, for self-signed certs)
+    #[arg(long, env = "FERROTUNNEL_TLS_SKIP_VERIFY")]
+    tls_skip_verify: bool,
+
+    /// Path to CA certificate for TLS verification
+    #[arg(long, env = "FERROTUNNEL_TLS_CA")]
+    tls_ca: Option<std::path::PathBuf>,
 }
 
 #[tokio::main]
@@ -145,6 +157,20 @@ async fn main() -> Result<()> {
     // Simple reconnection loop
     loop {
         let mut client = TunnelClient::new(args.server.clone(), args.token.clone());
+
+        if args.tls {
+            if args.tls_skip_verify {
+                info!("TLS enabled with certificate verification skipped (insecure)");
+                client = client.with_tls_skip_verify();
+            } else if let Some(ref ca_path) = args.tls_ca {
+                info!("TLS enabled with CA: {:?}", ca_path);
+                client = client.with_tls_ca(ca_path.clone());
+            } else {
+                info!("TLS enabled with certificate verification skipped (no CA provided)");
+                client = client.with_tls_skip_verify();
+            }
+        }
+
         let proxy_ref = proxy.clone();
 
         match client

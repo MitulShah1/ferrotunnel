@@ -51,6 +51,24 @@ impl TunnelServer {
         self
     }
 
+    /// Configure TLS for the server using certificate and key files.
+    #[must_use]
+    pub fn with_tls(
+        mut self,
+        cert_path: impl Into<std::path::PathBuf>,
+        key_path: impl Into<std::path::PathBuf>,
+    ) -> Self {
+        self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+            ca_cert_path: None,
+            cert_path: cert_path.into().to_string_lossy().to_string(),
+            key_path: key_path.into().to_string_lossy().to_string(),
+            server_name: None,
+            client_auth: false,
+            skip_verify: false,
+        });
+        self
+    }
+
     pub fn sessions(&self) -> SessionStore {
         self.sessions.clone()
     }

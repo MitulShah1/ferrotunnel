@@ -264,6 +264,7 @@ impl ClientBuilder {
                     .unwrap_or_default(),
                 server_name: config.server_name,
                 client_auth: config.client_auth,
+                skip_verify: false,
             }));
         }
         self

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-01-31
+
+### Added
+- **TLS CLI Flags**: Added command-line TLS support for both server and client binaries:
+  - **Server**: `--tls-cert` and `--tls-key` flags for enabling TLS with certificate/key files
+  - **Client**: `--tls`, `--tls-skip-verify`, and `--tls-ca` flags for TLS connections
+  - All flags support environment variables (`FERROTUNNEL_TLS_*`)
+- **Core TLS API**: Added convenient builder methods for TLS configuration:
+  - `TunnelServer::with_tls(cert_path, key_path)` for server-side TLS
+  - `TunnelClient::with_tls_skip_verify()` for insecure connections (self-signed certs)
+  - `TunnelClient::with_tls_ca(ca_path)` for custom CA verification
+- **Insecure Certificate Verifier**: Added `InsecureServerCertVerifier` for development/testing with self-signed certificates
+
+### Changed
+- `TlsTransportConfig` now includes `skip_verify` field for certificate verification bypass
+
 ## [0.8.0] - 2026-01-30
 
 ### Breaking Changes
@@ -312,7 +328,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame serialization tests
 - Partial frame handling tests
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.4.0...v0.5.0
