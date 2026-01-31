@@ -25,7 +25,7 @@ http-body-util = "0.1"
 bytes = { workspace = true }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { workspace = true }
-axum = { version = "0.7", features = ["http1", "json", "matched-path"] }
+axum = { version = "0.8", features = ["http1", "json", "matched-path"] }
 
 [lints]
 workspace = true
