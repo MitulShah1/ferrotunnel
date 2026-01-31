@@ -24,6 +24,11 @@ name = "throughput"
 path = "throughput.rs"
 harness = false
 
+[[bench]]
+name = "tcp_throughput"
+path = "tcp_throughput.rs"
+harness = false
+
 [dependencies]
 ferrotunnel = { path = "../ferrotunnel" }
 ferrotunnel-common = { path = "../ferrotunnel-common" }

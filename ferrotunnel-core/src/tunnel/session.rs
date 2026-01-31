@@ -176,6 +176,18 @@ impl SessionStore {
         }
         None
     }
+
+    /// Find a multiplexer for a session that has the specified capability
+    pub fn find_multiplexer_with_capability(&self, capability: &str) -> Option<Multiplexer> {
+        for r in self.sessions.iter() {
+            if r.capabilities.contains(&capability.to_string()) {
+                if let Some(m) = &r.multiplexer {
+                    return Some(m.clone());
+                }
+            }
+        }
+        None
+    }
 }
 
 #[cfg(test)]

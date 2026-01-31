@@ -44,6 +44,10 @@ struct Args {
     /// Require client certificate authentication
     #[arg(long, env = "FERROTUNNEL_TLS_CLIENT_AUTH")]
     tls_client_auth: bool,
+
+    /// TCP Ingress bind address (optional, for raw TCP tunneling)
+    #[arg(long, env = "FERROTUNNEL_TCP_BIND")]
+    tcp_bind: Option<SocketAddr>,
 }
 
 #[tokio::main]
@@ -112,9 +116,31 @@ async fn main() -> Result<()> {
     let registry = std::sync::Arc::new(registry);
 
     info!("Starting HTTP Ingress on {}", args.http_bind);
-    let ingress = ferrotunnel_http::HttpIngress::new(args.http_bind, sessions, registry);
+    let http_ingress =
+        ferrotunnel_http::HttpIngress::new(args.http_bind, sessions.clone(), registry);
+    let http_handle = tokio::spawn(async move { http_ingress.start().await });
 
-    tokio::try_join!(server.run(), ingress.start())?;
+    // Start TCP Ingress (if enabled)
+    let tcp_handle = if let Some(tcp_addr) = args.tcp_bind {
+        info!("Starting TCP Ingress on {}", tcp_addr);
+        let tcp_ingress = ferrotunnel_http::TcpIngress::new(tcp_addr, sessions.clone());
+        Some(tokio::spawn(async move { tcp_ingress.start().await }))
+    } else {
+        None
+    };
+
+    // Run both services
+    tokio::try_join!(
+        server.run(),
+        async { http_handle.await.map_err(std::io::Error::other)? },
+        async {
+            if let Some(h) = tcp_handle {
+                h.await.map_err(std::io::Error::other)?
+            } else {
+                Ok(())
+            }
+        }
+    )?;
 
     Ok(())
 }
