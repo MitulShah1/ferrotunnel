@@ -82,9 +82,12 @@ impl TcpIngress {
                 continue;
             };
 
-            // Find an active tunnel
-            let Some(multiplexer) = self.sessions.find_multiplexer() else {
-                warn!("No active tunnel for TCP connection from {}", peer_addr);
+            // Find an active tunnel with TCP capability
+            let Some(multiplexer) = self.sessions.find_multiplexer_with_capability("tcp") else {
+                warn!(
+                    "No active tunnel with 'tcp' capability for connection from {}",
+                    peer_addr
+                );
                 drop(stream);
                 continue;
             };
@@ -95,7 +98,11 @@ impl TcpIngress {
 
                 if let Err(e) = handle_tcp_connection(stream, multiplexer, peer_addr, config).await
                 {
-                    error!("TCP tunnel error for {}: {}", peer_addr, e);
+                    error!(
+                        peer_addr = %peer_addr,
+                        error = %e,
+                        "TCP tunnel connection failed"
+                    );
                 }
             });
         }
@@ -134,18 +141,25 @@ async fn handle_tcp_connection(
         Ok(Ok((to_client, to_server))) => {
             let duration = start.elapsed();
             info!(
-                "TCP tunnel closed: {} ({}ms, ↑{}B ↓{}B)",
-                peer_addr,
-                duration.as_millis(),
-                to_server,
-                to_client
+                peer_addr = %peer_addr,
+                duration_ms = duration.as_millis(),
+                bytes_tx = to_server,
+                bytes_rx = to_client,
+                "TCP tunnel closed"
             );
         }
         Ok(Err(e)) => {
-            error!("TCP copy error for {}: {}", peer_addr, e);
+            error!(
+                peer_addr = %peer_addr,
+                error = %e,
+                "TCP copy error"
+            );
         }
         Err(_) => {
-            warn!("TCP connection idle timeout for {}", peer_addr);
+            warn!(
+                peer_addr = %peer_addr,
+                "TCP connection idle timeout"
+            );
         }
     }
 
