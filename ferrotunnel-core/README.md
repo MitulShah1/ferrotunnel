@@ -13,6 +13,7 @@ This crate provides the core tunnel logic:
 - `TunnelServer` - Server-side tunnel listener
 - `Multiplexer` - Stream multiplexing over a single connection
 - `Session` - Session management with heartbeat tracking
+- `TlsTransport` - Encrypted transport support
 
 ## Components
 
@@ -25,8 +26,8 @@ This crate provides the core tunnel logic:
 - **VirtualStream** - AsyncRead/AsyncWrite implementation for tunneled data
 
 ### Transport
-- **TCP transport** - Current implementation
-- **TLS support** - Planned for future
+- **TCP transport** - Standard TCP connection
+- **TLS support** - Native TLS 1.3 encryption (rustls)
 
 ## Usage
 

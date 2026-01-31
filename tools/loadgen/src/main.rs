@@ -19,27 +19,27 @@ use tracing::{error, info, warn};
 #[command(about = "Load testing tool for FerroTunnel")]
 struct Args {
     /// Test mode: echo-server, echo-client, baseline
-    #[arg(short, long, default_value = "baseline")]
+    #[arg(long, default_value = "baseline")]
     mode: String,
 
     /// Target address for client mode
-    #[arg(short, long, default_value = "127.0.0.1:9999")]
+    #[arg(long, default_value = "127.0.0.1:9999")]
     target: String,
 
     /// Bind address for server mode
-    #[arg(short, long, default_value = "127.0.0.1:9999")]
+    #[arg(long, default_value = "127.0.0.1:9999")]
     bind: String,
 
     /// Number of concurrent connections/streams
-    #[arg(short, long, default_value = "100")]
+    #[arg(long, default_value = "100")]
     concurrency: usize,
 
     /// Number of requests per connection
-    #[arg(short, long, default_value = "1000")]
+    #[arg(long, default_value = "1000")]
     requests: usize,
 
     /// Payload size in bytes
-    #[arg(short, long, default_value = "1024")]
+    #[arg(long, default_value = "1024")]
     payload_size: usize,
 
     /// Test duration in seconds (0 = run requests count)

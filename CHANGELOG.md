@@ -10,18 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-01-31
 
 ### Added
-- **TLS CLI Flags**: Added command-line TLS support for both server and client binaries:
-  - **Server**: `--tls-cert` and `--tls-key` flags for enabling TLS with certificate/key files
-  - **Client**: `--tls`, `--tls-skip-verify`, and `--tls-ca` flags for TLS connections
-  - All flags support environment variables (`FERROTUNNEL_TLS_*`)
-- **Core TLS API**: Added convenient builder methods for TLS configuration:
-  - `TunnelServer::with_tls(cert_path, key_path)` for server-side TLS
-  - `TunnelClient::with_tls_skip_verify()` for insecure connections (self-signed certs)
-  - `TunnelClient::with_tls_ca(ca_path)` for custom CA verification
-- **Insecure Certificate Verifier**: Added `InsecureServerCertVerifier` for development/testing with self-signed certificates
+- **TLS CLI Flags**: Comprehensive command-line TLS support for both server and client:
+  - **Server**: `--tls-cert`, `--tls-key`, `--tls-ca`, and `--tls-client-auth` for mutual TLS.
+  - **Client**: `--tls`, `--tls-ca`, `--tls-skip-verify`, `--tls-server-name` (SNI), `--tls-cert`, and `--tls-key` (mTLS).
+  - All TLS flags support corresponding environment variables (e.g., `FERROTUNNEL_TLS_CERT`).
+- **Mutual TLS (mTLS)**: Support for client certificate authentication in both the core library and binaries.
+- **SNI Support**: Ability to specify the SNI hostname for TLS verification on the client.
+- **Improved Core TLS API**:
+  - `TunnelServer::with_client_auth(ca_path)`
+  - `TunnelClient::with_tls(cert_path, key_path)`
+  - `TunnelClient::with_server_name(name)`
 
 ### Changed
-- `TlsTransportConfig` now includes `skip_verify` field for certificate verification bypass
+- **CLI Standardized**: Converged on a **long-form only** flag policy across the entire project (`server`, `client`, `loadgen`, `soak`) for consistent ergonomics.
+- **Rustls Migration**: Updated core transport layer to be compatible with `rustls` 0.23 API.
 
 ## [0.8.0] - 2026-01-30
 

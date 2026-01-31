@@ -89,33 +89,39 @@ impl rustls::client::danger::ServerCertVerifier for InsecureServerCertVerifier {
 }
 
 pub fn create_client_config(config: &TlsTransportConfig) -> io::Result<Arc<ClientConfig>> {
-    if config.skip_verify {
-        let client_config = ClientConfig::builder()
+    let builder = ClientConfig::builder();
+
+    let builder = if config.skip_verify {
+        builder
             .dangerous()
             .with_custom_certificate_verifier(Arc::new(InsecureServerCertVerifier))
-            .with_no_client_auth();
-        return Ok(Arc::new(client_config));
-    }
-
-    let mut root_store = RootCertStore::empty();
-
-    if let Some(ca_path) = &config.ca_cert_path {
-        let ca_certs = load_certs(Path::new(ca_path))?;
-        for cert in ca_certs {
-            root_store.add(cert).map_err(|e| {
-                io::Error::new(ErrorKind::InvalidData, format!("invalid CA cert: {e}"))
-            })?;
-        }
     } else {
-        return Err(io::Error::new(
-            ErrorKind::InvalidInput,
-            "CA certificate path required for TLS (or use --tls-skip-verify)",
-        ));
-    }
+        let mut root_store = RootCertStore::empty();
+        if let Some(ca_path) = &config.ca_cert_path {
+            let ca_certs = load_certs(Path::new(ca_path))?;
+            for cert in ca_certs {
+                root_store.add(cert).map_err(|e| {
+                    io::Error::new(ErrorKind::InvalidData, format!("invalid CA cert: {e}"))
+                })?;
+            }
+        } else {
+            return Err(io::Error::new(
+                ErrorKind::InvalidInput,
+                "CA certificate path required for TLS (or use --tls-skip-verify)",
+            ));
+        }
+        builder.with_root_certificates(root_store)
+    };
 
-    let client_config = ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth();
+    let client_config = if !config.cert_path.is_empty() && !config.key_path.is_empty() {
+        let certs = load_certs(Path::new(&config.cert_path))?;
+        let key = load_private_key(Path::new(&config.key_path))?;
+        builder
+            .with_client_auth_cert(certs, key)
+            .map_err(|e| io::Error::new(ErrorKind::InvalidData, e))?
+    } else {
+        builder.with_no_client_auth()
+    };
 
     Ok(Arc::new(client_config))
 }
@@ -124,10 +130,37 @@ pub fn create_server_config(config: &TlsTransportConfig) -> io::Result<Arc<Serve
     let certs = load_certs(Path::new(&config.cert_path))?;
     let key = load_private_key(Path::new(&config.key_path))?;
 
-    let server_config = ServerConfig::builder()
-        .with_no_client_auth()
-        .with_single_cert(certs, key)
-        .map_err(|e| io::Error::new(ErrorKind::InvalidData, format!("TLS config error: {e}")))?;
+    let builder = ServerConfig::builder();
+
+    let server_config = if config.client_auth {
+        let mut root_store = RootCertStore::empty();
+        if let Some(ca_path) = &config.ca_cert_path {
+            let ca_certs = load_certs(Path::new(ca_path))?;
+            for cert in ca_certs {
+                root_store.add(cert).map_err(|e| {
+                    io::Error::new(ErrorKind::InvalidData, format!("invalid CA cert: {e}"))
+                })?;
+            }
+        } else {
+            return Err(io::Error::new(
+                ErrorKind::InvalidInput,
+                "CA certificate path required for client authentication",
+            ));
+        }
+        builder
+            .with_client_cert_verifier(
+                rustls::server::WebPkiClientVerifier::builder(Arc::new(root_store))
+                    .build()
+                    .map_err(|e| io::Error::new(ErrorKind::InvalidData, e))?,
+            )
+            .with_single_cert(certs, key)
+            .map_err(|e| io::Error::new(ErrorKind::InvalidData, format!("TLS config error: {e}")))?
+    } else {
+        builder
+            .with_no_client_auth()
+            .with_single_cert(certs, key)
+            .map_err(|e| io::Error::new(ErrorKind::InvalidData, format!("TLS config error: {e}")))?
+    };
 
     Ok(Arc::new(server_config))
 }

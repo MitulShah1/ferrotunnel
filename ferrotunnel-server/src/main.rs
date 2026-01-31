@@ -36,6 +36,14 @@ struct Args {
     /// Path to TLS private key file (PEM format)
     #[arg(long, env = "FERROTUNNEL_TLS_KEY")]
     tls_key: Option<PathBuf>,
+
+    /// Path to CA certificate for client authentication (PEM format)
+    #[arg(long, env = "FERROTUNNEL_TLS_CA")]
+    tls_ca: Option<PathBuf>,
+
+    /// Require client certificate authentication
+    #[arg(long, env = "FERROTUNNEL_TLS_CLIENT_AUTH")]
+    tls_client_auth: bool,
 }
 
 #[tokio::main]
@@ -71,6 +79,14 @@ async fn main() -> Result<()> {
             cert_path, key_path
         );
         server = server.with_tls(cert_path.clone(), key_path.clone());
+
+        if let Some(ca_path) = &args.tls_ca {
+            info!("TLS Client Authentication enabled with CA: {:?}", ca_path);
+            server = server.with_client_auth(ca_path.clone());
+        } else if args.tls_client_auth {
+            error!("--tls-client-auth requires --tls-ca to be provided");
+            std::process::exit(1);
+        }
     }
     let sessions = server.sessions();
 

@@ -50,20 +50,68 @@ impl TunnelClient {
     /// This is insecure and should only be used for self-signed certificates.
     #[must_use]
     pub fn with_tls_skip_verify(mut self) -> Self {
-        self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
-            skip_verify: true,
-            ..Default::default()
-        });
+        if let TransportConfig::Tls(ref mut tls) = self.transport_config {
+            tls.skip_verify = true;
+        } else {
+            self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+                skip_verify: true,
+                ..Default::default()
+            });
+        }
         self
     }
 
     /// Enable TLS for the connection with a custom CA certificate.
     #[must_use]
     pub fn with_tls_ca(mut self, ca_cert_path: impl Into<std::path::PathBuf>) -> Self {
-        self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
-            ca_cert_path: Some(ca_cert_path.into().to_string_lossy().to_string()),
-            ..Default::default()
-        });
+        let ca = Some(ca_cert_path.into().to_string_lossy().to_string());
+        if let TransportConfig::Tls(ref mut tls) = self.transport_config {
+            tls.ca_cert_path = ca;
+        } else {
+            self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+                ca_cert_path: ca,
+                ..Default::default()
+            });
+        }
+        self
+    }
+
+    /// Enable mutual TLS by providing a client certificate and private key.
+    #[must_use]
+    pub fn with_tls(
+        mut self,
+        cert_path: impl Into<std::path::PathBuf>,
+        key_path: impl Into<std::path::PathBuf>,
+    ) -> Self {
+        let (cert, key) = (
+            cert_path.into().to_string_lossy().to_string(),
+            key_path.into().to_string_lossy().to_string(),
+        );
+        if let TransportConfig::Tls(ref mut tls) = self.transport_config {
+            tls.cert_path = cert;
+            tls.key_path = key;
+        } else {
+            self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+                cert_path: cert,
+                key_path: key,
+                ..Default::default()
+            });
+        }
+        self
+    }
+
+    /// Set the server name (SNI) for TLS verification.
+    #[must_use]
+    pub fn with_server_name(mut self, server_name: impl Into<String>) -> Self {
+        let name = Some(server_name.into());
+        if let TransportConfig::Tls(ref mut tls) = self.transport_config {
+            tls.server_name = name;
+        } else {
+            self.transport_config = TransportConfig::Tls(transport::tls::TlsTransportConfig {
+                server_name: name,
+                ..Default::default()
+            });
+        }
         self
     }
 
