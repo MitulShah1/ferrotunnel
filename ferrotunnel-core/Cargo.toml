@@ -42,7 +42,7 @@ nonzero_ext = "0.3"
 rand = "0.8"
 
 # Socket tuning for performance
-socket2 = "0.5"
+socket2 = "0.6"
 
 # High-performance async channels
 kanal = "0.1"
