@@ -16,6 +16,7 @@ cargo install ferrotunnel-server
 ferrotunnel-server \
   --bind 0.0.0.0:7835 \
   --http-bind 0.0.0.0:8080 \
+  --tcp-bind 0.0.0.0:5000 \
   --token my-secret-token
 ```
 
@@ -25,6 +26,7 @@ ferrotunnel-server \
 |--------|--------------|---------|-------------|
 | `--bind` | `FERROTUNNEL_BIND` | `0.0.0.0:7835` | Tunnel control plane address |
 | `--http-bind` | `FERROTUNNEL_HTTP_BIND` | `0.0.0.0:8080` | HTTP ingress address |
+| `--tcp-bind` | `FERROTUNNEL_TCP_BIND` | - | TCP ingress address (optional) |
 | `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
 | `--log-level` | `RUST_LOG` | `info` | Log level |
 | `--metrics-bind` | `FERROTUNNEL_METRICS_BIND` | `0.0.0.0:9090` | Prometheus metrics address |
@@ -37,6 +39,7 @@ ferrotunnel-server \
 
 - **7835** - Tunnel control plane (clients connect here)
 - **8080** - HTTP ingress (public traffic enters here)
+- **5000** - TCP ingress (configurable via `--tcp-bind`)
 - **9090** - Prometheus metrics (configurable via `--metrics-bind`)
 
 ## Example

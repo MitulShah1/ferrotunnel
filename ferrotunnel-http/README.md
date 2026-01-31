@@ -10,6 +10,7 @@ HTTP ingress and proxy for [FerroTunnel](https://github.com/MitulShah1/ferrotunn
 This crate provides HTTP handling for the tunnel:
 
 - `HttpIngress` - Server-side HTTP listener that routes requests through tunnels
+- `TcpIngress` - Server-side TCP listener for raw socket tunneling
 - `HttpProxy` - Client-side proxy that forwards tunneled requests to local services
 
 ## Components
@@ -20,6 +21,12 @@ Hyper-based HTTP server that:
 - Routes requests to connected tunnel clients
 - Supports HTTP/1.1 and WebSocket upgrades
 
+### TcpIngress (Server)
+Socket listener that:
+- Accepts raw TCP connections
+- Routes traffic through the tunnel protocol
+- Protocol-agnostic (supports Database, SSH, etc.)
+
 ### HttpProxy (Client)
 Handles tunneled HTTP requests by:
 - Receiving virtual streams from the multiplexer
@@ -29,11 +36,13 @@ Handles tunneled HTTP requests by:
 ## Usage
 
 ```rust
-use ferrotunnel_http::{HttpIngress, HttpProxy};
+use ferrotunnel_http::{HttpIngress, TcpIngress, HttpProxy};
 
 // Server-side: Create ingress
-let ingress = HttpIngress::new("0.0.0.0:8080".parse()?, sessions, registry);
-ingress.start().await?;
+let ingress = HttpIngress::new("0.0.0.0:8080".parse()?, sessions.clone(), registry);
+let tcp_ingress = TcpIngress::new("0.0.0.0:5000".parse()?, sessions);
+
+tokio::try_join!(ingress.start(), tcp_ingress.start())?;
 
 // Client-side: Create proxy
 let proxy = HttpProxy::new("127.0.0.1:3000".into());
