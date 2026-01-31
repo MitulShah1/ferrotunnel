@@ -43,7 +43,7 @@ uuid = { workspace = true }
 
 # Web (for metrics endpoint and dashboard)
 axum = { version = "0.8", optional = true }
-tower-http = { version = "0.5", features = [
+tower-http = { version = "0.6", features = [
     "cors",
     "trace",
     "compression-gzip",
