@@ -23,12 +23,18 @@ ferrotunnel-client \
 
 | Option | Env Variable | Default | Description |
 |--------|--------------|---------|-------------|
-| `--server` | `FERROTUNNEL_SERVER` | (required) | Server address (host:port) |
+| `--server` | `FERROTUNNEL_SERVER` | (required) | FerroTunnel Server address (`host:port`) |
 | `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
 | `--local-addr` | - | `127.0.0.1:8000` | Local service to forward to |
-| `--dashboard-port` | - | `4040` | Dashboard UI port |
-| `--no-dashboard` | - | `false` | Disable dashboard |
-| `--log-level` | `RUST_LOG` | `info` | Log level |
+| `--dashboard-port` | - | `4040` | Dashboard port |
+| `--no-dashboard` | - | `false` | Disable the web dashboard |
+| `--log-level` | `RUST_LOG` | `info` | Log level (`trace`, `debug`, `info`, `warn`, `error`) |
+| `--tls` | `FERROTUNNEL_TLS` | `false` | Enable TLS for server connection |
+| `--tls-skip-verify` | `FERROTUNNEL_TLS_SKIP_VERIFY` | `false` | Skip TLS certificate verification (insecure) |
+| `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | Path to CA certificate for verification |
+| `--tls-server-name` | - | - | SNI hostname for TLS verification |
+| `--tls-cert` | - | - | Path to client certificate file (mTLS) |
+| `--tls-key` | - | - | Path to client private key file (mTLS) |
 
 ## Example
 

@@ -67,6 +67,30 @@ struct Args {
     /// Disable dashboard
     #[arg(long)]
     no_dashboard: bool,
+
+    /// Enable TLS for server connection
+    #[arg(long, env = "FERROTUNNEL_TLS")]
+    tls: bool,
+
+    /// Skip TLS certificate verification (insecure, for self-signed certs)
+    #[arg(long, env = "FERROTUNNEL_TLS_SKIP_VERIFY")]
+    tls_skip_verify: bool,
+
+    /// Path to CA certificate for TLS verification
+    #[arg(long, env = "FERROTUNNEL_TLS_CA")]
+    tls_ca: Option<std::path::PathBuf>,
+
+    /// server name (SNI) for TLS verification
+    #[arg(long, env = "FERROTUNNEL_TLS_SERVER_NAME")]
+    tls_server_name: Option<String>,
+
+    /// Path to client certificate file (PEM format) for mutual TLS
+    #[arg(long, env = "FERROTUNNEL_TLS_CERT")]
+    tls_cert: Option<std::path::PathBuf>,
+
+    /// Path to client private key file (PEM format) for mutual TLS
+    #[arg(long, env = "FERROTUNNEL_TLS_KEY")]
+    tls_key: Option<std::path::PathBuf>,
 }
 
 #[tokio::main]
@@ -145,6 +169,8 @@ async fn main() -> Result<()> {
     // Simple reconnection loop
     loop {
         let mut client = TunnelClient::new(args.server.clone(), args.token.clone());
+        client = setup_tls(client, &args);
+
         let proxy_ref = proxy.clone();
 
         match client
@@ -170,4 +196,33 @@ async fn main() -> Result<()> {
 
     shutdown_tracing();
     Ok(())
+}
+
+fn setup_tls(mut client: TunnelClient, args: &Args) -> TunnelClient {
+    if args.tls {
+        if args.tls_skip_verify {
+            info!("TLS enabled with certificate verification skipped (insecure)");
+            client = client.with_tls_skip_verify();
+        } else if let Some(ref ca_path) = args.tls_ca {
+            info!("TLS enabled with CA: {:?}", ca_path);
+            client = client.with_tls_ca(ca_path.clone());
+        } else {
+            info!("TLS enabled with certificate verification skipped (no CA provided)");
+            client = client.with_tls_skip_verify();
+        }
+
+        if let Some(ref server_name) = args.tls_server_name {
+            info!("TLS SNI enabled with server name: {}", server_name);
+            client = client.with_server_name(server_name.clone());
+        }
+
+        if let (Some(ref cert_path), Some(ref key_path)) = (&args.tls_cert, &args.tls_key) {
+            info!(
+                "Mutual TLS enabled with cert: {:?}, key: {:?}",
+                cert_path, key_path
+            );
+            client = client.with_tls(cert_path.clone(), key_path.clone());
+        }
+    }
+    client
 }

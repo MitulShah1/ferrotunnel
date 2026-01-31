@@ -8,10 +8,10 @@ repository.workspace = true
 description = "FerroTunnel Server binary"
 
 [dependencies]
-ferrotunnel-core = { version = "0.8.0", path = "../ferrotunnel-core" }
-ferrotunnel-common = { version = "0.8.0", path = "../ferrotunnel-common" }
-ferrotunnel-http = { version = "0.8.0", path = "../ferrotunnel-http" }
-ferrotunnel-plugin = { version = "0.8.0", path = "../ferrotunnel-plugin" }
+ferrotunnel-core = { version = "0.9.0", path = "../ferrotunnel-core" }
+ferrotunnel-common = { version = "0.9.0", path = "../ferrotunnel-common" }
+ferrotunnel-http = { version = "0.9.0", path = "../ferrotunnel-http" }
+ferrotunnel-plugin = { version = "0.9.0", path = "../ferrotunnel-plugin" }
 ferrotunnel-observability = { workspace = true, features = ["axum"] }
 
 tokio = { workspace = true }

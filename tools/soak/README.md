@@ -22,11 +22,12 @@ cargo run -p ferrotunnel-soak -- \
 
 ### Arguments
 
-- `--target`: Address of the target application (defaults to `127.0.0.1:9999`)
-- `--tunnel-addr`: Address of the FerroTunnel server (defaults to `127.0.0.1:7835`)
-- `--concurrency`: Number of simultaneous tunnels (default `10`)
-- `--duration`: Test duration in minutes (0 = infinite)
-- `--output`: File to write metrics to (defaults to `soak_metrics.jsonl`)
+- `--target <TARGET>`: Address of the target application (default: `127.0.0.1:9999`)
+- `--tunnel-addr <TUNNEL_ADDR>`: Address of the FerroTunnel server (default: `127.0.0.1:7835`)
+- `--token <TOKEN>`: Authentication token (default: `my-secret-token`)
+- `--concurrency <CONCURRENCY>`: Number of simultaneous tunnels (default: `10`)
+- `--duration <DURATION>`: Test duration in minutes (0 = infinite) (default: `0`)
+- `--output <OUTPUT>`: File to write metrics to (default: `soak_metrics.jsonl`)
 
 ## Analysis
 
