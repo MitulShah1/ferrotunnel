@@ -15,9 +15,8 @@ async fn run_echo_server(addr: &str) -> String {
                 let mut buf = vec![0u8; 65536];
                 loop {
                     let n = match socket.read(&mut buf).await {
-                        Ok(0) => return,
+                        Ok(0) | Err(_) => return,
                         Ok(n) => n,
-                        Err(_) => return,
                     };
                     if socket.write_all(&buf[..n]).await.is_err() {
                         return;

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-01-31
+
+### Added
+- **Protocol Versioning**: Implemented protocol version negotiation to support future-proofing and backward/forward compatibility.
+  - Added `MIN_PROTOCOL_VERSION` and `MAX_PROTOCOL_VERSION` constants.
+  - Updated handshake to exchange supported version ranges.
+  - Added `VersionMismatch` status for incompatible peers.
+- **TCP Ingress**: Added support for raw TCP forwarding.
+  - New `TcpIngress` component in `ferrotunnel-http`.
+  - Added `--tcp-bind` flag to `ferrotunnel-server`.
+  - Updated `ferrotunnel-client` to support concurrent raw TCP forwarding.
+
 ## [0.9.0] - 2026-01-31
 
 ### Added
@@ -330,7 +342,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame serialization tests
 - Partial frame handling tests
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.9.5...HEAD
+[0.9.5]: https://github.com/MitulShah1/ferrotunnel/compare/v0.9.0...v0.9.5
 [0.9.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/MitulShah1/ferrotunnel/compare/v0.6.0...v0.7.0
