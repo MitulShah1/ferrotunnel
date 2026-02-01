@@ -20,7 +20,7 @@ async fn test_tcp_tunnel_echo() {
     // 2. Start tunnel server
     let server_addr = "127.0.0.1:17835".parse().unwrap();
     let token = "test-token".to_string();
-    let mut server = TunnelServer::new(server_addr, token.clone());
+    let server = TunnelServer::new(server_addr, token.clone());
     let sessions = server.sessions();
 
     tokio::spawn(async move {

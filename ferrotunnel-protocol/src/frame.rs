@@ -5,14 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Data frame payload - boxed to reduce Frame enum size
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct DataFrame {
-    pub stream_id: u32,
-    pub data: Bytes,
-    pub end_of_stream: bool,
-}
-
 /// Stream open request payload - boxed to reduce Frame enum size
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct OpenStreamFrame {
@@ -74,8 +66,12 @@ pub enum Frame {
         status: StreamStatus,
     },
 
-    /// Data frame
-    Data(Box<DataFrame>),
+    /// Data frame (Fast Path - no Box)
+    Data {
+        stream_id: u32,
+        data: Bytes,
+        end_of_stream: bool,
+    },
 
     /// Close a stream
     CloseStream { stream_id: u32, reason: CloseReason },
@@ -182,19 +178,22 @@ mod tests {
     #[test]
     fn test_data_frame_with_bytes() {
         let data = Bytes::from("hello world");
-        let frame = Frame::Data(Box::new(DataFrame {
+        let frame = Frame::Data {
             stream_id: 42,
             data: data.clone(),
             end_of_stream: false,
-        }));
+        };
 
         let config = bincode_next::config::standard();
         let encoded = bincode_next::serde::encode_to_vec(&frame, config).unwrap();
         let (decoded, _): (Frame, usize) =
             bincode_next::serde::decode_from_slice(&encoded, config).unwrap();
 
-        if let Frame::Data(data_frame) = decoded {
-            assert_eq!(data, data_frame.data);
+        if let Frame::Data {
+            data: decoded_data, ..
+        } = decoded
+        {
+            assert_eq!(data, decoded_data);
         } else {
             panic!("Expected Data frame");
         }

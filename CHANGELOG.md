@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-02-01
+
+### Performance
+- **Vectored I/O (Syscall Optimization)**: Implemented `writev` based batched sender in `ferrotunnel-core`.
+  - Eliminates data copying for payloads (Zero-Copy).
+  - Theoretical throughput tested up to 115 GiB/s for large in-memory payloads.
+- **Fast Path Codec**: Optimized `frame` decoding to reduce allocations and memory usage.
+- **Dynamic Batching**: Implemented adaptive timeout logic to balance latency and throughput based on traffic load.
+- **Allocator**: Switched to `mimalloc` for improved memory allocation performance.
+
 ## [0.9.5] - 2026-01-31
 
 ### Added

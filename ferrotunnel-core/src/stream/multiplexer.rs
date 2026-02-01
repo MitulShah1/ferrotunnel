@@ -2,12 +2,12 @@
 //!
 //! Manages multiple virtual streams over a single connection.
 
+use super::bytes_pool;
 use super::pool::ObjectPool;
-use bytes::Bytes;
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use ferrotunnel_common::Result;
-use ferrotunnel_protocol::frame::{DataFrame, Frame, OpenStreamFrame, Protocol};
+use ferrotunnel_protocol::frame::{Frame, OpenStreamFrame, Protocol};
 use kanal::{bounded_async, AsyncReceiver, AsyncSender, ReceiveError, SendError};
 use std::io;
 use std::pin::Pin;
@@ -102,13 +102,14 @@ impl Multiplexer {
                     self.frame_tx.clone(),
                     read_buffer,
                     self.buffer_pool.clone(),
+                    open_stream.protocol,
                 );
                 if self.new_stream_tx.send(stream).await.is_err() {
                     warn!("Failed to queue new stream {}", stream_id);
                 }
             }
-            Frame::Data(data_frame) => {
-                let stream_id = data_frame.stream_id;
+            Frame::Data { stream_id, .. } => {
+                let stream_id = *stream_id;
                 let tx = self.streams.get(&stream_id).map(|r| r.clone());
 
                 if let Some(tx) = tx {
@@ -160,6 +161,7 @@ impl Multiplexer {
             self.frame_tx.clone(),
             read_buffer,
             self.buffer_pool.clone(),
+            protocol,
         ))
     }
 }
@@ -193,6 +195,8 @@ pub struct VirtualStream {
     pending_send: Option<SendFuture>,
     /// Buffered frame to send
     pending_send_frame: Option<Frame>,
+    /// Protocol for this stream
+    protocol: Protocol,
 }
 
 impl std::fmt::Debug for VirtualStream {
@@ -206,7 +210,12 @@ impl std::fmt::Debug for VirtualStream {
 
 impl VirtualStream {
     /// Create a new `VirtualStream` without pooling (for backward compatibility)
-    pub fn new(stream_id: u32, rx: AsyncReceiver<Result<Frame>>, tx: AsyncSender<Frame>) -> Self {
+    pub fn new(
+        stream_id: u32,
+        rx: AsyncReceiver<Result<Frame>>,
+        tx: AsyncSender<Frame>,
+        protocol: Protocol,
+    ) -> Self {
         Self {
             stream_id,
             rx,
@@ -216,6 +225,7 @@ impl VirtualStream {
             pending_recv: None,
             pending_send: None,
             pending_send_frame: None,
+            protocol,
         }
     }
 
@@ -226,6 +236,7 @@ impl VirtualStream {
         tx: AsyncSender<Frame>,
         read_buffer: Vec<u8>,
         buffer_pool: ReadBufferPool,
+        protocol: Protocol,
     ) -> Self {
         Self {
             stream_id,
@@ -236,11 +247,16 @@ impl VirtualStream {
             pending_recv: None,
             pending_send: None,
             pending_send_frame: None,
+            protocol,
         }
     }
 
     pub fn id(&self) -> u32 {
         self.stream_id
+    }
+
+    pub fn protocol(&self) -> Protocol {
+        self.protocol
     }
 }
 
@@ -281,8 +297,11 @@ impl AsyncRead for VirtualStream {
             Poll::Ready(result) => {
                 self.pending_recv = None;
                 match result {
-                    Ok(Ok(Frame::Data(data_frame))) => {
-                        let bytes = &data_frame.data;
+                    Ok(Ok(Frame::Data {
+                        data: bytes,
+                        end_of_stream: _,
+                        ..
+                    })) => {
                         let len = std::cmp::min(buf.remaining(), bytes.len());
                         buf.put_slice(&bytes[..len]);
                         if len < bytes.len() {
@@ -328,12 +347,17 @@ impl AsyncWrite for VirtualStream {
             }
         }
 
-        // Create new frame and send future
-        let frame = Frame::Data(Box::new(DataFrame {
+        // Create new frame using pooled buffer (zero-copy optimization)
+        // Instead of Bytes::copy_from_slice(), use pooled BytesMut
+        let mut bytes_mut = bytes_pool::acquire_bytes(buf.len());
+        bytes_mut.extend_from_slice(buf);
+        let data = bytes_mut.freeze();
+
+        let frame = Frame::Data {
             stream_id: self.stream_id,
-            data: Bytes::copy_from_slice(buf),
+            data,
             end_of_stream: false,
-        }));
+        };
 
         let tx = self.tx.clone();
         let frame_clone = frame.clone();

@@ -3,6 +3,7 @@
 **/*.rs.bk
 *.pdb
 Cargo.lock
+.local-bins/
 
 # IDE
 .idea/

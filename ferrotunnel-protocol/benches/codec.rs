@@ -9,7 +9,7 @@ use bytes::{Bytes, BytesMut};
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::frame::{
-    DataFrame, Frame, HandshakeFrame, HandshakeStatus, OpenStreamFrame, Protocol,
+    Frame, HandshakeFrame, HandshakeStatus, OpenStreamFrame, Protocol,
 };
 use std::collections::HashMap;
 use tokio_util::codec::{Decoder, Encoder};
@@ -56,27 +56,27 @@ fn create_test_frames() -> Vec<(&'static str, Frame)> {
         ),
         (
             "data_small",
-            Frame::Data(Box::new(DataFrame {
+            Frame::Data {
                 stream_id: 12345,
                 data: Bytes::from(vec![0u8; 64]),
                 end_of_stream: false,
-            })),
+            },
         ),
         (
             "data_medium",
-            Frame::Data(Box::new(DataFrame {
+            Frame::Data {
                 stream_id: 12345,
                 data: Bytes::from(vec![0u8; 1024]),
                 end_of_stream: false,
-            })),
+            },
         ),
         (
             "data_large",
-            Frame::Data(Box::new(DataFrame {
+            Frame::Data {
                 stream_id: 12345,
                 data: Bytes::from(vec![0u8; 65536]),
                 end_of_stream: true,
-            })),
+            },
         ),
         (
             "register",
@@ -98,7 +98,7 @@ fn bench_encode(c: &mut Criterion) {
 
     for (name, frame) in &frames {
         let payload_size = match frame {
-            Frame::Data(data_frame) => data_frame.data.len(),
+            Frame::Data { data, .. } => data.len(),
             _ => 0,
         };
 
@@ -136,7 +136,7 @@ fn bench_decode(c: &mut Criterion) {
         let encoded_bytes = encoded.freeze();
 
         let payload_size = match frame {
-            Frame::Data(data_frame) => data_frame.data.len(),
+            Frame::Data { data, .. } => data.len(),
             _ => 0,
         };
 
@@ -171,11 +171,11 @@ fn bench_roundtrip(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(size as u64));
 
         group.bench_with_input(BenchmarkId::new("data_frame", size), &size, |b, &size| {
-            let frame = Frame::Data(Box::new(DataFrame {
+            let frame = Frame::Data {
                 stream_id: 1,
                 data: Bytes::from(vec![0u8; size]),
                 end_of_stream: false,
-            }));
+            };
             let mut codec = TunnelCodec::new();
             let mut buf = BytesMut::with_capacity(size + 128);
 

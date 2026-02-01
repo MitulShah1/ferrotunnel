@@ -5,7 +5,7 @@
 #![allow(clippy::cast_sign_loss)]
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use ferrotunnel_protocol::frame::DataFrame;
+
 use ferrotunnel_protocol::Frame;
 
 fn encode_frame(frame: &Frame) -> Vec<u8> {
@@ -30,11 +30,11 @@ fn bench_encode_throughput(c: &mut Criterion) {
 
         group.throughput(Throughput::Bytes(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
-            let frame = Frame::Data(Box::new(DataFrame {
+            let frame = Frame::Data {
                 stream_id: 1,
                 data: payload.clone().into(),
                 end_of_stream: false,
-            }));
+            };
 
             b.iter(|| encode_frame(&frame));
         });
@@ -49,11 +49,11 @@ fn bench_decode_throughput(c: &mut Criterion) {
 
     for size in &[64, 256, 1024, 4096, 16384, 65536] {
         let payload = vec![0xABu8; *size];
-        let frame = Frame::Data(Box::new(DataFrame {
+        let frame = Frame::Data {
             stream_id: 1,
             data: payload.into(),
             end_of_stream: false,
-        }));
+        };
         let encoded = encode_frame(&frame);
 
         group.throughput(Throughput::Bytes(*size as u64));
@@ -74,11 +74,11 @@ fn bench_roundtrip_throughput(c: &mut Criterion) {
 
         group.throughput(Throughput::Bytes(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
-            let frame = Frame::Data(Box::new(DataFrame {
+            let frame = Frame::Data {
                 stream_id: 1,
                 data: payload.clone().into(),
                 end_of_stream: false,
-            }));
+            };
 
             b.iter(|| {
                 let encoded = encode_frame(&frame);
@@ -96,12 +96,10 @@ fn bench_batch_encoding(c: &mut Criterion) {
 
     for batch_size in &[10, 50, 100] {
         let frames: Vec<Frame> = (0..*batch_size)
-            .map(|i| {
-                Frame::Data(Box::new(DataFrame {
-                    stream_id: i as u32,
-                    data: vec![0u8; 256].into(),
-                    end_of_stream: false,
-                }))
+            .map(|i| Frame::Data {
+                stream_id: i as u32,
+                data: vec![0u8; 256].into(),
+                end_of_stream: false,
             })
             .collect();
 
