@@ -1,6 +1,6 @@
 [package]
 name = "ferrotunnel-loadgen"
-version = "0.9.5"
+version = "0.9.6"
 edition = "2021"
 license.workspace = true
 publish = false

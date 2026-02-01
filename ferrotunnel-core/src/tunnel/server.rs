@@ -9,7 +9,6 @@ use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::constants::{MAX_PROTOCOL_VERSION, MIN_PROTOCOL_VERSION};
 use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
-use futures::stream::SplitStream;
 use futures::{SinkExt, StreamExt};
 use kanal::bounded_async;
 use std::net::SocketAddr;
@@ -227,11 +226,22 @@ impl TunnelServer {
                     let tunnel_id = tunnel_id.unwrap_or_else(|| session_id.to_string());
 
                     // Setup multiplexer with kanal channels
-                    let (sink, stream) = framed.split();
+                    let parts = framed.into_parts();
+                    let (read_half, write_half) = tokio::io::split(parts.io);
+
+                    // Reconstruct FramedRead for reading
+                    if !parts.read_buf.is_empty() {
+                        tracing::warn!(
+                            "Handshake read buffer not empty ({} bytes lost)",
+                            parts.read_buf.len()
+                        );
+                    }
+                    let stream = tokio_util::codec::FramedRead::new(read_half, parts.codec);
+
                     let (frame_tx, frame_rx) = bounded_async::<Frame>(100);
 
                     // Spawn batched sender task for vectored I/O performance
-                    tokio::spawn(run_batched_sender(frame_rx, sink));
+                    tokio::spawn(run_batched_sender(frame_rx, write_half, parts.codec));
 
                     let (multiplexer, new_stream_rx) = Multiplexer::new(frame_tx, false);
 
@@ -291,7 +301,7 @@ impl TunnelServer {
     }
 
     async fn process_messages(
-        mut stream: SplitStream<Framed<BoxedStream, TunnelCodec>>,
+        mut stream: tokio_util::codec::FramedRead<tokio::io::ReadHalf<BoxedStream>, TunnelCodec>,
         session_id: Uuid,
         sessions: SessionStore,
         multiplexer: Multiplexer,

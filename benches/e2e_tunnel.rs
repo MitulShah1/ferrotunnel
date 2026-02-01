@@ -4,7 +4,7 @@
 #![allow(clippy::unwrap_used)]
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use ferrotunnel_protocol::frame::{DataFrame, HandshakeFrame};
+use ferrotunnel_protocol::frame::HandshakeFrame;
 use ferrotunnel_protocol::Frame;
 
 fn encode_frame(frame: &Frame) -> Vec<u8> {
@@ -41,11 +41,11 @@ fn bench_tunnel_setup(c: &mut Criterion) {
 
     group.bench_function("frame_encode_data_1kb", |b| {
         let data = vec![0u8; 1024];
-        let frame = Frame::Data(Box::new(DataFrame {
+        let frame = Frame::Data {
             stream_id: 1,
             data: data.into(),
             end_of_stream: false,
-        }));
+        };
 
         b.iter(|| {
             let encoded = encode_frame(&frame);

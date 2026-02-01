@@ -11,6 +11,7 @@ description = "FerroTunnel Client binary"
 ferrotunnel-core = { version = "0.9.5", path = "../ferrotunnel-core" }
 ferrotunnel-http = { version = "0.9.5", path = "../ferrotunnel-http" }
 ferrotunnel-common = { version = "0.9.5", path = "../ferrotunnel-common" }
+ferrotunnel-protocol = { version = "0.9.5", path = "../ferrotunnel-protocol" }
 ferrotunnel-observability = { workspace = true, features = ["dashboard"] }
 
 tokio = { workspace = true }

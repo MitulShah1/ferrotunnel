@@ -166,7 +166,7 @@ impl TunnelClient {
                 max_version: MAX_PROTOCOL_VERSION,
                 token: self.auth_token.clone(),
                 tunnel_id: self.tunnel_id.clone(),
-                capabilities: vec!["basic".to_string()],
+                capabilities: vec!["basic".to_string(), "tcp".to_string()],
             })))
             .await?;
 
@@ -208,11 +208,24 @@ impl TunnelClient {
         }
 
         // 3. Setup Multiplexer with kanal channels
-        let (sink, mut split_stream) = framed.split();
+        // Decompose Framed to separate Read/Write halves
+        let parts = framed.into_parts();
+        let (read_half, write_half) = tokio::io::split(parts.io);
+
+        // Reconstruct FramedRead for reading
+        if !parts.read_buf.is_empty() {
+            tracing::warn!(
+                "Handshake read buffer not empty ({} bytes lost)",
+                parts.read_buf.len()
+            );
+        }
+        let mut split_stream = tokio_util::codec::FramedRead::new(read_half, parts.codec);
+
         let (frame_tx, frame_rx) = bounded_async::<Frame>(100);
 
         // Spawn batched sender task for vectored I/O performance
-        tokio::spawn(run_batched_sender(frame_rx, sink));
+        // We pass the raw write_half and the codec
+        tokio::spawn(run_batched_sender(frame_rx, write_half, parts.codec));
 
         let (multiplexer, new_stream_rx) = Multiplexer::new(frame_tx, true);
 
@@ -261,7 +274,7 @@ impl TunnelClient {
                         }
                         Some(Err(e)) => {
                             error!("Protocol error: {}", e);
-                            return Err(e.into());
+                            return Err(TunnelError::from(e));
                         }
                         None => {
                             info!("Connection closed by server");

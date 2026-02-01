@@ -8,6 +8,7 @@ mod concurrent_test;
 mod error_test;
 mod multi_client_test;
 mod plugin_test;
+mod tcp_test;
 mod tls_test;
 mod tunnel_test;
 
