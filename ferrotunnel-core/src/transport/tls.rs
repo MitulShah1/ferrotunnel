@@ -165,7 +165,6 @@ pub fn create_server_config(config: &TlsTransportConfig) -> io::Result<Arc<Serve
     Ok(Arc::new(server_config))
 }
 
-#[allow(clippy::expect_used)]
 pub async fn connect(addr: &str, config: &TlsTransportConfig) -> io::Result<BoxedStream> {
     let client_config = create_client_config(config)?;
     let connector = TlsConnector::from(client_config);
@@ -173,18 +172,19 @@ pub async fn connect(addr: &str, config: &TlsTransportConfig) -> io::Result<Boxe
     let tcp_stream = TcpStream::connect(addr).await?;
     configure_socket_silent(&tcp_stream);
 
-    let server_name = config
-        .server_name
-        .as_ref()
-        .map(|s| ServerName::try_from(s.clone()))
-        .transpose()
-        .map_err(|e| io::Error::new(ErrorKind::InvalidInput, format!("invalid server name: {e}")))?
-        .unwrap_or_else(|| {
-            let host = addr.split(':').next().unwrap_or("localhost");
-            ServerName::try_from(host.to_string()).unwrap_or_else(|_| {
-                ServerName::try_from("localhost".to_string()).expect("localhost is valid")
-            })
-        });
+    let server_name = if let Some(name) = &config.server_name {
+        ServerName::try_from(name.clone()).map_err(|e| {
+            io::Error::new(ErrorKind::InvalidInput, format!("invalid server name: {e}"))
+        })?
+    } else {
+        let host = addr.split(':').next().unwrap_or("localhost");
+        ServerName::try_from(host.to_string()).map_err(|e| {
+            io::Error::new(
+                ErrorKind::InvalidInput,
+                format!("invalid host in address '{}': {}", addr, e),
+            )
+        })?
+    };
 
     let tls_stream = connector.connect(server_name, tcp_stream).await?;
     Ok(Box::pin(tls_stream))

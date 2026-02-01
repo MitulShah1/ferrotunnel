@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-02-01
+
+### Highlights
+
+FerroTunnel v1.0.0 is the first stable release! This release marks the completion of all planned features for a production-ready embeddable reverse tunnel.
+
+### Added
+- **Comprehensive Documentation**: Updated README with comparison table, performance benchmarks, and FAQ section
+- **Error Type Unification**: Added `From` implementations for all error types to enable unified error handling with `TunnelError`
+- **Config Conversions**: Added `From` implementations for config type conversions between common and core crates
+
+### Changed
+- **Version Standardization**: All workspace crates now use consistent version inheritance
+- **Workspace Cleanup**: Standardized all Cargo.toml files to use workspace-level dependencies and lints
+
+### Fixed
+- **Security**: Replaced all `.expect()` calls in production code with proper error handling
+- **Documentation**: Fixed broken link to hardening documentation
+
+### Security
+- Removed panic-prone code paths in HTTP response building
+- Improved error handling in TLS server name parsing
+- Added fallback responses for edge cases in response construction
+
 ## [0.9.6] - 2026-02-01
 
 ### Performance

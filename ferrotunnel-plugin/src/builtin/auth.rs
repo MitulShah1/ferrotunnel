@@ -1,4 +1,4 @@
-use crate::traits::*;
+use crate::traits::{Plugin, PluginAction, RequestContext};
 use async_trait::async_trait;
 use std::collections::HashSet;
 
@@ -16,6 +16,7 @@ impl TokenAuthPlugin {
         }
     }
 
+    #[must_use]
     pub fn with_header_name(mut self, name: String) -> Self {
         self.header_name = name;
         self
@@ -24,6 +25,7 @@ impl TokenAuthPlugin {
 
 #[async_trait]
 impl Plugin for TokenAuthPlugin {
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "token-auth"
     }

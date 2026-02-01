@@ -27,6 +27,18 @@ impl Default for BackoffConfig {
     }
 }
 
+/// Convert from common ResilienceConfig to BackoffConfig
+impl From<ferrotunnel_common::config::ResilienceConfig> for BackoffConfig {
+    fn from(config: ferrotunnel_common::config::ResilienceConfig) -> Self {
+        Self {
+            base: config.reconnect_base,
+            max: config.reconnect_max,
+            factor: 2.0, // Default exponential factor
+            jitter: config.jitter_factor,
+        }
+    }
+}
+
 /// Exponential backoff calculator
 #[derive(Debug, Clone)]
 pub struct Backoff {

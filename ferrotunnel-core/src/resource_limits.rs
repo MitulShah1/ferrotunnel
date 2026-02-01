@@ -14,6 +14,12 @@ pub enum ResourceLimitError {
     LimitExceeded,
 }
 
+impl From<ResourceLimitError> for ferrotunnel_common::TunnelError {
+    fn from(err: ResourceLimitError) -> Self {
+        ferrotunnel_common::TunnelError::ServiceUnavailable(err.to_string())
+    }
+}
+
 /// Global server resource limits
 #[derive(Debug)]
 pub struct ServerResourceLimits {

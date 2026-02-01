@@ -66,10 +66,14 @@ impl CircuitBreakerPlugin {
     /// Get current circuit state
     #[must_use]
     pub fn state(&self) -> CircuitState {
-        *self.state.read().unwrap_or_else(|e| e.into_inner())
+        *self
+            .state
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     /// Check if request should be allowed
+    #[allow(clippy::match_same_arms)]
     fn should_allow(&self) -> bool {
         let state = self.state();
 
@@ -154,21 +158,24 @@ impl CircuitBreakerPlugin {
     }
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl std::fmt::Debug for CircuitBreakerPlugin {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CircuitBreakerPlugin")
             .field("state", &self.state())
             .field("failure_count", &self.failure_count.load(Ordering::Relaxed))
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 #[async_trait]
 impl Plugin for CircuitBreakerPlugin {
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "circuit-breaker"
     }
 
+    #[allow(clippy::unnecessary_literal_bound)]
     fn version(&self) -> &str {
         "0.1.0"
     }

@@ -67,7 +67,7 @@ use tower_http::{
 #[folder = "src/dashboard/static/"]
 struct Assets;
 
-async fn static_handler(uri: axum::http::Uri) -> impl axum::response::IntoResponse {
+async fn static_handler(uri: axum::http::Uri) -> impl IntoResponse {
     let path = uri.path().trim_start_matches('/');
     let path = if path.is_empty() { "index.html" } else { path };
 

@@ -53,6 +53,30 @@ path = "advanced/tls_config.rs"
 name = "multi_tunnel"
 path = "advanced/multi_tunnel.rs"
 
+# ============================================================================
+# Production Examples - Production-ready configurations
+# ============================================================================
+
+[[example]]
+name = "graceful_shutdown"
+path = "production/graceful_shutdown.rs"
+
+[[example]]
+name = "with_metrics"
+path = "production/with_metrics.rs"
+
+# ============================================================================
+# Use-Case Examples - Common use cases
+# ============================================================================
+
+[[example]]
+name = "webhook_receiver"
+path = "use-cases/webhook_receiver.rs"
+
+[[example]]
+name = "dev_tunnel"
+path = "use-cases/dev_tunnel.rs"
+
 [dependencies]
 # Core ferrotunnel library
 ferrotunnel = { path = "../ferrotunnel" }
@@ -71,5 +95,36 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-[lints]
-workspace = true
+# Using custom lints for examples - allow unwrap/expect for demonstration code
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "allow"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+uninlined_format_args = "allow"
+manual_let_else = "allow"
+single_match_else = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+match_same_arms = "allow"
+needless_continue = "allow"
+ignored_unit_patterns = "allow"
+unnecessary_literal_bound = "allow"
+module_name_repetitions = "allow"
+needless_borrows_for_generic_args = "allow"
+# Allow unwrap/expect in examples for clarity
+unwrap_used = "allow"
+expect_used = "allow"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+inefficient_to_string = "warn"
+linkedlist = "warn"
