@@ -9,7 +9,7 @@ use chrono::Utc;
 use clap::Parser;
 use ferrotunnel_core::TunnelClient;
 use ferrotunnel_observability::dashboard::models::{DashboardTunnelInfo, TunnelStatus};
-use ferrotunnel_observability::{init_basic_observability, shutdown_tracing};
+use ferrotunnel_observability::{init_basic_observability, init_minimal_logging, shutdown_tracing};
 use ferrotunnel_protocol::frame::Protocol;
 use std::time::Duration;
 use tokio::net::TcpStream;
@@ -49,6 +49,7 @@ where
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
+#[allow(clippy::struct_excessive_bools)]
 struct Args {
     /// Server address (host:port)
     #[arg(long, env = "FERROTUNNEL_SERVER")]
@@ -97,14 +98,23 @@ struct Args {
     /// Path to client private key file (PEM format) for mutual TLS
     #[arg(long, env = "FERROTUNNEL_TLS_KEY")]
     tls_key: Option<std::path::PathBuf>,
+
+    /// Enable observability (metrics and tracing) - disabled by default for lower latency
+    #[arg(long, env = "FERROTUNNEL_OBSERVABILITY")]
+    observability: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    // Setup observability
-    init_basic_observability("ferrotunnel-client");
+    // Setup observability only if enabled (disabled by default for lower latency)
+    if args.observability {
+        init_basic_observability("ferrotunnel-client");
+    } else {
+        // Minimal logging setup without full observability infrastructure
+        init_minimal_logging();
+    }
 
     info!("Starting FerroTunnel Client v{}", env!("CARGO_PKG_VERSION"));
 

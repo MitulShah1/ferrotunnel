@@ -5,7 +5,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 use anyhow::Result;
 use clap::Parser;
 use ferrotunnel_core::TunnelServer;
-use ferrotunnel_observability::{gather_metrics, init_basic_observability};
+use ferrotunnel_observability::{gather_metrics, init_basic_observability, init_minimal_logging};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use tracing::{error, info};
@@ -52,30 +52,39 @@ struct Args {
     /// TCP Ingress bind address (optional, for raw TCP tunneling)
     #[arg(long, env = "FERROTUNNEL_TCP_BIND")]
     tcp_bind: Option<SocketAddr>,
+
+    /// Enable observability (metrics endpoint and tracing) - disabled by default for lower latency
+    #[arg(long, env = "FERROTUNNEL_OBSERVABILITY")]
+    observability: bool,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    // Setup observability
-    init_basic_observability("ferrotunnel-server");
+    // Setup observability only if enabled (disabled by default for lower latency)
+    if args.observability {
+        init_basic_observability("ferrotunnel-server");
 
-    // Start metrics endpoint in background
-    let metrics_addr = args.metrics_bind;
-    tokio::spawn(async move {
-        use axum::{routing::get, Router};
-        let app = Router::new().route("/metrics", get(|| async { gather_metrics() }));
-        info!("Metrics server listening on http://{}", metrics_addr);
-        match tokio::net::TcpListener::bind(metrics_addr).await {
-            Ok(listener) => {
-                if let Err(e) = axum::serve(listener, app).await {
-                    error!("Metrics server error: {}", e);
+        // Start metrics endpoint in background (only when observability is enabled)
+        let metrics_addr = args.metrics_bind;
+        tokio::spawn(async move {
+            use axum::{routing::get, Router};
+            let app = Router::new().route("/metrics", get(|| async { gather_metrics() }));
+            info!("Metrics server listening on http://{}", metrics_addr);
+            match tokio::net::TcpListener::bind(metrics_addr).await {
+                Ok(listener) => {
+                    if let Err(e) = axum::serve(listener, app).await {
+                        error!("Metrics server error: {}", e);
+                    }
                 }
+                Err(e) => error!("Failed to bind metrics server to {}: {}", metrics_addr, e),
             }
-            Err(e) => error!("Failed to bind metrics server to {}: {}", metrics_addr, e),
-        }
-    });
+        });
+    } else {
+        // Minimal logging setup without full observability infrastructure
+        init_minimal_logging();
+    }
 
     info!("Starting FerroTunnel Server v{}", env!("CARGO_PKG_VERSION"));
 

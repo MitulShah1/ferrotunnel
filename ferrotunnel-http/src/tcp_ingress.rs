@@ -70,12 +70,12 @@ impl TcpIngress {
 
         loop {
             let (stream, peer_addr) = listener.accept().await?;
-            
+
             // CRITICAL: Set TCP_NODELAY to disable Nagle's algorithm for low latency
             if let Err(e) = stream.set_nodelay(true) {
                 warn!("Failed to set TCP_NODELAY for {}: {}", peer_addr, e);
             }
-            
+
             debug!("New TCP connection from {}", peer_addr);
 
             // Acquire connection permit (limit concurrent connections)

@@ -28,6 +28,7 @@ ferrotunnel-client \
 | `--local-addr` | - | `127.0.0.1:8000` | Local service to forward to |
 | `--dashboard-port` | - | `4040` | Dashboard port |
 | `--no-dashboard` | - | `false` | Disable the web dashboard |
+| `--observability` | `FERROTUNNEL_OBSERVABILITY` | `false` | Enable metrics and tracing (disabled by default for lower latency) |
 | `--log-level` | `RUST_LOG` | `info` | Log level (`trace`, `debug`, `info`, `warn`, `error`) |
 | `--tls` | `FERROTUNNEL_TLS` | `false` | Enable TLS for server connection |
 | `--tls-skip-verify` | `FERROTUNNEL_TLS_SKIP_VERIFY` | `false` | Skip TLS certificate verification (insecure) |

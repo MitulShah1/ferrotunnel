@@ -15,3 +15,16 @@ pub fn init_basic_observability(service_name: &str) {
         otlp_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
     });
 }
+
+/// Minimal logging setup without metrics or OpenTelemetry infrastructure
+/// Use this for latency-sensitive deployments where observability overhead matters
+pub fn init_minimal_logging() {
+    use tracing_subscriber::prelude::*;
+    use tracing_subscriber::EnvFilter;
+
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(tracing_subscriber::fmt::layer().with_target(false))
+        .init();
+}

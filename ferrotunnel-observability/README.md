@@ -103,15 +103,36 @@ broadcaster.send(DashboardEvent::NewRequest(details.into()));
 
 ## Metrics & Tracing
 
-### Initialization
+### CLI Usage
+
+Observability is **disabled by default** for maximum performance. Enable it with the `--observability` flag:
+
+```bash
+# Server with observability enabled
+ferrotunnel-server --token secret --observability
+
+# Client with observability enabled  
+ferrotunnel-client --server localhost:7835 --token secret --observability
+```
+
+Or via environment variable:
+
+```bash
+export FERROTUNNEL_OBSERVABILITY=true
+```
+
+### Library Initialization
 
 ```rust
-use ferrotunnel_observability::{init_basic_observability, shutdown_tracing};
+use ferrotunnel_observability::{init_basic_observability, init_minimal_logging, shutdown_tracing};
 
 #[tokio::main]
 async fn main() {
-    // Initialize metrics and tracing
+    // Option 1: Full observability (metrics + tracing + OpenTelemetry)
     init_basic_observability("my-service-name");
+
+    // Option 2: Minimal logging only (lower overhead)
+    // init_minimal_logging();
 
     // ... your application logic ...
 

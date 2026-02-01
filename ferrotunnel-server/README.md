@@ -30,6 +30,7 @@ ferrotunnel-server \
 | `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
 | `--log-level` | `RUST_LOG` | `info` | Log level |
 | `--metrics-bind` | `FERROTUNNEL_METRICS_BIND` | `0.0.0.0:9090` | Prometheus metrics address |
+| `--observability` | `FERROTUNNEL_OBSERVABILITY` | `false` | Enable metrics endpoint and tracing (disabled by default for lower latency) |
 | `--tls-cert` | `FERROTUNNEL_TLS_CERT` | - | Path to TLS certificate file |
 | `--tls-key` | `FERROTUNNEL_TLS_KEY` | - | Path to TLS private key file |
 | `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | Path to CA certificate for client authentication (PEM format) |

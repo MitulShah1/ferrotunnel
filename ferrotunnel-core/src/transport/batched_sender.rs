@@ -25,6 +25,7 @@ const BATCH_TIMEOUT_MICROS_HIGH_LOAD: u64 = 10;
 ///
 /// This reduces syscall overhead and eliminates data checking by writing headers and payloads
 /// directly to the socket gathering write.
+#[allow(clippy::too_many_lines)]
 pub async fn run_batched_sender<W>(
     frame_rx: AsyncReceiver<Frame>,
     mut writer: W,

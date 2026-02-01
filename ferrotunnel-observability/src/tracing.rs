@@ -21,8 +21,7 @@ pub fn init_tracing(config: TracingConfig) -> Result<(), anyhow::Error> {
     // 1. Logging layer (Stdout/EnvFilter)
     // Default to "info" level only - "debug" adds overhead in hot paths
     // Use RUST_LOG=debug for development/debugging
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_thread_ids(true)
