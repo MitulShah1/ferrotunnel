@@ -7,6 +7,12 @@
 - **Lint**: `cargo clippy --workspace --all-targets --all-features -- -D warnings` or `make lint`
 - **Format**: `cargo fmt --all` or `make fmt`
 - **Check**: `make check` (runs fmt check + clippy)
+- **Benchmark all**: `cargo bench --workspace` or `make bench`
+- **Benchmark single**: `cargo bench --bench <name>` (e.g., `cargo bench --bench tcp_throughput`)
+- **Benchmark script**: `./scripts/benchmark.sh [baseline] [benchmarks]` (supports baseline comparison)
+- **Benchmark examples**:
+  - Save baseline: `./scripts/benchmark.sh save`
+  - Compare: `./scripts/benchmark.sh main full_stack,tcp_throughput`
 
 ## Architecture
 Rust workspace (tokio-style) with crates: `ferrotunnel` (main API), `ferrotunnel-protocol` (wire protocol), `ferrotunnel-core` (tunnel logic), `ferrotunnel-http` (HTTP ingress/proxy), `ferrotunnel-client`/`ferrotunnel-server` (binaries), `ferrotunnel-plugin`, `ferrotunnel-observability`, `ferrotunnel-common` (shared errors). Tools in `tools/loadgen` and `tools/soak`.
