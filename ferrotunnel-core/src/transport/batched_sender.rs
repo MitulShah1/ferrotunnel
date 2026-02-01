@@ -12,13 +12,14 @@ use tokio::time::timeout;
 use tokio_util::codec::Encoder; // Import Encoder trait
 use tracing::warn;
 
-// Optimized batch parameters for higher throughput
-// Increased from 32 to 128 for better batching efficiency
+// Optimized batch parameters balancing throughput and latency
+// Batch size for high-throughput scenarios
 const MAX_BATCH_SIZE: usize = 128;
-// Increased from 100μs to 250μs to collect more frames while maintaining low latency
-const BATCH_TIMEOUT_MICROS: u64 = 250;
-// Reduced timeout under high load for better responsiveness
-const BATCH_TIMEOUT_MICROS_HIGH_LOAD: u64 = 50;
+// REDUCED: Default timeout from 250μs to 50μs for lower latency
+// Previous 250μs added ~0.5ms per round-trip which dominated localhost performance
+const BATCH_TIMEOUT_MICROS: u64 = 50;
+// Minimal timeout under high load - flush almost immediately
+const BATCH_TIMEOUT_MICROS_HIGH_LOAD: u64 = 10;
 
 /// Spawns a batched sender task that collects frames and flushes them together using vectored I/O.
 ///
@@ -57,33 +58,46 @@ pub async fn run_batched_sender<W>(
             break; // Channel closed
         }
 
-        // 2. Collect more frames with a short timeout
-        // Use dynamic timeout based on recent load
-        let is_high_load = if recent_batch_sizes.len() >= 5 {
-            let avg_batch_size: usize =
-                recent_batch_sizes.iter().sum::<usize>() / recent_batch_sizes.len();
-            avg_batch_size > 16 // High load if averaging >16 frames per batch
-        } else {
-            false
-        };
-
-        let deadline = if is_high_load {
-            Duration::from_micros(BATCH_TIMEOUT_MICROS_HIGH_LOAD)
-        } else {
-            Duration::from_micros(BATCH_TIMEOUT_MICROS)
-        };
-        let start = std::time::Instant::now();
-
+        // 2. LOW-LATENCY OPTIMIZATION: If no more frames immediately available, flush now
+        // This avoids adding timeout delay for single/few frame scenarios (e.g., small requests)
+        // Try to receive without blocking first
         while frames.len() < MAX_BATCH_SIZE {
-            let elapsed = start.elapsed();
-            if elapsed >= deadline {
-                break;
+            match frame_rx.try_recv() {
+                Ok(Some(frame)) => frames.push(frame),
+                Ok(None) | Err(_) => break, // No more frames immediately available or channel closed
             }
-            let remaining = deadline.checked_sub(elapsed).unwrap_or(Duration::ZERO);
+        }
 
-            match timeout(remaining, frame_rx.recv()).await {
-                Ok(Ok(frame)) => frames.push(frame),
-                _ => break, // Timeout or empty
+        // 3. If we got frames from try_recv, try to get a few more with minimal timeout
+        // Only wait if we're in a burst of traffic (likely more coming)
+        if frames.len() > 1 && frames.len() < MAX_BATCH_SIZE {
+            // Use dynamic timeout based on recent load
+            let is_high_load = if recent_batch_sizes.len() >= 5 {
+                let avg_batch_size: usize =
+                    recent_batch_sizes.iter().sum::<usize>() / recent_batch_sizes.len();
+                avg_batch_size > 16 // High load if averaging >16 frames per batch
+            } else {
+                false
+            };
+
+            let deadline = if is_high_load {
+                Duration::from_micros(BATCH_TIMEOUT_MICROS_HIGH_LOAD)
+            } else {
+                Duration::from_micros(BATCH_TIMEOUT_MICROS)
+            };
+            let start = std::time::Instant::now();
+
+            while frames.len() < MAX_BATCH_SIZE {
+                let elapsed = start.elapsed();
+                if elapsed >= deadline {
+                    break;
+                }
+                let remaining = deadline.checked_sub(elapsed).unwrap_or(Duration::ZERO);
+
+                match timeout(remaining, frame_rx.recv()).await {
+                    Ok(Ok(frame)) => frames.push(frame),
+                    _ => break, // Timeout or empty
+                }
             }
         }
 

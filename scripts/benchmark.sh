@@ -23,7 +23,7 @@ for bench in "${BENCH_ARRAY[@]}"; do
     echo ""
     echo "Running benchmark: $bench"
     echo "----------------------------------------"
-    
+
     if [ "$BASELINE" = "save" ]; then
         echo "Saving baseline..."
         cargo bench --bench "$bench" -- --save-baseline main
