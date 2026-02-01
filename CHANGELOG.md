@@ -30,7 +30,6 @@ FerroTunnel v1.0.0 is the first stable release! This release marks the completio
 - Removed panic-prone code paths in HTTP response building
 - Improved error handling in TLS server name parsing
 - Added fallback responses for edge cases in response construction
-
 ## [0.9.6] - 2026-02-01
 
 ### Performance
