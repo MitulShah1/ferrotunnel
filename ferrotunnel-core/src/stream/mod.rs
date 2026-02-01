@@ -1,3 +1,4 @@
+pub mod bytes_pool;
 pub mod multiplexer;
 pub mod pool;
 

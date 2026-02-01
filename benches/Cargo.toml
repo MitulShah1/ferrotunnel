@@ -29,18 +29,32 @@ name = "tcp_throughput"
 path = "tcp_throughput.rs"
 harness = false
 
+[[bench]]
+name = "full_stack"
+path = "full_stack.rs"
+harness = false
+
+[[bench]]
+name = "latency"
+path = "latency.rs"
+harness = false
+
 [dependencies]
 ferrotunnel = { path = "../ferrotunnel" }
 ferrotunnel-common = { path = "../ferrotunnel-common" }
+ferrotunnel-core = { path = "../ferrotunnel-core" }
 ferrotunnel-protocol = { path = "../ferrotunnel-protocol" }
 ferrotunnel-plugin = { path = "../ferrotunnel-plugin" }
 
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 criterion = { version = "0.5", features = ["async_tokio"] }
 bytes = { workspace = true }
 rand = "0.8"
 bincode-next = { workspace = true }
 http = "1.0"
+kanal = "0.1"
+futures-util = "0.3"
 
 [lints]
 workspace = true

@@ -12,8 +12,13 @@ use tokio::time::timeout;
 use tokio_util::codec::Encoder; // Import Encoder trait
 use tracing::warn;
 
-const MAX_BATCH_SIZE: usize = 32;
-const BATCH_TIMEOUT_MICROS: u64 = 100;
+// Optimized batch parameters for higher throughput
+// Increased from 32 to 128 for better batching efficiency
+const MAX_BATCH_SIZE: usize = 128;
+// Increased from 100μs to 250μs to collect more frames while maintaining low latency
+const BATCH_TIMEOUT_MICROS: u64 = 250;
+// Reduced timeout under high load for better responsiveness
+const BATCH_TIMEOUT_MICROS_HIGH_LOAD: u64 = 50;
 
 /// Spawns a batched sender task that collects frames and flushes them together using vectored I/O.
 ///
@@ -33,6 +38,9 @@ pub async fn run_batched_sender<W>(
     // Each data frame needs 10 bytes of header.
     let mut header_buffer = Vec::with_capacity(MAX_BATCH_SIZE * 64);
 
+    // Track recent batch sizes for dynamic timeout adjustment
+    let mut recent_batch_sizes = std::collections::VecDeque::with_capacity(10);
+
     loop {
         // Clear buffers from previous iteration
         frames.clear();
@@ -50,7 +58,20 @@ pub async fn run_batched_sender<W>(
         }
 
         // 2. Collect more frames with a short timeout
-        let deadline = Duration::from_micros(BATCH_TIMEOUT_MICROS);
+        // Use dynamic timeout based on recent load
+        let is_high_load = if recent_batch_sizes.len() >= 5 {
+            let avg_batch_size: usize =
+                recent_batch_sizes.iter().sum::<usize>() / recent_batch_sizes.len();
+            avg_batch_size > 16 // High load if averaging >16 frames per batch
+        } else {
+            false
+        };
+
+        let deadline = if is_high_load {
+            Duration::from_micros(BATCH_TIMEOUT_MICROS_HIGH_LOAD)
+        } else {
+            Duration::from_micros(BATCH_TIMEOUT_MICROS)
+        };
         let start = std::time::Instant::now();
 
         while frames.len() < MAX_BATCH_SIZE {
@@ -128,6 +149,12 @@ pub async fn run_batched_sender<W>(
                 warn!("Failed to flush batched writer: {}", e);
                 break;
             }
+        }
+
+        // Track batch size for dynamic timeout adjustment
+        recent_batch_sizes.push_back(frames.len());
+        if recent_batch_sizes.len() > 10 {
+            recent_batch_sizes.pop_front();
         }
     }
 }

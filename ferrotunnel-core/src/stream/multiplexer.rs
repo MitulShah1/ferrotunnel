@@ -2,8 +2,8 @@
 //!
 //! Manages multiple virtual streams over a single connection.
 
+use super::bytes_pool;
 use super::pool::ObjectPool;
-use bytes::Bytes;
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use ferrotunnel_common::Result;
@@ -347,10 +347,15 @@ impl AsyncWrite for VirtualStream {
             }
         }
 
-        // Create new frame and send future
+        // Create new frame using pooled buffer (zero-copy optimization)
+        // Instead of Bytes::copy_from_slice(), use pooled BytesMut
+        let mut bytes_mut = bytes_pool::acquire_bytes(buf.len());
+        bytes_mut.extend_from_slice(buf);
+        let data = bytes_mut.freeze();
+
         let frame = Frame::Data {
             stream_id: self.stream_id,
-            data: Bytes::copy_from_slice(buf),
+            data,
             end_of_stream: false,
         };
 

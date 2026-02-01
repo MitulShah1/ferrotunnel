@@ -20,6 +20,7 @@ tracing = "0.1"
 # tracing-subscriber handled by ferrotunnel-observability
 # tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 anyhow = { workspace = true }
+mimalloc = { workspace = true }
 tower = { version = "0.5", features = ["full"] }
 hyper = { version = "1", features = ["full"] }
 http-body-util = "0.1"
