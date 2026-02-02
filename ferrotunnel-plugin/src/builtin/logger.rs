@@ -1,4 +1,4 @@
-use crate::traits::*;
+use crate::traits::{Plugin, PluginAction, RequestContext, ResponseContext};
 use async_trait::async_trait;
 use tracing::{info, warn};
 
@@ -12,6 +12,7 @@ impl LoggerPlugin {
         Self { log_bodies: false }
     }
 
+    #[must_use]
     pub fn with_body_logging(mut self) -> Self {
         self.log_bodies = true;
         self
@@ -26,6 +27,7 @@ impl Default for LoggerPlugin {
 
 #[async_trait]
 impl Plugin for LoggerPlugin {
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "logger"
     }

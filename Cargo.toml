@@ -19,7 +19,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.9.6"
+version = "1.0.0"
 edition = "2021"
 rust-version = "1.75"
 authors = ["Mitul Shah <shahmitul005@gmail.com>"]
@@ -54,7 +54,7 @@ tokio = { version = "1", features = ["full"] }
 
 # Logging
 tracing = "0.1"
-ferrotunnel-observability = { version = "0.9.6", path = "ferrotunnel-observability" }
+ferrotunnel-observability = { version = "1.0.0", path = "ferrotunnel-observability" }
 
 # High-performance allocator
 mimalloc = { version = "0.1", default-features = false }
@@ -83,6 +83,17 @@ pedantic = { level = "warn", priority = -1 }
 must_use_candidate = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+uninlined_format_args = "allow"
+manual_let_else = "allow"
+single_match_else = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+match_same_arms = "allow"
+needless_continue = "allow"
+ignored_unit_patterns = "allow"
+unnecessary_literal_bound = "allow"
 
 # Restriction lints - catch common mistakes
 dbg_macro = "warn"

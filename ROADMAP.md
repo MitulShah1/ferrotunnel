@@ -304,7 +304,7 @@ GET  /                         # Dashboard UI
 #### Success Criteria
 - ✅ Dashboard accessible at `http://localhost:9090`
 - ✅ Real-time updates via Server-Sent Events
-- ✅ Request/response viewable (like ngrok inspect)
+- ✅ Request/response inspector with live traffic viewing
 - ✅ API well-documented (OpenAPI/Swagger)
 
 #### Key Files
@@ -454,19 +454,20 @@ Stable release with all three differentiators:
 | Embeddable | ❌ | ✅ crates.io library |
 | Plugin System | ❌ | ✅ Trait-based |
 | Dashboard | ❌ | ✅ Built-in WebUI |
-| Request Viewer | ❌ | ✅ Like ngrok inspect |
+| Request Inspector | ❌ | ✅ Built-in |
 | OpenTelemetry | ❌ | ✅ Built-in |
 | License | Apache-2.0 | MIT OR Apache-2.0 |
 
-### vs. ngrok
+### vs. frp
 
-| Feature | ngrok | FerroTunnel v1.0 |
-|---------|-------|------------------|
-| Open Source | ❌ | ✅ |
-| Self-hosted | Limited | ✅ Full control |
-| Embeddable | ❌ | ✅ Rust library |
-| Plugin System | ❌ | ✅ |
-| Cost | Paid tiers | Free + open |
+| Feature | frp | FerroTunnel v1.0 |
+|---------|-----|------------------|
+| Language | Go | Rust |
+| Embeddable | ❌ | ✅ crates.io library |
+| Plugin System | Limited | ✅ Trait-based |
+| Dashboard | Basic | ✅ Built-in WebUI |
+| OpenTelemetry | ❌ | ✅ Built-in |
+| Memory Efficiency | ~300MB/1k tunnels | ~100MB/1k tunnels |
 
 ---
 

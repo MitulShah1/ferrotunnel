@@ -12,7 +12,7 @@ keywords = ["tunnel", "observability", "metrics", "tracing", "opentelemetry"]
 categories = ["network-programming"]
 
 [dependencies]
-ferrotunnel-common = { version = "0.9.5", path = "../ferrotunnel-common" }
+ferrotunnel-common = { version = "1.0.0", path = "../ferrotunnel-common" }
 anyhow = { workspace = true }
 
 # Metrics
@@ -54,6 +54,39 @@ reqwest = { version = "0.13.1", features = ["json"] }
 
 rust-embed = { version = "8.5", optional = true }
 mime_guess = { version = "2.0", optional = true }
+
+# Using custom lints to allow unwrap in metrics initialization
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "allow"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+uninlined_format_args = "allow"
+manual_let_else = "allow"
+single_match_else = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+match_same_arms = "allow"
+needless_continue = "allow"
+ignored_unit_patterns = "allow"
+unnecessary_literal_bound = "allow"
+module_name_repetitions = "allow"
+# Allow unwrap for lazy_static metric registration
+unwrap_used = "allow"
+expect_used = "allow"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+inefficient_to_string = "warn"
+linkedlist = "warn"
 
 [features]
 default = []

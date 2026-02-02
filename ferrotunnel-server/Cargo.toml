@@ -2,16 +2,17 @@
 name = "ferrotunnel-server"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "FerroTunnel Server binary"
 
 [dependencies]
-ferrotunnel-core = { version = "0.9.5", path = "../ferrotunnel-core" }
-ferrotunnel-common = { version = "0.9.5", path = "../ferrotunnel-common" }
-ferrotunnel-http = { version = "0.9.5", path = "../ferrotunnel-http" }
-ferrotunnel-plugin = { version = "0.9.5", path = "../ferrotunnel-plugin" }
+ferrotunnel-core = { version = "1.0.0", path = "../ferrotunnel-core" }
+ferrotunnel-common = { version = "1.0.0", path = "../ferrotunnel-common" }
+ferrotunnel-http = { version = "1.0.0", path = "../ferrotunnel-http" }
+ferrotunnel-plugin = { version = "1.0.0", path = "../ferrotunnel-plugin" }
 ferrotunnel-observability = { workspace = true, features = ["axum"] }
 
 tokio = { workspace = true }

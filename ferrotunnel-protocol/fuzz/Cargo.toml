@@ -1,9 +1,9 @@
 [package]
 name = "ferrotunnel-protocol-fuzz"
-version = "0.7.0"
+version.workspace = true
 publish = false
 license = "MIT"
-edition = "2021"
+edition.workspace = true
 
 [package.metadata]
 cargo-fuzz = true

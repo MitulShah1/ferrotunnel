@@ -117,7 +117,7 @@ impl HttpIngress {
     }
 }
 
-#[allow(clippy::too_many_lines, clippy::expect_used)]
+#[allow(clippy::too_many_lines)]
 async fn handle_request(
     req: Request<hyper::body::Incoming>,
     sessions: SessionStore,
@@ -174,9 +174,12 @@ async fn handle_request(
             for (k, v) in headers {
                 res = res.header(k, v);
             }
-            return Ok(res
-                .body(full_body(Bytes::from(body)))
-                .expect("failed to build response"));
+            return Ok(res.body(full_body(Bytes::from(body))).unwrap_or_else(|_| {
+                full_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to build plugin response",
+                )
+            }));
         }
 
         Err(e) => {
@@ -398,7 +401,8 @@ async fn collect_body_with_limit(
 
 fn full_response(status: StatusCode, body: &str) -> Response<BoxBody> {
     let bytes = Bytes::copy_from_slice(body.as_bytes());
-    #[allow(clippy::unwrap_used)]
+    // Response::builder() with valid status and body should never fail
+    // Using unwrap_or to provide a fallback empty response if somehow it does
     Response::builder()
         .status(status)
         .body(
@@ -406,7 +410,13 @@ fn full_response(status: StatusCode, body: &str) -> Response<BoxBody> {
                 .map_err(|never| match never {})
                 .boxed(),
         )
-        .unwrap()
+        .unwrap_or_else(|_| {
+            Response::new(
+                http_body_util::Full::new(Bytes::new())
+                    .map_err(|never| match never {})
+                    .boxed(),
+            )
+        })
 }
 
 fn full_body(bytes: Bytes) -> BoxBody {
@@ -416,11 +426,10 @@ fn full_body(bytes: Bytes) -> BoxBody {
 }
 
 fn _empty_response(status: StatusCode) -> Response<BoxBody> {
-    #[allow(clippy::unwrap_used)]
     Response::builder()
         .status(status)
         .body(Empty::new().map_err(|never| match never {}).boxed())
-        .unwrap()
+        .unwrap_or_else(|_| Response::new(Empty::new().map_err(|never| match never {}).boxed()))
 }
 
 #[cfg(test)]

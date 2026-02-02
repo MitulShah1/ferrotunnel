@@ -1,4 +1,4 @@
-use crate::traits::*;
+use crate::traits::{Plugin, PluginAction, RequestContext, ResponseContext};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 

@@ -127,7 +127,6 @@ where
     }
 }
 
-#[allow(clippy::expect_used)]
 fn error_response(status: StatusCode, msg: &str) -> Response<BoxBody> {
     Response::builder()
         .status(status)
@@ -136,7 +135,14 @@ fn error_response(status: StatusCode, msg: &str) -> Response<BoxBody> {
                 .map_err(|_| ProxyError::Custom("Error construction failed".into()))
                 .boxed(),
         )
-        .expect("building error response should never fail")
+        .unwrap_or_else(|_| {
+            // Fallback: return a minimal response if builder fails
+            Response::new(
+                Full::new(Bytes::from("Internal error"))
+                    .map_err(|_| ProxyError::Custom("Error construction failed".into()))
+                    .boxed(),
+            )
+        })
 }
 
 #[derive(Clone)]

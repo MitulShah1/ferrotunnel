@@ -1,4 +1,4 @@
-use crate::traits::*;
+use crate::traits::{Plugin, PluginAction, RequestContext};
 use async_trait::async_trait;
 use governor::{clock::DefaultClock, state::keyed::DefaultKeyedStateStore, Quota, RateLimiter};
 use std::num::NonZeroU32;
@@ -11,6 +11,10 @@ pub struct RateLimitPlugin {
 
 impl RateLimitPlugin {
     /// Create rate limiter allowing `requests_per_second` per client IP
+    ///
+    /// # Panics
+    /// Panics if `requests_per_second` is 0
+    #[allow(clippy::unwrap_used)]
     pub fn new(requests_per_second: u32) -> Self {
         let quota = Quota::per_second(NonZeroU32::new(requests_per_second).unwrap());
         Self {
@@ -21,6 +25,7 @@ impl RateLimitPlugin {
 
 #[async_trait]
 impl Plugin for RateLimitPlugin {
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "rate-limit"
     }

@@ -21,8 +21,8 @@ ferrotunnel-server --bind 0.0.0.0:8443 \
 # Connect to server
 ferrotunnel-client --server tunnel.example.com:8443 \
   --token "your-secret-token" \
-  --local 127.0.0.1:3000 \
-  --tls-ca /path/to/ca.crt
+  --local-addr 127.0.0.1:3000 \
+  --tls --tls-ca /path/to/ca.crt
 ```
 
 ## System Requirements
@@ -66,48 +66,54 @@ certbot certonly --standalone -d tunnel.example.com
 
 ## Configuration
 
-### Server Configuration File
+FerroTunnel is configured via CLI arguments or environment variables. All options can be set either way.
 
-```toml
-# /etc/ferrotunnel/server.toml
+### Server Environment Variables
 
-[server]
-bind = "0.0.0.0:8443"
-token = "${FERROTUNNEL_TOKEN}"  # Use environment variable
+```bash
+# Required
+export FERROTUNNEL_TOKEN="your-secret-token"
 
-[tls]
-enabled = true
-cert_path = "/etc/ferrotunnel/server.crt"
-key_path = "/etc/ferrotunnel/server.key"
+# Optional (with defaults)
+export FERROTUNNEL_BIND="0.0.0.0:7835"           # Tunnel control plane
+export FERROTUNNEL_HTTP_BIND="0.0.0.0:8080"      # HTTP ingress
+export FERROTUNNEL_METRICS_BIND="0.0.0.0:9090"   # Prometheus metrics
+export RUST_LOG="info"                            # Log level
 
-[limits]
-max_sessions = 1000
-max_streams_per_session = 100
-max_frame_bytes = 16777216  # 16MB
+# TLS (optional)
+export FERROTUNNEL_TLS_CERT="/etc/ferrotunnel/server.crt"
+export FERROTUNNEL_TLS_KEY="/etc/ferrotunnel/server.key"
+export FERROTUNNEL_TLS_CA="/etc/ferrotunnel/ca.crt"       # For client auth
+export FERROTUNNEL_TLS_CLIENT_AUTH="true"                  # Require client certs
 
-[rate_limit]
-streams_per_sec = 100
-bytes_per_sec = 10485760  # 10MB/s
+# Performance
+export FERROTUNNEL_OBSERVABILITY="true"          # Enable metrics/tracing
 ```
 
-### Client Configuration File
+### Client Environment Variables
 
-```toml
-# ~/.config/ferrotunnel/client.toml
+```bash
+# Required
+export FERROTUNNEL_SERVER="tunnel.example.com:7835"
+export FERROTUNNEL_TOKEN="your-secret-token"
 
-[client]
-server = "tunnel.example.com:8443"
-token = "${FERROTUNNEL_TOKEN}"
-local = "127.0.0.1:3000"
+# Optional (with defaults)
+export FERROTUNNEL_LOCAL_ADDR="127.0.0.1:8000"   # Local service to forward
+export FERROTUNNEL_DASHBOARD_PORT="4040"          # Dashboard port
+export RUST_LOG="info"                            # Log level
 
-[tls]
-enabled = true
-ca_cert_path = "/path/to/ca.crt"
-server_name = "tunnel.example.com"
+# TLS (optional)
+export FERROTUNNEL_TLS="true"                     # Enable TLS
+export FERROTUNNEL_TLS_CA="/path/to/ca.crt"      # CA certificate
+export FERROTUNNEL_TLS_SERVER_NAME="tunnel.example.com"  # SNI hostname
+export FERROTUNNEL_TLS_SKIP_VERIFY="false"       # Skip cert verification
 
-[resilience]
-reconnect_base_ms = 1000
-reconnect_max_ms = 60000
+# Mutual TLS (optional)
+export FERROTUNNEL_TLS_CERT="/path/to/client.crt"
+export FERROTUNNEL_TLS_KEY="/path/to/client.key"
+
+# Performance
+export FERROTUNNEL_OBSERVABILITY="true"          # Enable metrics/tracing
 ```
 
 ## Running as a Service
@@ -125,10 +131,16 @@ After=network.target
 Type=simple
 User=ferrotunnel
 Group=ferrotunnel
-ExecStart=/usr/local/bin/ferrotunnel-server --config /etc/ferrotunnel/server.toml
+ExecStart=/usr/local/bin/ferrotunnel-server
 Restart=always
 RestartSec=5
+
+# Configuration via environment variables
 Environment=FERROTUNNEL_TOKEN=your-secret-token
+Environment=FERROTUNNEL_BIND=0.0.0.0:7835
+Environment=FERROTUNNEL_HTTP_BIND=0.0.0.0:8080
+Environment=FERROTUNNEL_TLS_CERT=/etc/ferrotunnel/server.crt
+Environment=FERROTUNNEL_TLS_KEY=/etc/ferrotunnel/server.key
 
 # Security hardening
 NoNewPrivileges=true

@@ -96,6 +96,24 @@ pub enum RateLimitError {
     BytesRateLimited,
 }
 
+impl From<RateLimitError> for ferrotunnel_common::TunnelError {
+    fn from(err: RateLimitError) -> Self {
+        ferrotunnel_common::TunnelError::ServiceUnavailable(err.to_string())
+    }
+}
+
+/// Convert from common RateLimitConfig to RateLimiterConfig
+impl From<ferrotunnel_common::config::RateLimitConfig> for RateLimiterConfig {
+    fn from(config: ferrotunnel_common::config::RateLimitConfig) -> Self {
+        Self {
+            streams_per_sec: NonZeroU32::new(config.streams_per_sec).unwrap_or(NonZeroU32::MIN),
+            bytes_per_sec: NonZeroU32::new(u32::try_from(config.bytes_per_sec).unwrap_or(u32::MAX))
+                .unwrap_or(NonZeroU32::MIN),
+            burst_factor: NonZeroU32::new(config.burst_factor).unwrap_or(NonZeroU32::MIN),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

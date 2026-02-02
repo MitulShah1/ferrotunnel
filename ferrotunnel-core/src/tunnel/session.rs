@@ -61,6 +61,12 @@ pub enum SessionStoreError {
     TunnelIdAlreadyExists(String),
 }
 
+impl From<SessionStoreError> for ferrotunnel_common::TunnelError {
+    fn from(err: SessionStoreError) -> Self {
+        ferrotunnel_common::TunnelError::InvalidState(err.to_string())
+    }
+}
+
 /// Thread-safe session store
 #[derive(Debug, Clone, Default)]
 pub struct SessionStore {

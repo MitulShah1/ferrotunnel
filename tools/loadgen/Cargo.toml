@@ -1,19 +1,53 @@
 [package]
 name = "ferrotunnel-loadgen"
-version = "0.9.6"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 publish = false
 description = "Load testing tool for FerroTunnel"
 
 [dependencies]
-tokio = { version = "1", features = ["full", "rt-multi-thread"] }
+tokio = { workspace = true }
 clap = { version = "4", features = ["derive"] }
 hdrhistogram = "7"
-tracing = "0.1"
+tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-anyhow = "1"
-bytes = "1"
+anyhow = { workspace = true }
+bytes = { workspace = true }
+
+# Using custom lints for testing tools
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "allow"
+unused_import_braces = "warn"
+unused_qualifications = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+uninlined_format_args = "allow"
+manual_let_else = "allow"
+single_match_else = "allow"
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+match_same_arms = "allow"
+needless_continue = "allow"
+ignored_unit_patterns = "allow"
+unnecessary_literal_bound = "allow"
+module_name_repetitions = "allow"
+# Allow unwrap in testing tools
+unwrap_used = "allow"
+expect_used = "allow"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+inefficient_to_string = "warn"
+linkedlist = "warn"
 
 # Optional: for memory tracking on Linux
 [target.'cfg(target_os = "linux")'.dependencies]

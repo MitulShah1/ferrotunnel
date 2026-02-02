@@ -63,6 +63,12 @@ pub enum TokenValidationError {
     InvalidCharacters,
 }
 
+impl From<TokenValidationError> for ferrotunnel_common::TunnelError {
+    fn from(err: TokenValidationError) -> Self {
+        ferrotunnel_common::TunnelError::Authentication(err.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
