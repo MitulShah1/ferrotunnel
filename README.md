@@ -62,6 +62,30 @@ async fn main() -> ferrotunnel::Result<()> {
 }
 ```
 
+### CLI Binaries
+
+Pre-built binaries for quick deployment without embedding:
+
+**Server:**
+
+```bash
+ferrotunnel-server \
+  --bind 0.0.0.0:7835 \
+  --http-bind 0.0.0.0:8080 \
+  --token "your-secret-token"
+```
+
+**Client:**
+
+```bash
+ferrotunnel-client \
+  --server tunnel.example.com:7835 \
+  --token "your-secret-token" \
+  --local-addr 127.0.0.1:8080
+```
+
+See [ferrotunnel-server](ferrotunnel-server/) and [ferrotunnel-client](ferrotunnel-client/) for full CLI reference.
+
 ## Features
 
 ### Embeddable Library API
