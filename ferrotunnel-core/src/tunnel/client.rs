@@ -12,7 +12,7 @@ use std::future::Future;
 use std::time::Duration;
 use tokio::time::interval;
 use tokio_util::codec::Framed;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 use uuid::Uuid;
 
 pub struct TunnelClient {
@@ -151,15 +151,6 @@ impl TunnelClient {
 
         // 1. Send Handshake
         #[allow(clippy::cast_possible_truncation)]
-        let _timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
-
-        debug!(
-            "Sending handshake (v{}-{})",
-            MIN_PROTOCOL_VERSION, MAX_PROTOCOL_VERSION
-        );
         framed
             .send(Frame::Handshake(Box::new(HandshakeFrame {
                 min_version: MIN_PROTOCOL_VERSION,
@@ -249,7 +240,6 @@ impl TunnelClient {
                         .unwrap_or_default()
                         .as_millis() as u64;
 
-                    debug!("Sending heartbeat");
                     if let Err(e) = multiplexer.send_frame(Frame::Heartbeat { timestamp: ts }).await {
                         error!("Failed to send heartbeat: {}", e);
                         return Err(e);
@@ -261,9 +251,7 @@ impl TunnelClient {
                     match result {
                         Some(Ok(frame)) => {
                             match frame {
-                                Frame::HeartbeatAck { timestamp: _ } => {
-                                    debug!("Heartbeat ack received");
-                                }
+                                Frame::HeartbeatAck { .. } => {}
                                 _ => {
                                     // Handle other frames via multiplexer
                                     if let Err(e) = multiplexer.process_frame(frame).await {

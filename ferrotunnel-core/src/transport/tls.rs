@@ -4,9 +4,8 @@ use super::socket_tuning::configure_socket_silent;
 use super::BoxedStream;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls::{ClientConfig, RootCertStore, ServerConfig};
-use rustls_pemfile::{certs, private_key};
-use std::fs::File;
-use std::io::{self, BufReader, ErrorKind};
+use rustls_pki_types::pem::PemObject;
+use std::io::{self, ErrorKind};
 use std::path::Path;
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -24,18 +23,14 @@ pub struct TlsTransportConfig {
 }
 
 fn load_certs(path: &Path) -> io::Result<Vec<CertificateDer<'static>>> {
-    let file = File::open(path)?;
-    let mut reader = BufReader::new(file);
-    certs(&mut reader)
+    CertificateDer::pem_file_iter(path)
+        .map_err(|e| io::Error::new(ErrorKind::InvalidData, e))?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| io::Error::new(ErrorKind::InvalidData, e))
 }
 
 fn load_private_key(path: &Path) -> io::Result<PrivateKeyDer<'static>> {
-    let file = File::open(path)?;
-    let mut reader = BufReader::new(file);
-    private_key(&mut reader)?
-        .ok_or_else(|| io::Error::new(ErrorKind::InvalidData, "no private key found"))
+    PrivateKeyDer::from_pem_file(path).map_err(|e| io::Error::new(ErrorKind::InvalidData, e))
 }
 
 /// A verifier that accepts any certificate (insecure, for self-signed certs)

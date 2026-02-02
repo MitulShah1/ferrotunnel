@@ -15,7 +15,7 @@ use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio_util::codec::Framed;
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 pub struct TunnelServer {
@@ -120,8 +120,6 @@ impl TunnelServer {
         loop {
             match transport::accept(&self.transport_config, &listener).await {
                 Ok((stream, addr)) => {
-                    debug!("New connection from {}", addr);
-
                     let session_permit = match self.resource_limits.try_acquire_session() {
                         Ok(permit) => permit,
                         Err(e) => {
@@ -319,7 +317,6 @@ impl TunnelServer {
 
             match frame {
                 Frame::Heartbeat { .. } => {
-                    debug!("Heartbeat from {}", session_id);
                     multiplexer
                         .send_frame(Frame::HeartbeatAck {
                             #[allow(clippy::cast_possible_truncation)]

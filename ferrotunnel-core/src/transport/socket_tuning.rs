@@ -32,7 +32,5 @@ pub fn configure_socket(stream: &TcpStream) -> io::Result<()> {
 }
 
 pub fn configure_socket_silent(stream: &TcpStream) {
-    if let Err(e) = configure_socket(stream) {
-        tracing::debug!("Socket tuning failed (non-fatal): {}", e);
-    }
+    let _ = configure_socket(stream);
 }

@@ -8,7 +8,7 @@ This crate contains the core traits and infrastructure for the Ferrotunnel plugi
 
 ## Plugin Developer Guide
 
-FerroTunnel supports a powerful trait-based plugin system that allows you to intercept and modify request/response traffic, enforce authentication, rate limiting, and more.
+FerroTunnel supports a trait-based plugin system for intercepting and modifying request/response traffic, authentication, rate limiting, and more.
 
 ### Quick Start
 

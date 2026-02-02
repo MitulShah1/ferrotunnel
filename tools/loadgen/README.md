@@ -1,6 +1,6 @@
 # FerroTunnel Load Generator
 
-A high-performance load generation tool designed to stress test FerroTunnel instances.
+Load generation tool for stress testing FerroTunnel.
 
 ## Features
 

@@ -12,7 +12,7 @@ use ferrotunnel_protocol::frame::Protocol;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpStream;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
 use crate::middleware::DashboardCaptureLayer;
 
@@ -130,20 +130,15 @@ pub async fn run(args: ClientArgs) -> Result<()> {
                 async move {
                     if stream.protocol() == Protocol::TCP {
                         // Handle raw TCP stream
-                        let peer_id = stream.id();
-                        debug!("Handling raw TCP stream {}", peer_id);
                         tokio::spawn(async move {
                             match TcpStream::connect(&local_addr).await {
                                 Ok(mut local_stream) => {
                                     let mut tunnel_stream = stream;
-                                    if let Err(e) = tokio::io::copy_bidirectional(
+                                    let _ = tokio::io::copy_bidirectional(
                                         &mut tunnel_stream,
                                         &mut local_stream,
                                     )
-                                    .await
-                                    {
-                                        debug!("TCP tunnel copy error: {}", e);
-                                    }
+                                    .await;
                                 }
                                 Err(e) => {
                                     error!(

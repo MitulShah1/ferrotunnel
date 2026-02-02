@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel-cli)](https://crates.io/crates/ferrotunnel-cli)
 
-Unified CLI for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel) - a secure, high-performance reverse tunnel system.
+Unified CLI for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel) - a reverse tunnel system in Rust.
 
 ## Installation
 
@@ -116,7 +116,7 @@ ferrotunnel client --local-addr 127.0.0.1:3000
 
 For load testing and soak testing, see the separate tools:
 
-- [tools/loadgen](../tools/loadgen) - High-performance load generator
+- [tools/loadgen](../tools/loadgen) - Load generator
 - [tools/soak](../tools/soak) - Long-duration stability testing
 
 ## Library Usage
