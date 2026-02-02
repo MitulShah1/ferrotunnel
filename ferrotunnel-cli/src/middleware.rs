@@ -1,3 +1,5 @@
+//! Dashboard capture middleware for traffic inspection
+
 use bytes::Bytes;
 use chrono::Utc;
 use ferrotunnel_http::proxy::ProxyError;

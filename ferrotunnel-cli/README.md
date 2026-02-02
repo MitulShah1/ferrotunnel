@@ -1,0 +1,140 @@
+# ferrotunnel-cli
+
+[![Crates.io](https://img.shields.io/crates/v/ferrotunnel-cli)](https://crates.io/crates/ferrotunnel-cli)
+
+Unified CLI for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel) - a secure, high-performance reverse tunnel system.
+
+## Installation
+
+```bash
+cargo install ferrotunnel-cli
+```
+
+## Usage
+
+```bash
+ferrotunnel <COMMAND> [OPTIONS]
+```
+
+## Commands
+
+### Server
+
+Run the tunnel server:
+
+```bash
+ferrotunnel server --token my-secret-token
+```
+
+**Options:**
+
+| Option | Env Variable | Default | Description |
+|--------|--------------|---------|-------------|
+| `--bind` | `FERROTUNNEL_BIND` | `0.0.0.0:7835` | Tunnel control plane address |
+| `--http-bind` | `FERROTUNNEL_HTTP_BIND` | `0.0.0.0:8080` | HTTP ingress address |
+| `--tcp-bind` | `FERROTUNNEL_TCP_BIND` | - | TCP ingress address (optional) |
+| `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
+| `--log-level` | `RUST_LOG` | `info` | Log level |
+| `--metrics-bind` | `FERROTUNNEL_METRICS_BIND` | `0.0.0.0:9090` | Prometheus metrics address |
+| `--observability` | `FERROTUNNEL_OBSERVABILITY` | `false` | Enable metrics and tracing |
+| `--tls-cert` | `FERROTUNNEL_TLS_CERT` | - | TLS certificate file path |
+| `--tls-key` | `FERROTUNNEL_TLS_KEY` | - | TLS private key file path |
+| `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | CA certificate for client auth |
+| `--tls-client-auth` | `FERROTUNNEL_TLS_CLIENT_AUTH` | `false` | Require client certificates |
+
+### Client
+
+Run the tunnel client:
+
+```bash
+ferrotunnel client --server tunnel.example.com:7835 --token my-secret-token
+```
+
+**Options:**
+
+| Option | Env Variable | Default | Description |
+|--------|--------------|---------|-------------|
+| `--server` | `FERROTUNNEL_SERVER` | (required) | Server address (`host:port`) |
+| `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
+| `--local-addr` | `FERROTUNNEL_LOCAL_ADDR` | `127.0.0.1:8000` | Local service to forward |
+| `--dashboard-port` | `FERROTUNNEL_DASHBOARD_PORT` | `4040` | Dashboard port |
+| `--no-dashboard` | - | `false` | Disable dashboard |
+| `--log-level` | `RUST_LOG` | `info` | Log level |
+| `--observability` | `FERROTUNNEL_OBSERVABILITY` | `false` | Enable metrics and tracing |
+| `--tls` | `FERROTUNNEL_TLS` | `false` | Enable TLS |
+| `--tls-skip-verify` | `FERROTUNNEL_TLS_SKIP_VERIFY` | `false` | Skip certificate verification |
+| `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | CA certificate path |
+| `--tls-server-name` | `FERROTUNNEL_TLS_SERVER_NAME` | - | SNI hostname |
+| `--tls-cert` | `FERROTUNNEL_TLS_CERT` | - | Client certificate (mTLS) |
+| `--tls-key` | `FERROTUNNEL_TLS_KEY` | - | Client private key (mTLS) |
+
+### Version
+
+Show version information:
+
+```bash
+ferrotunnel version
+```
+
+## Examples
+
+### Quick Start
+
+```bash
+# Terminal 1: Start server
+ferrotunnel server --token secret
+
+# Terminal 2: Start client
+ferrotunnel client --server localhost:7835 --token secret --local-addr 127.0.0.1:8080
+
+# Terminal 3: Start local service
+python3 -m http.server 8080
+```
+
+### With TLS
+
+```bash
+# Server with TLS
+ferrotunnel server --token secret \
+  --tls-cert server.crt --tls-key server.key
+
+# Client with TLS
+ferrotunnel client --server tunnel.example.com:7835 --token secret \
+  --tls --tls-ca ca.crt
+```
+
+### Using Environment Variables
+
+```bash
+export FERROTUNNEL_TOKEN=my-secret-token
+export FERROTUNNEL_SERVER=tunnel.example.com:7835
+
+ferrotunnel client --local-addr 127.0.0.1:3000
+```
+
+## Developer Tools
+
+For load testing and soak testing, see the separate tools:
+
+- [tools/loadgen](../tools/loadgen) - High-performance load generator
+- [tools/soak](../tools/soak) - Long-duration stability testing
+
+## Library Usage
+
+For embedding in your application, use the main `ferrotunnel` crate instead:
+
+```rust
+use ferrotunnel::Client;
+
+let mut client = Client::builder()
+    .server_addr("tunnel.example.com:7835")
+    .token("secret")
+    .local_addr("127.0.0.1:8000")
+    .build()?;
+
+client.start().await?;
+```
+
+## License
+
+Licensed under either of Apache License, Version 2.0 or MIT license at your option.

@@ -62,29 +62,30 @@ async fn main() -> ferrotunnel::Result<()> {
 }
 ```
 
-### CLI Binaries
+### CLI
 
-Pre-built binaries for quick deployment without embedding:
+Install and run without embedding:
+
+```bash
+cargo install ferrotunnel-cli
+```
 
 **Server:**
 
 ```bash
-ferrotunnel-server \
-  --bind 0.0.0.0:7835 \
-  --http-bind 0.0.0.0:8080 \
-  --token "your-secret-token"
+ferrotunnel server --token "your-secret-token"
 ```
 
 **Client:**
 
 ```bash
-ferrotunnel-client \
+ferrotunnel client \
   --server tunnel.example.com:7835 \
   --token "your-secret-token" \
   --local-addr 127.0.0.1:8080
 ```
 
-See [ferrotunnel-server](ferrotunnel-server/) and [ferrotunnel-client](ferrotunnel-client/) for full CLI reference.
+See [ferrotunnel-cli](ferrotunnel-cli/) for full CLI reference.
 
 ## Features
 
@@ -230,6 +231,7 @@ cargo bench --workspace
 | Crate | Description |
 |-------|-------------|
 | `ferrotunnel` | Main library with Client/Server builder API |
+| `ferrotunnel-cli` | Unified CLI binary (`ferrotunnel server`, `ferrotunnel client`) |
 | `ferrotunnel-protocol` | Wire protocol (12 frame types, binary codec) |
 | `ferrotunnel-core` | Tunnel implementation, multiplexing, transport |
 | `ferrotunnel-http` | HTTP ingress and proxy |
@@ -252,7 +254,7 @@ cargo bench --workspace
 docker-compose up --build
 
 # Production build
-docker build -t ferrotunnel-server .
+docker build -t ferrotunnel .
 ```
 
 ### Pre-compiled Binaries
@@ -265,9 +267,8 @@ Binaries for Linux, macOS, and Windows are available on the [GitHub Releases](ht
 # Build all
 cargo build --workspace --release
 
-# Install binaries
-cargo install --path ferrotunnel-server
-cargo install --path ferrotunnel-client
+# Install CLI
+cargo install --path ferrotunnel-cli
 ```
 
 ## Documentation

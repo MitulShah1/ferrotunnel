@@ -88,7 +88,7 @@ You can test plugins in two ways:
 
 ### Usage
 
-Register your plugin in `ferrotunnel-server/src/main.rs`:
+Register your plugin in `ferrotunnel-cli/src/commands/server.rs`:
 
 ```rust
 registry.register(Arc::new(RwLock::new(MyPlugin)));

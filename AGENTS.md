@@ -15,7 +15,7 @@
   - Compare: `./scripts/benchmark.sh main full_stack,tcp_throughput`
 
 ## Architecture
-Rust workspace (tokio-style) with crates: `ferrotunnel` (main API), `ferrotunnel-protocol` (wire protocol), `ferrotunnel-core` (tunnel logic), `ferrotunnel-http` (HTTP ingress/proxy), `ferrotunnel-client`/`ferrotunnel-server` (binaries), `ferrotunnel-plugin`, `ferrotunnel-observability`, `ferrotunnel-common` (shared errors). Tools in `tools/loadgen` and `tools/soak`.
+Rust workspace (tokio-style) with crates: `ferrotunnel` (main API), `ferrotunnel-protocol` (wire protocol), `ferrotunnel-core` (tunnel logic), `ferrotunnel-http` (HTTP ingress/proxy), `ferrotunnel-cli` (unified CLI binary), `ferrotunnel-plugin`, `ferrotunnel-observability`, `ferrotunnel-common` (shared errors). Tools in `tools/loadgen` and `tools/soak`.
 
 ## Code Style
 - Edition 2021, MSRV 1.75, max line width 100, 4-space indent

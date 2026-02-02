@@ -54,8 +54,10 @@ ferrotunnel/
 │   │   └── lib.rs              # Initialization API
 ├── ferrotunnel-common/         # Shared types & errors
 │   └── src/
-├── ferrotunnel-client/         # Client binary
-├── ferrotunnel-server/         # Server binary
+├── ferrotunnel-cli/            # Unified CLI (ferrotunnel binary)
+│   └── src/
+│       ├── main.rs             # Entry point
+│       └── commands/           # server, client, version subcommands
 ├── tests/                      # Workspace-level integration tests
 │   ├── Cargo.toml              # ferrotunnel-tests crate
 │   └── integration/            # E2E test suite (14 tests)
@@ -164,13 +166,10 @@ ferrotunnel/
 │           ├── api.rs          # REST API
 │           └── static/         # Web UI
 │
-├── ferrotunnel-client/         # Phase 2: Client binary
+├── ferrotunnel-cli/            # Phase 2: Unified CLI binary
 │   └── src/
-│       └── main.rs
-│
-├── ferrotunnel-server/         # Phase 2: Server binary
-│   └── src/
-│       └── main.rs
+│       ├── main.rs             # Entry point
+│       └── commands/           # server, client, version subcommands
 │
 ├── examples/                   # Phase 4+: Usage examples
 │   ├── embedded_client.rs
@@ -290,11 +289,12 @@ client.start().await?;
 - **Ingress**: Receives public HTTP requests and routes them to sessions.
 - **Proxy**: Forwards requests from the client to localhost.
 
-### `ferrotunnel-client` & `ferrotunnel-server` ✅
+### `ferrotunnel-cli` ✅
 
-**Reference Implementations**:
-- CLI binaries for running the tunnel and server standalone.
-- Built on top of the library API.
+**Unified CLI Binary**:
+- Single `ferrotunnel` binary with subcommands: `server`, `client`, `version`
+- CLI interface for running tunnel server and client
+- Built on top of the library API
 
 ### `ferrotunnel-observability` ✅
 

@@ -109,10 +109,10 @@ Observability is **disabled by default** for maximum performance. Enable it with
 
 ```bash
 # Server with observability enabled
-ferrotunnel-server --token secret --observability
+ferrotunnel server --token secret --observability
 
-# Client with observability enabled  
-ferrotunnel-client --server localhost:7835 --token secret --observability
+# Client with observability enabled
+ferrotunnel client --server localhost:7835 --token secret --observability
 ```
 
 Or via environment variable:

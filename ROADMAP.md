@@ -77,7 +77,7 @@ gantt
 - Handshake protocol implementation
 - Session management (in-memory)
 - Heartbeat mechanism (30s interval)
-- CLI binaries (`ferrotunnel-server`, `ferrotunnel-client`)
+- Unified CLI binary (`ferrotunnel` with server/client subcommands)
 
 #### Success Criteria
 - ✅ Client connects and authenticates
@@ -263,7 +263,7 @@ impl Plugin for CustomAuth {
 - `ferrotunnel-observability/src/dashboard/mod.rs`
 - `ferrotunnel-observability/src/dashboard/handlers.rs`
 - `ferrotunnel-observability/src/dashboard/static/`
-- `ferrotunnel-client/src/middleware.rs`
+- `ferrotunnel-cli/src/middleware.rs`
 - `scripts/test-dashboard.sh`
 
 **🎯 Differentiator #3: Only Rust tunnel with built-in dashboard!

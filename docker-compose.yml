@@ -1,7 +1,7 @@
 services:
   ferrotunnel-server:
     build: .
-    image: ferrotunnel-server:latest
+    image: ferrotunnel:latest
     ports:
       - "${FERROTUNNEL_HTTP_PORT:-8080}:${FERROTUNNEL_HTTP_PORT:-8080}"  # HTTP Ingress
       - "${FERROTUNNEL_METRICS_PORT:-9090}:${FERROTUNNEL_METRICS_PORT:-9090}"  # Prometheus Metrics
@@ -11,6 +11,7 @@ services:
       - FERROTUNNEL_HTTP_BIND=0.0.0.0:${FERROTUNNEL_HTTP_PORT:-8080}
       - FERROTUNNEL_METRICS_BIND=0.0.0.0:${FERROTUNNEL_METRICS_PORT:-9090}
       - FERROTUNNEL_TOKEN=${FERROTUNNEL_TOKEN:-secret-token}
+    command: ["server"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${FERROTUNNEL_HTTP_PORT:-8080}/health"]
@@ -20,7 +21,7 @@ services:
 
   ferrotunnel-client:
     build: .
-    image: ferrotunnel-client:latest
+    image: ferrotunnel:latest
     depends_on:
       - ferrotunnel-server
       - demo-app
@@ -30,7 +31,7 @@ services:
       - RUST_LOG=info
       - FERROTUNNEL_DASHBOARD_PORT=${FERROTUNNEL_DASHBOARD_PORT:-4040}
     command: >
-      ferrotunnel-client
+      client
       --server ferrotunnel-server:7835
       --token ${FERROTUNNEL_TOKEN:-secret-token}
       --local-addr demo-app:80

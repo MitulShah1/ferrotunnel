@@ -57,14 +57,14 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czvf ../../../${{ matrix.asset_name }}.tar.gz ferrotunnel-client ferrotunnel-server
+          tar czvf ../../../${{ matrix.asset_name }}.tar.gz ferrotunnel
           cd -
 
       - name: Prepare Asset (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../${{ matrix.asset_name }}.zip ferrotunnel-client.exe ferrotunnel-server.exe
+          7z a ../../../${{ matrix.asset_name }}.zip ferrotunnel.exe
           cd ../../..
 
       - name: Upload Artifact

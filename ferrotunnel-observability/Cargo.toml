@@ -12,7 +12,7 @@ keywords = ["tunnel", "observability", "metrics", "tracing", "opentelemetry"]
 categories = ["network-programming"]
 
 [dependencies]
-ferrotunnel-common = { version = "1.0.0", path = "../ferrotunnel-common" }
+ferrotunnel-common = { version = "0.1.0", path = "../ferrotunnel-common" }
 anyhow = { workspace = true }
 
 # Metrics

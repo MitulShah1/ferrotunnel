@@ -59,11 +59,11 @@ For quick CPU profiling without scripts:
 # Build with debug symbols
 cargo build --release --workspace
 
-# Run with flamegraph
-cargo flamegraph --bin ferrotunnel-server -- --config config.toml
+# Run with flamegraph (server)
+cargo flamegraph --bin ferrotunnel -- server --bind 0.0.0.0:7835
 
 # Or use perf directly
-perf record -g target/release/ferrotunnel-server --config config.toml
+perf record -g target/release/ferrotunnel server --bind 0.0.0.0:7835
 perf report
 ```
 

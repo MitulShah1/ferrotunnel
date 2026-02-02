@@ -1,0 +1,50 @@
+[package]
+name = "ferrotunnel-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Unified CLI for FerroTunnel - secure reverse tunnel system"
+keywords = ["tunnel", "reverse-proxy", "networking", "cli"]
+categories = ["command-line-utilities", "network-programming"]
+
+[[bin]]
+name = "ferrotunnel"
+path = "src/main.rs"
+
+[dependencies]
+# Core functionality
+ferrotunnel-core = { version = "0.1.0", path = "../ferrotunnel-core" }
+ferrotunnel-http = { version = "0.1.0", path = "../ferrotunnel-http" }
+ferrotunnel-protocol = { version = "0.1.0", path = "../ferrotunnel-protocol" }
+ferrotunnel-plugin = { version = "0.1.0", path = "../ferrotunnel-plugin" }
+ferrotunnel-observability = { workspace = true, features = ["dashboard", "axum"] }
+
+# CLI
+clap = { version = "4.4", features = ["derive", "env", "wrap_help"] }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Observability
+tracing = "0.1"
+
+# Web framework
+axum = { version = "0.8", features = ["http1", "json", "matched-path"] }
+tower = { version = "0.5", features = ["full"] }
+hyper = { version = "1", features = ["full"] }
+http-body-util = "0.1"
+
+# Utilities
+anyhow = { workspace = true }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { workspace = true }
+bytes = { workspace = true }
+
+# Memory allocator
+mimalloc = { workspace = true }
+
+[lints]
+workspace = true

@@ -2,8 +2,8 @@
 # Don't use set -e as we handle errors manually with test counters
 
 # Configuration (can be overridden via environment)
-SERVER_BIN="${SERVER_BIN:-target/debug/ferrotunnel-server}"
-CLIENT_BIN="${CLIENT_BIN:-target/debug/ferrotunnel-client}"
+SERVER_BIN="${SERVER_BIN:-target/debug/ferrotunnel}"
+CLIENT_BIN="${CLIENT_BIN:-target/debug/ferrotunnel}"
 TOKEN="${TOKEN:-test_token}"
 LOCAL_PORT="${LOCAL_PORT:-8123}"
 INGRESS_PORT="${INGRESS_PORT:-8082}"
@@ -64,7 +64,7 @@ check_json_field() {
     local json="$1"
     local field="$2"
     local expected="$3"
-    
+
     if echo "$json" | grep -q "$expected"; then
         return 0
     fi
@@ -123,7 +123,7 @@ wait_for_port $LOCAL_PORT "Mock Service" || exit 1
 log_step "Starting FerroTunnel Server"
 # ============================================================
 
-$SERVER_BIN \
+$SERVER_BIN server \
     --bind 127.0.0.1:$CONTROL_PORT \
     --http-bind 127.0.0.1:$INGRESS_PORT \
     --token $TOKEN \
@@ -137,7 +137,7 @@ wait_for_port $INGRESS_PORT "Server (Ingress)" || { cat server.log; exit 1; }
 log_step "Starting FerroTunnel Client with Dashboard"
 # ============================================================
 
-$CLIENT_BIN \
+$CLIENT_BIN client \
     --server 127.0.0.1:$CONTROL_PORT \
     --token $TOKEN \
     --local-addr 127.0.0.1:$LOCAL_PORT \
@@ -220,7 +220,7 @@ if [ -z "$REQUEST_ID" ]; then
     log_fail "Could not extract request ID"
 else
     DETAILS=$(curl -sf http://127.0.0.1:$DASHBOARD_PORT/api/v1/requests/$REQUEST_ID || echo "{}")
-    
+
     # Check for POST body or GET path in captured details
     if echo "$DETAILS" | grep -qE '(hello dashboard|test-path|Hello from GET)'; then
         log_ok "Request body/path captured correctly"
@@ -247,7 +247,7 @@ log_step "Test 6: Replay Request"
 
 if [ -n "$REQUEST_ID" ]; then
     REPLAY=$(curl -sf -X POST http://127.0.0.1:$DASHBOARD_PORT/api/v1/requests/$REQUEST_ID/replay || echo "FAILED")
-    
+
     if echo "$REPLAY" | grep -q '"status":"replayed"'; then
         log_ok "Replay request succeeded"
     else
