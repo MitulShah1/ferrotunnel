@@ -50,17 +50,27 @@ pub struct ServerArgs {
     #[arg(long, env = "FERROTUNNEL_TCP_BIND")]
     tcp_bind: Option<SocketAddr>,
 
-    /// Enable observability (metrics endpoint and tracing) - disabled by default for lower latency
+    /// Enable tracing (metrics is separate via --metrics)
     #[arg(long, env = "FERROTUNNEL_OBSERVABILITY")]
     observability: bool,
+
+    /// Enable metrics endpoint
+    #[arg(long, env = "FERROTUNNEL_METRICS")]
+    metrics: bool,
 }
 
 pub async fn run(args: ServerArgs) -> Result<()> {
-    // Setup observability only if enabled (disabled by default for lower latency)
-    if args.observability {
-        init_basic_observability("ferrotunnel-server");
+    let enable_tracing = args.observability;
+    let enable_metrics = args.metrics;
 
-        // Start metrics endpoint in background (only when observability is enabled)
+    if enable_tracing || enable_metrics {
+        init_basic_observability("ferrotunnel-server", enable_tracing, enable_metrics);
+    } else {
+        init_minimal_logging();
+    }
+
+    if enable_metrics {
+        // Start metrics endpoint in background (only when metrics is enabled)
         let metrics_addr = args.metrics_bind;
         tokio::spawn(async move {
             use axum::{routing::get, Router};
@@ -75,9 +85,6 @@ pub async fn run(args: ServerArgs) -> Result<()> {
                 Err(e) => error!("Failed to bind metrics server to {}: {}", metrics_addr, e),
             }
         });
-    } else {
-        // Minimal logging setup without full observability infrastructure
-        init_minimal_logging();
     }
 
     info!("Starting FerroTunnel Server v{}", env!("CARGO_PKG_VERSION"));

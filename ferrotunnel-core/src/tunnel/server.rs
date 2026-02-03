@@ -227,16 +227,14 @@ impl TunnelServer {
                     let parts = framed.into_parts();
                     let (read_half, write_half) = tokio::io::split(parts.io);
 
-                    // Reconstruct FramedRead for reading
+                    // Reconstruct FramedRead for reading, preserving any buffered data.
+                    // Dropping read_buf causes decoder desync ("Frame too large: 2021161080").
+                    let mut stream = tokio_util::codec::FramedRead::new(read_half, parts.codec);
                     if !parts.read_buf.is_empty() {
-                        tracing::warn!(
-                            "Handshake read buffer not empty ({} bytes lost)",
-                            parts.read_buf.len()
-                        );
+                        stream.read_buffer_mut().extend_from_slice(&parts.read_buf);
                     }
-                    let stream = tokio_util::codec::FramedRead::new(read_half, parts.codec);
 
-                    let (frame_tx, frame_rx) = bounded_async::<Frame>(100);
+                    let (frame_tx, frame_rx) = bounded_async::<Frame>(1024);
 
                     // Spawn batched sender task for vectored I/O performance
                     tokio::spawn(run_batched_sender(frame_rx, write_half, parts.codec));

@@ -1,9 +1,13 @@
 //! Stream multiplexer using lock-free data structures
 //!
 //! Manages multiple virtual streams over a single connection.
+//!
+//! ## Performance Optimizations (P1)
+//! - Larger per-stream channel capacity (128) for better throughput
+//! - Reduced backpressure with larger buffers
 
-use super::bytes_pool;
 use super::pool::ObjectPool;
+use bytes::Bytes;
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use ferrotunnel_common::Result;
@@ -12,13 +16,22 @@ use kanal::{bounded_async, AsyncReceiver, AsyncSender, ReceiveError, SendError};
 use std::io;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tracing::warn;
 
 /// Pool for reusing read buffers in `VirtualStream`
 pub type ReadBufferPool = ObjectPool<Vec<u8>>;
+
+/// P1.2: Per-stream channel capacity (was 10, now 128 for better throughput)
+/// This reduces backpressure and HOL blocking in multiplex scenarios.
+const STREAM_CHANNEL_CAPACITY: usize = 128;
+
+/// New stream queue capacity
+const NEW_STREAM_QUEUE_CAPACITY: usize = 32;
+
+type CachedSender = (u32, AsyncSender<Result<Frame>>);
 
 /// Manages multiple virtual streams over a single connection
 ///
@@ -30,6 +43,7 @@ pub type ReadBufferPool = ObjectPool<Vec<u8>>;
 #[derive(Clone, Debug)]
 pub struct Multiplexer {
     streams: Arc<DashMap<u32, AsyncSender<Result<Frame>>>>,
+    last_sender: Arc<Mutex<Option<CachedSender>>>,
     next_stream_id: Arc<AtomicU32>,
     frame_tx: AsyncSender<Frame>,
     new_stream_tx: AsyncSender<VirtualStream>,
@@ -41,11 +55,12 @@ impl Multiplexer {
         frame_tx: AsyncSender<Frame>,
         is_client: bool,
     ) -> (Self, AsyncReceiver<VirtualStream>) {
-        let (new_stream_tx, new_stream_rx) = bounded_async(10);
+        let (new_stream_tx, new_stream_rx) = bounded_async(NEW_STREAM_QUEUE_CAPACITY);
         let initial_stream_id = if is_client { 1 } else { 2 };
         (
             Self {
                 streams: Arc::new(DashMap::new()),
+                last_sender: Arc::new(Mutex::new(None)),
                 next_stream_id: Arc::new(AtomicU32::new(initial_stream_id)),
                 frame_tx,
                 new_stream_tx,
@@ -75,11 +90,15 @@ impl Multiplexer {
     }
 
     /// Process an incoming frame from the wire
+    ///
+    /// P1.2: Uses larger channel capacity (128) to reduce backpressure.
+    /// Still uses async send to ensure reliable delivery (dropping data breaks protocols).
     pub async fn process_frame(&self, frame: Frame) -> Result<()> {
         match &frame {
             Frame::OpenStream(open_stream) => {
                 let stream_id = open_stream.stream_id;
-                let (tx, rx) = bounded_async(10);
+                // P1.2: Use larger channel capacity
+                let (tx, rx) = bounded_async(STREAM_CHANNEL_CAPACITY);
 
                 match self.streams.entry(stream_id) {
                     Entry::Occupied(_) => {
@@ -100,15 +119,22 @@ impl Multiplexer {
                     self.buffer_pool.clone(),
                     open_stream.protocol,
                 );
+
+                // OpenStream is a control path - use async send for reliability
                 if self.new_stream_tx.send(stream).await.is_err() {
                     warn!("Failed to queue new stream {}", stream_id);
+                    self.streams.remove(&stream_id);
                 }
             }
             Frame::Data { stream_id, .. } => {
                 let stream_id = *stream_id;
-                let tx = self.streams.get(&stream_id).map(|r| r.clone());
+                let tx = self
+                    .cached_sender(stream_id)
+                    .or_else(|| self.lookup_and_cache_sender(stream_id));
 
                 if let Some(tx) = tx {
+                    // Use async send - dropping data breaks protocols (HTTP, etc.)
+                    // P1.2: Larger channel (128) reduces chance of blocking
                     if tx.send(Ok(frame)).await.is_err() {
                         self.streams.remove(&stream_id);
                     }
@@ -116,24 +142,45 @@ impl Multiplexer {
             }
             Frame::CloseStream { stream_id, .. } => {
                 let stream_id = *stream_id;
-                let tx = self.streams.get(&stream_id).map(|r| r.clone());
+                let tx = self
+                    .cached_sender(stream_id)
+                    .or_else(|| self.lookup_and_cache_sender(stream_id));
 
                 if let Some(tx) = tx {
-                    if tx.send(Ok(frame)).await.is_err() {
-                        self.streams.remove(&stream_id);
-                    }
+                    // Best effort delivery of close frame
+                    let _ = tx.send(Ok(frame)).await;
                 }
+                // Always remove the stream on close
+                self.streams.remove(&stream_id);
             }
             _ => {}
         }
         Ok(())
     }
 
+    fn cached_sender(&self, stream_id: u32) -> Option<AsyncSender<Result<Frame>>> {
+        let guard = self.last_sender.try_lock().ok()?;
+        let (cached_id, tx) = guard.as_ref()?;
+        if *cached_id == stream_id {
+            return Some(tx.clone());
+        }
+        None
+    }
+
+    fn lookup_and_cache_sender(&self, stream_id: u32) -> Option<AsyncSender<Result<Frame>>> {
+        let tx = self.streams.get(&stream_id).map(|r| r.clone())?;
+        if let Ok(mut guard) = self.last_sender.try_lock() {
+            *guard = Some((stream_id, tx.clone()));
+        }
+        Some(tx)
+    }
+
     /// Open a new outbound stream
     pub async fn open_stream(&self, protocol: Protocol) -> Result<VirtualStream> {
         let stream_id = self.allocate_stream_id();
 
-        let (tx, rx) = bounded_async(10);
+        // P1.2: Use larger channel capacity
+        let (tx, rx) = bounded_async(STREAM_CHANNEL_CAPACITY);
         self.streams.insert(stream_id, tx);
 
         self.frame_tx
@@ -158,6 +205,11 @@ impl Multiplexer {
     }
 }
 
+/// P3.2: Maximum payload size per Frame::Data.
+/// Increased to 64KB to reduce framing overhead in throughput tests.
+/// Chunking large writes ensures reliable decoding on the wire.
+const MAX_DATA_FRAME_PAYLOAD: usize = 64 * 1024; // 64KB
+
 /// Boxed future type for receiving frames
 type RecvFuture = Pin<
     Box<dyn std::future::Future<Output = std::result::Result<Result<Frame>, ReceiveError>> + Send>,
@@ -174,19 +226,26 @@ type SendFuture =
 /// async API with tokio's poll-based traits.
 ///
 /// Read buffers are pooled and returned when the stream is dropped.
+///
+/// ## Performance Optimizations (P3)
+/// - P3.1: Store `pending_send_len` instead of cloning the frame
+/// - P3.3: Use `read_buffer_pos` cursor instead of drain() for O(1) reads
 pub struct VirtualStream {
     stream_id: u32,
     rx: AsyncReceiver<Result<Frame>>,
     tx: AsyncSender<Frame>,
     read_buffer: Vec<u8>,
+    read_buffer_bytes: Option<Bytes>,
+    /// P3.3: Cursor position in read_buffer (avoids O(n) drain)
+    read_buffer_pos: usize,
     /// Pool to return `read_buffer` to when dropped
     buffer_pool: Option<ReadBufferPool>,
     /// Pending receive future for `poll_read`
     pending_recv: Option<RecvFuture>,
     /// Pending send future for `poll_write`
     pending_send: Option<SendFuture>,
-    /// Buffered frame to send
-    pending_send_frame: Option<Frame>,
+    /// P3.1: Store bytes written instead of cloning frame
+    pending_send_len: usize,
     /// Protocol for this stream
     protocol: Protocol,
 }
@@ -213,10 +272,12 @@ impl VirtualStream {
             rx,
             tx,
             read_buffer: Vec::new(),
+            read_buffer_bytes: None,
+            read_buffer_pos: 0,
             buffer_pool: None,
             pending_recv: None,
             pending_send: None,
-            pending_send_frame: None,
+            pending_send_len: 0,
             protocol,
         }
     }
@@ -235,10 +296,12 @@ impl VirtualStream {
             rx,
             tx,
             read_buffer,
+            read_buffer_bytes: None,
+            read_buffer_pos: 0,
             buffer_pool: Some(buffer_pool),
             pending_recv: None,
             pending_send: None,
-            pending_send_frame: None,
+            pending_send_len: 0,
             protocol,
         }
     }
@@ -268,11 +331,32 @@ impl AsyncRead for VirtualStream {
         cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        // First, drain any buffered data
-        if !self.read_buffer.is_empty() {
-            let len = std::cmp::min(buf.remaining(), self.read_buffer.len());
-            buf.put_slice(&self.read_buffer[..len]);
-            self.read_buffer.drain(..len);
+        if let Some(buffered_bytes) = self.read_buffer_bytes.as_mut() {
+            if !buffered_bytes.is_empty() {
+                let len = std::cmp::min(buf.remaining(), buffered_bytes.len());
+                let chunk = buffered_bytes.split_to(len);
+                buf.put_slice(&chunk);
+                if buffered_bytes.is_empty() {
+                    self.read_buffer_bytes = None;
+                }
+                return Poll::Ready(Ok(()));
+            }
+            self.read_buffer_bytes = None;
+        }
+
+        // P3.3: First, return any buffered data using cursor (O(1) instead of O(n) drain)
+        let buffered_remaining = self.read_buffer.len() - self.read_buffer_pos;
+        if buffered_remaining > 0 {
+            let len = std::cmp::min(buf.remaining(), buffered_remaining);
+            let start = self.read_buffer_pos;
+            buf.put_slice(&self.read_buffer[start..start + len]);
+            self.read_buffer_pos += len;
+
+            // If we've consumed all buffered data, reset the buffer
+            if self.read_buffer_pos >= self.read_buffer.len() {
+                self.read_buffer.clear();
+                self.read_buffer_pos = 0;
+            }
             return Poll::Ready(Ok(()));
         }
 
@@ -297,7 +381,7 @@ impl AsyncRead for VirtualStream {
                         let len = std::cmp::min(buf.remaining(), bytes.len());
                         buf.put_slice(&bytes[..len]);
                         if len < bytes.len() {
-                            self.read_buffer.extend_from_slice(&bytes[len..]);
+                            self.read_buffer_bytes = Some(bytes.slice(len..));
                         }
                         Poll::Ready(Ok(()))
                     }
@@ -324,27 +408,30 @@ impl AsyncWrite for VirtualStream {
         if let Some(fut) = self.pending_send.as_mut() {
             match fut.as_mut().poll(cx) {
                 Poll::Ready(result) => {
+                    // P3.1: Use stored length instead of cloning frame
+                    let bytes_written = self.pending_send_len;
                     self.pending_send = None;
-                    self.pending_send_frame = None;
+                    self.pending_send_len = 0;
                     if let Err(e) = result {
                         return Poll::Ready(Err(io::Error::new(
                             io::ErrorKind::BrokenPipe,
                             e.to_string(),
                         )));
                     }
-                    // Previous send completed, return its length
-                    return Poll::Ready(Ok(buf.len()));
+                    return Poll::Ready(Ok(bytes_written));
                 }
                 Poll::Pending => return Poll::Pending,
             }
         }
 
-        // Create new frame using pooled buffer (zero-copy optimization)
-        // Instead of Bytes::copy_from_slice(), use pooled BytesMut
-        let mut bytes_mut = bytes_pool::acquire_bytes(buf.len());
-        bytes_mut.extend_from_slice(buf);
-        let data = bytes_mut.freeze();
+        // Chunk large writes to stay within protocol limits
+        let chunk_size = buf.len().min(MAX_DATA_FRAME_PAYLOAD);
 
+        // Zero-copy: use Bytes::copy_from_slice for optimal performance
+        // This is still a copy, but avoids BytesMut allocation overhead
+        let data = Bytes::copy_from_slice(&buf[..chunk_size]);
+
+        // P3.1: Build frame directly for sending (no clone needed)
         let frame = Frame::Data {
             stream_id: self.stream_id,
             data,
@@ -352,9 +439,9 @@ impl AsyncWrite for VirtualStream {
         };
 
         let tx = self.tx.clone();
-        let frame_clone = frame.clone();
-        self.pending_send_frame = Some(frame);
-        self.pending_send = Some(Box::pin(async move { tx.send(frame_clone).await }));
+        // P3.1: Store length instead of frame, move frame into future
+        self.pending_send_len = chunk_size;
+        self.pending_send = Some(Box::pin(async move { tx.send(frame).await }));
 
         // Poll the new future - unwrap is safe, we just set it above
         #[allow(clippy::unwrap_used)]
@@ -362,9 +449,9 @@ impl AsyncWrite for VirtualStream {
         match fut.as_mut().poll(cx) {
             Poll::Ready(result) => {
                 self.pending_send = None;
-                self.pending_send_frame = None;
+                self.pending_send_len = 0;
                 match result {
-                    Ok(()) => Poll::Ready(Ok(buf.len())),
+                    Ok(()) => Poll::Ready(Ok(chunk_size)),
                     Err(e) => Poll::Ready(Err(io::Error::new(
                         io::ErrorKind::BrokenPipe,
                         e.to_string(),
@@ -386,7 +473,7 @@ impl AsyncWrite for VirtualStream {
             match fut.as_mut().poll(cx) {
                 Poll::Ready(_) => {
                     self.pending_send = None;
-                    self.pending_send_frame = None;
+                    self.pending_send_len = 0;
                 }
                 Poll::Pending => return Poll::Pending,
             }
