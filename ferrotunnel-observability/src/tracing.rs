@@ -1,8 +1,8 @@
-use opentelemetry::trace::TracerProvider as _;
-use opentelemetry::{global, KeyValue};
-use opentelemetry_otlp::WithExportConfig;
+use opentelemetry::global;
+use opentelemetry::trace::TracerProvider;
+use opentelemetry_otlp::{SpanExporter, WithExportConfig};
 use opentelemetry_sdk::propagation::TraceContextPropagator;
-use opentelemetry_sdk::trace::Config;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry_sdk::Resource;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -13,6 +13,9 @@ pub struct TracingConfig {
     pub service_name: String,
     pub otlp_endpoint: Option<String>,
 }
+
+// Store the tracer provider for shutdown
+static TRACER_PROVIDER: std::sync::OnceLock<SdkTracerProvider> = std::sync::OnceLock::new();
 
 /// Initialize the tracing system with OpenTelemetry and Jaeger/OTLP support
 pub fn init_tracing(config: TracingConfig) -> Result<(), anyhow::Error> {
@@ -29,19 +32,27 @@ pub fn init_tracing(config: TracingConfig) -> Result<(), anyhow::Error> {
 
     // 2. OpenTelemetry layer (if endpoint provided)
     if let Some(endpoint) = config.otlp_endpoint {
-        let exporter = opentelemetry_otlp::new_exporter()
-            .tonic()
-            .with_endpoint(endpoint);
+        let exporter = SpanExporter::builder()
+            .with_tonic()
+            .with_endpoint(endpoint)
+            .build()?;
 
-        let resource = Resource::new(vec![KeyValue::new("service.name", config.service_name)]);
+        let resource = Resource::builder()
+            .with_service_name(config.service_name)
+            .build();
 
-        let tracer_provider = opentelemetry_otlp::new_pipeline()
-            .tracing()
-            .with_exporter(exporter)
-            .with_trace_config(Config::default().with_resource(resource))
-            .install_simple()?;
+        let tracer_provider = SdkTracerProvider::builder()
+            .with_resource(resource)
+            .with_batch_exporter(exporter)
+            .build();
 
         let tracer = tracer_provider.tracer("ferrotunnel");
+
+        // Store the provider for shutdown
+        let _ = TRACER_PROVIDER.set(tracer_provider.clone());
+
+        // Set as global provider
+        global::set_tracer_provider(tracer_provider);
 
         let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
@@ -60,5 +71,9 @@ pub fn init_tracing(config: TracingConfig) -> Result<(), anyhow::Error> {
 
 /// Shutdown the tracing system and flush spans
 pub fn shutdown_tracing() {
-    global::shutdown_tracer_provider();
+    if let Some(provider) = TRACER_PROVIDER.get() {
+        if let Err(e) = provider.shutdown() {
+            tracing::error!("Failed to shutdown tracer provider: {}", e);
+        }
+    }
 }
