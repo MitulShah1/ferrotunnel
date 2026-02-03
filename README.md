@@ -64,11 +64,13 @@ async fn main() -> ferrotunnel::Result<()> {
 | **TCP & HTTP** | Forward both HTTP and raw TCP traffic |
 
 
+
 **Choose FerroTunnel when**: You need many services over a single connection, HTTP routing, plugins, or resource efficiency.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed analysis of the multiplexing trade-off.
 
 ## CLI Reference
+
 
 ### Server
 
