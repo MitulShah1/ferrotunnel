@@ -6,10 +6,10 @@
 
 ```bash
 # Basic server (no TLS)
-ferrotunnel-server --bind 0.0.0.0:8080 --token "your-secret-token"
+ferrotunnel server --bind 0.0.0.0:8080 --token "your-secret-token"
 
 # With TLS
-ferrotunnel-server --bind 0.0.0.0:8443 \
+ferrotunnel server --bind 0.0.0.0:8443 \
   --token "your-secret-token" \
   --tls-cert /path/to/server.crt \
   --tls-key /path/to/server.key
@@ -19,7 +19,7 @@ ferrotunnel-server --bind 0.0.0.0:8443 \
 
 ```bash
 # Connect to server
-ferrotunnel-client --server tunnel.example.com:8443 \
+ferrotunnel client --server tunnel.example.com:8443 \
   --token "your-secret-token" \
   --local-addr 127.0.0.1:3000 \
   --tls --tls-ca /path/to/ca.crt
@@ -120,7 +120,7 @@ export FERROTUNNEL_OBSERVABILITY="true"          # Enable metrics/tracing
 
 ### systemd (Linux)
 
-Create `/etc/systemd/system/ferrotunnel-server.service`:
+Create `/etc/systemd/system/ferrotunnel.service`:
 
 ```ini
 [Unit]
@@ -131,7 +131,7 @@ After=network.target
 Type=simple
 User=ferrotunnel
 Group=ferrotunnel
-ExecStart=/usr/local/bin/ferrotunnel-server
+ExecStart=/usr/local/bin/ferrotunnel server
 Restart=always
 RestartSec=5
 
@@ -157,8 +157,8 @@ Enable and start:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable ferrotunnel-server
-sudo systemctl start ferrotunnel-server
+sudo systemctl enable ferrotunnel
+sudo systemctl start ferrotunnel
 ```
 
 ### Docker
@@ -168,13 +168,14 @@ sudo systemctl start ferrotunnel-server
 FROM rust:1.75-slim as builder
 WORKDIR /app
 COPY . .
-RUN cargo build --release
+RUN cargo build --release -p ferrotunnel-cli
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/target/release/ferrotunnel-server /usr/local/bin/
-EXPOSE 8443
-ENTRYPOINT ["ferrotunnel-server"]
+COPY --from=builder /app/target/release/ferrotunnel /usr/local/bin/
+EXPOSE 7835 8080
+ENTRYPOINT ["ferrotunnel"]
+CMD ["server"]
 ```
 
 ```yaml
@@ -184,13 +185,15 @@ services:
   ferrotunnel:
     build: .
     ports:
-      - "8443:8443"
+      - "7835:7835"
+      - "8080:8080"
     environment:
       - FERROTUNNEL_TOKEN=${FERROTUNNEL_TOKEN}
     volumes:
       - ./certs:/etc/ferrotunnel:ro
     command: >
-      --bind 0.0.0.0:8443
+      server
+      --bind 0.0.0.0:7835
       --token ${FERROTUNNEL_TOKEN}
       --tls-cert /etc/ferrotunnel/server.crt
       --tls-key /etc/ferrotunnel/server.key
@@ -248,7 +251,7 @@ Prometheus metrics available at `/metrics`:
 Set log level via environment:
 
 ```bash
-RUST_LOG=info ferrotunnel-server ...
-RUST_LOG=debug ferrotunnel-server ...  # Verbose
-RUST_LOG=ferrotunnel=trace ferrotunnel-server ...  # Very verbose
+RUST_LOG=info ferrotunnel server ...
+RUST_LOG=debug ferrotunnel server ...  # Verbose
+RUST_LOG=ferrotunnel=trace ferrotunnel server ...  # Very verbose
 ```

@@ -58,7 +58,7 @@ bench:
 # Run security audit
 audit:
 	@echo "Running security audit..."
-	cargo audit --ignore RUSTSEC-2024-0437 --ignore RUSTSEC-2025-0134
+	cargo audit
 	cargo deny check
 
 # Run fuzz tests (smoke test)

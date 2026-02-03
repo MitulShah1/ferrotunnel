@@ -7,8 +7,8 @@
 **Symptoms**: Connection refused, timeout, or immediate disconnect
 
 **Checklist**:
-1. Verify server is running: `systemctl status ferrotunnel-server`
-2. Check server logs: `journalctl -u ferrotunnel-server -f`
+1. Verify server is running: `systemctl status ferrotunnel`
+2. Check server logs: `journalctl -u ferrotunnel -f`
 3. Verify port is open: `nc -zv server.example.com 8443`
 4. Check firewall rules: `iptables -L -n | grep 8443`
 
@@ -151,16 +151,16 @@ max_frame_bytes = 16777216  # 16MB
 
 ```bash
 # Info level (default)
-RUST_LOG=info ferrotunnel-server ...
+RUST_LOG=info ferrotunnel server ...
 
 # Debug level (more detail)
-RUST_LOG=debug ferrotunnel-server ...
+RUST_LOG=debug ferrotunnel server ...
 
 # Trace level (very verbose)
-RUST_LOG=trace ferrotunnel-server ...
+RUST_LOG=trace ferrotunnel server ...
 
 # Specific module
-RUST_LOG=ferrotunnel_core::tunnel=debug ferrotunnel-server ...
+RUST_LOG=ferrotunnel_core::tunnel=debug ferrotunnel server ...
 ```
 
 ### Network Capture
@@ -203,7 +203,7 @@ A: Yes, use a TCP load balancer. Sessions are independent, so any server can han
 
 ### Q: How do I rotate tokens without downtime?
 
-A: 
+A:
 1. Add new token to server (if supported)
 2. Update clients to use new token
 3. Remove old token from server

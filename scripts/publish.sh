@@ -105,6 +105,6 @@ publish_crate "ferrotunnel-http"
 
 # Group 4: Final binaries and main crate
 echo -e "\n${GREEN}Publishing Group 4 (Final binaries)...${NC}"
-run_parallel "ferrotunnel" "ferrotunnel-client" "ferrotunnel-server"
+run_parallel "ferrotunnel" "ferrotunnel-cli"
 
 echo -e "\n${GREEN}All crates published successfully!${NC}"

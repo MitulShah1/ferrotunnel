@@ -12,7 +12,7 @@ use std::time::{Duration, Instant};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Semaphore;
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 
 /// Configuration for TCP ingress limits and timeouts
 #[derive(Debug, Clone)]
@@ -76,8 +76,6 @@ impl TcpIngress {
                 warn!("Failed to set TCP_NODELAY for {}: {}", peer_addr, e);
             }
 
-            debug!("New TCP connection from {}", peer_addr);
-
             // Acquire connection permit (limit concurrent connections)
             let Ok(permit) = self.connection_semaphore.clone().try_acquire_owned() else {
                 warn!(
@@ -134,8 +132,6 @@ async fn handle_tcp_connection(
         std::io::Error::new(std::io::ErrorKind::TimedOut, "Tunnel connection timeout")
     })??;
 
-    debug!("Tunnel stream opened for {}", peer_addr);
-
     // Bidirectional copy with idle timeout
     let copy_result = tokio::time::timeout(
         config.idle_timeout,
@@ -176,7 +172,7 @@ async fn handle_tcp_connection(
 async fn copy_bidirectional_with_metrics<A, B>(
     mut a: A,
     mut b: B,
-    peer_addr: SocketAddr,
+    _peer_addr: SocketAddr,
 ) -> std::io::Result<(u64, u64)>
 where
     A: AsyncRead + AsyncWrite + Unpin,
@@ -196,11 +192,6 @@ where
             .with_label_values(&["tcp_egress"])
             .inc_by(result.0 as f64);
     }
-
-    debug!(
-        "TCP connection {} transferred ↑{}B ↓{}B",
-        peer_addr, result.1, result.0
-    );
 
     Ok(result)
 }

@@ -2,414 +2,279 @@
 
 ## Project Structure
 
-FerroTunnel follows the **tokio-style workspace pattern** - the industry standard for multi-crate Rust projects.
-
-### Current Structure (Phase 8)
+FerroTunnel uses a **tokio-style workspace**—the standard pattern for multi-crate Rust projects.
 
 ```
 ferrotunnel/
-├── Cargo.toml                  # Workspace configuration
-├── ROADMAP.md                  # Development plan
-├── README.md
-├── ARCHITECTURE.md
-├── CHANGELOG.md
-├── LICENSE
-├── Dockerfile                  # Container definition
-├── docker-compose.yml          # Container orchestration
-├── .dockerignore
-├── ferrotunnel/                # Main library (Facade & Builders)
-│   ├── src/
-│   │   ├── lib.rs              # Re-exports & prelude
-│   │   ├── client.rs           # Client Builder API
-│   │   ├── server.rs           # Server Builder API
-│   │   └── config.rs           # Configuration types
-├── ferrotunnel-core/           # Core tunnel logic
-│   ├── src/
-│   │   ├── tunnel/             # Connection management
-│   │   ├── stream/             # Multiplexing
-│   │   ├── transport/          # Transport layer (TCP/TLS)
-│   │   ├── auth.rs             # Token-based authentication
-│   │   ├── rate_limit.rs       # Rate limiting logic
-│   │   ├── reconnect.rs        # Reconnect with backoff
-│   │   └── resource_limits.rs  # Resource monitoring
-├── ferrotunnel-http/           # HTTP handling
-│   ├── src/
-│   │   ├── ingress.rs          # HTTP Ingress
-│   │   └── proxy.rs            # HTTP/WS Proxy
-├── ferrotunnel-protocol/       # Wire protocol & codec
-│   └── src/
-├── ferrotunnel-plugin/         # Plugin system
-│   ├── src/
-│   │   ├── traits.rs
-│   │   ├── registry.rs
-│   │   └── builtin/
-├── ferrotunnel-observability/  # Phase 6 & 7: Monitoring & Dashboard
-│   ├── src/
-│   │   ├── metrics.rs          # Prometheus metrics
-│   │   ├── tracing.rs          # OpenTelemetry
-│   │   ├── dashboard/          # Real-time Dashboard
-│   │   │   ├── server.rs       # Dashboard server (Axum + SSE)
-│   │   │   ├── api.rs          # REST API
-│   │   │   └── static/         # Embedded Web UI
-│   │   └── lib.rs              # Initialization API
-├── ferrotunnel-common/         # Shared types & errors
-│   └── src/
-├── ferrotunnel-client/         # Client binary
-├── ferrotunnel-server/         # Server binary
-├── tests/                      # Workspace-level integration tests
-│   ├── Cargo.toml              # ferrotunnel-tests crate
-│   └── integration/            # E2E test suite (14 tests)
-│       ├── mod.rs              # Test helpers
-│       ├── tunnel_test.rs      # Server/client tests
-│       ├── plugin_test.rs      # Plugin integration
-│       ├── tls_test.rs         # TLS end-to-end
-│       ├── concurrent_test.rs  # Concurrent requests
-│       ├── multi_client_test.rs # Multiple clients
-│       └── error_test.rs       # Error scenarios
-├── examples/                   # Workspace-level examples
-│   ├── Cargo.toml              # ferrotunnel-examples crate
-│   ├── basic/                  # Basic usage (embedded)
-│   ├── plugins/                # Plugin system examples
-│   └── advanced/               # Advanced features (TLS, etc.)
-├── benches/                    # Workspace-level benchmarks
-│   ├── Cargo.toml              # ferrotunnel-benches crate
-│   ├── e2e_tunnel.rs           # Full stack benchmarks
-│   └── throughput.rs           # Throughput measurements
-├── tools/                      # Testing & Diagnostic tools
-│   ├── loadgen/                # Load generator
-│   ├── soak/                   # Soak tester
-│   └── profiler/               # Profiling scripts (flamegraph/heaptrack)
-└── scripts/                    # Utility scripts
-    └── test-examples.sh        # Verify all examples
-```
-
-**Key improvements over nested `crates/` folder:**
-- ✅ Matches industry standards (tokio, serde, clap, axum)
-- ✅ Each crate is a top-level folder (easier navigation)
-- ✅ Main `ferrotunnel` crate provides unified API
-- ✅ Clear separation without nesting confusion
-- ✅ Workspace-level `tests/` for true E2E integration testing
-- ✅ Workspace-level `examples/` demonstrating embedded usage
-- ✅ Dedicated `benches/` for performance tracking
-- ✅ Testing & Profiling scripts in `scripts/` and `tools/profiler/`
-
-## Future Structure (v1.0.0)
-
-Complete structure after all phases - **for implementation reference**:
-
-```
-ferrotunnel/
-├── Cargo.toml                  # Workspace root
-├── ROADMAP.md
-├── README.md
-├── ARCHITECTURE.md
-├── CHANGELOG.md
-├── LICENSE
-│
-├── ferrotunnel/                # ✅ Phase 1: Main library (public API)
-│   ├── Cargo.toml
-│   └── src/
-│       ├── lib.rs              # Re-exports & prelude
-│       ├── client.rs           # Phase 4: Client builder
-│       ├── server.rs           # Phase 4: Server builder
-│       └── config.rs           # Phase 4: Configuration
-│
-├── ferrotunnel-protocol/       # ✅ Phase 1: Wire protocol
-│   └── src/
-│       ├── frame.rs            # Message types
-│       ├── codec.rs            # Encoder/decoder
-│       └── constants.rs        # Protocol constants
-│
-├── ferrotunnel-common/         # ✅ Phase 1: Shared utilities
-│   └── src/
-│       └── error.rs            # Error types
-│
-├── ferrotunnel-core/           # Phase 2: Core tunnel logic
-│   └── src/
-│       ├── tunnel/
-│       │   ├── client.rs       # Client implementation
-│       │   ├── server.rs       # Server implementation
-│       │   └── session.rs      # Session management
-│       ├── stream/
-│       │   ├── multiplexer.rs  # Stream multiplexing
-│       │   └── router.rs       # Request routing
-│       ├── transport/
-│       │   ├── tcp.rs          # TCP transport
-│       │   ├── tls.rs          # Phase 8: TLS support
-│       │   └── quic.rs         # Future: QUIC
-│       └── reconnect.rs        # Phase 8: Auto-reconnect
-│
-├── ferrotunnel-http/           # Phase 3: HTTP handling
-│   └── src/
-│       ├── ingress.rs          # HTTP ingress
-│       ├── proxy.rs            # Reverse proxy
-│       └── upgrade.rs          # WebSocket upgrades
-│
-├── ferrotunnel-plugin/         # ✅ Phase 5: Plugin system
-│   └── src/
-│       ├── traits.rs           # Plugin traits
-│       ├── registry.rs         # Plugin registry
-│       ├── context.rs          # Plugin context
-│       └── builtin/
-│           ├── logger.rs       # Logging plugin
-│           ├── auth.rs         # Auth plugin
-│           └── ratelimit.rs    # Rate limiting
-│
-├── ferrotunnel-observability/  # Phase 6: Monitoring
-│   └── src/
-│       ├── metrics.rs          # Prometheus metrics
-│       ├── tracing.rs          # OpenTelemetry
-│       └── dashboard/
-│           ├── server.rs       # Dashboard server
-│           ├── api.rs          # REST API
-│           └── static/         # Web UI
-│
-├── ferrotunnel-client/         # Phase 2: Client binary
-│   └── src/
-│       └── main.rs
-│
-├── ferrotunnel-server/         # Phase 2: Server binary
-│   └── src/
-│       └── main.rs
-│
-├── examples/                   # Phase 4+: Usage examples
-│   ├── embedded_client.rs
-│   ├── embedded_server.rs
-│   └── custom_plugin.rs
-│
-└── tests/                      # Phase 8: Integration tests
-    └── integration/            # End-to-end test suite
-```
-
-## Implementation Order
-
-1. ✅ **Phase 1**: `ferrotunnel`, `protocol`, `common`
-2. ✅ **Phase 2**: `core` + client/server binaries
-3. ✅ **Phase 3**: `http` handling
-4. ✅ **Phase 4**: Complete main library API
-5. ✅ **Phase 5**: `plugin` system
-6. ✅ **Phase 6**: `observability` infrastructure (Backend)
-7. ✅ **Phase 7**: `observability` dashboard (UI + API)
-8. ✅ **Phase 8**: Hardening & Security
-9. **Phase 9**: v1.0.0 release
-
-## Why This Structure?
-
-### Tokio-Style Workspace
-
-This matches the structure used by major Rust projects:
-
-- **tokio**: `tokio/`, `tokio-util/`, `tokio-stream/`, etc.
-- **serde**: `serde/`, `serde_derive/`, `serde_json/`, etc.
-- **clap**: `clap/`, `clap_derive/`, etc.
-- **axum**: `axum/`, `axum-core/`, `axum-extra/`, etc.
-
-### Benefits
-
-✅ **Clear Navigation**: No nested `crates/` folder
-✅ **Industry Standard**: Familiar to Rust developers
-✅ **Independent Publishing**: Each crate publishable separately
-✅ **Shared Dependencies**: Workspace manages versions
-✅ **Better Caching**: Cargo caches builds efficiently
-✅ **Main Crate**: `ferrotunnel` provides unified API
-
-### Compared to Single Crate
-
-**Single crate** (simple projects):
-```
-my-project/
 ├── Cargo.toml
-└── src/
-    └── lib.rs
+├── Makefile
+├── README.md
+├── ARCHITECTURE.md
+├── CHANGELOG.md
+├── ROADMAP.md
+├── AGENTS.md
+├── Dockerfile
+├── docker-compose.yml
+├── .github/
+│   ├── dependabot.yml
+│   └── workflows/
+│       ├── ci.yml
+│       ├── publish.yml
+│       ├── benchmarks.yml
+│       ├── codeql.yml
+│       ├── nightly-fuzz.yml
+│       └── release-assets.yml
+├── docs/
+│   ├── deployment.md
+│   ├── plugin-development.md
+│   ├── security.md
+│   └── troubleshooting.md
+├── ferrotunnel/
+│   ├── Cargo.toml
+│   ├── README.md
+│   └── src/
+│       ├── lib.rs
+│       ├── client.rs
+│       ├── server.rs
+│       └── config.rs
+├── ferrotunnel-core/
+│   ├── Cargo.toml
+│   ├── README.md
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── auth.rs
+│   │   ├── rate_limit.rs
+│   │   ├── reconnect.rs
+│   │   ├── resource_limits.rs
+│   │   ├── tunnel/
+│   │   │   ├── mod.rs
+│   │   │   ├── client.rs
+│   │   │   ├── server.rs
+│   │   │   └── session.rs
+│   │   ├── stream/
+│   │   │   ├── mod.rs
+│   │   │   ├── multiplexer.rs
+│   │   │   ├── pool.rs
+│   │   │   └── bytes_pool.rs
+│   │   └── transport/
+│   │       ├── mod.rs
+│   │       ├── tcp.rs
+│   │       ├── tls.rs
+│   │       ├── batched_sender.rs
+│   │       └── socket_tuning.rs
+│   └── benches/
+│       ├── batched_sender.rs
+│       ├── multiplexer.rs
+│       └── transport.rs
+├── ferrotunnel-http/
+│   ├── Cargo.toml
+│   ├── README.md
+│   └── src/
+│       ├── lib.rs
+│       ├── ingress.rs
+│       ├── proxy.rs
+│       └── tcp_ingress.rs
+├── ferrotunnel-protocol/
+│   ├── Cargo.toml
+│   ├── README.md
+│   ├── src/
+│   │   ├── lib.rs
+│   │   ├── frame.rs
+│   │   ├── codec.rs
+│   │   ├── constants.rs
+│   │   └── validation.rs
+│   ├── benches/
+│   │   └── codec.rs
+│   └── fuzz/
+│       ├── Cargo.toml
+│       └── fuzz_targets/
+│           ├── codec_decode.rs
+│           └── frame_validation.rs
+├── ferrotunnel-plugin/
+│   ├── Cargo.toml
+│   ├── README.md
+│   └── src/
+│       ├── lib.rs
+│       ├── traits.rs
+│       ├── registry.rs
+│       └── builtin/
+│           ├── mod.rs
+│           ├── auth.rs
+│           ├── logger.rs
+│           ├── rate_limit.rs
+│           └── circuit_breaker.rs
+├── ferrotunnel-observability/
+│   ├── Cargo.toml
+│   ├── README.md
+│   └── src/
+│       ├── lib.rs
+│       ├── metrics.rs
+│       ├── tracing.rs
+│       └── dashboard/
+│           ├── mod.rs
+│           ├── events.rs
+│           ├── handlers.rs
+│           ├── models.rs
+│           └── static/
+│               ├── index.html
+│               ├── app.js
+│               ├── style.css
+│               └── ss.png
+├── ferrotunnel-common/
+│   ├── Cargo.toml
+│   ├── README.md
+│   └── src/
+│       ├── lib.rs
+│       ├── error.rs
+│       └── config.rs
+├── ferrotunnel-cli/
+│   ├── Cargo.toml
+│   ├── README.md
+│   └── src/
+│       ├── main.rs
+│       ├── middleware.rs
+│       └── commands/
+│           ├── mod.rs
+│           ├── client.rs
+│           ├── server.rs
+│           └── version.rs
+├── tests/
+│   ├── Cargo.toml
+│   ├── lib.rs
+│   └── integration/
+│       ├── mod.rs
+│       ├── tunnel_test.rs
+│       ├── plugin_test.rs
+│       ├── tls_test.rs
+│       ├── tcp_test.rs
+│       ├── concurrent_test.rs
+│       ├── multi_client_test.rs
+│       └── error_test.rs
+├── examples/
+│   ├── Cargo.toml
+│   ├── lib.rs
+│   ├── basic/
+│   │   ├── embedded_server.rs
+│   │   ├── embedded_client.rs
+│   │   └── auto_reconnect.rs
+│   ├── plugins/
+│   │   ├── custom_plugin.rs
+│   │   ├── header_filter.rs
+│   │   ├── ip_blocklist.rs
+│   │   └── plugin_chain.rs
+│   ├── advanced/
+│   │   ├── tls_config.rs
+│   │   └── multi_tunnel.rs
+│   ├── production/
+│   │   ├── with_metrics.rs
+│   │   └── graceful_shutdown.rs
+│   └── use-cases/
+│       ├── dev_tunnel.rs
+│       └── webhook_receiver.rs
+├── benches/
+│   ├── Cargo.toml
+│   ├── lib.rs
+│   ├── e2e_tunnel.rs
+│   ├── full_stack.rs
+│   ├── throughput.rs
+│   ├── tcp_throughput.rs
+│   └── latency.rs
+├── tools/
+│   ├── loadgen/
+│   │   ├── Cargo.toml
+│   │   └── src/main.rs
+│   ├── soak/
+│   │   ├── Cargo.toml
+│   │   └── src/main.rs
+│   └── profiler/
+│       ├── profile-codec.sh
+│       ├── profile-memory.sh
+│       └── profile-server.sh
+└── scripts/
+    ├── benchmark.sh
+    ├── publish.sh
+    ├── test-examples.sh
+    ├── test-tunnel.sh
+    ├── test-dashboard.sh
+    ├── test-docker.sh
+    ├── test-plugins.sh
+    └── yank-all.sh
 ```
 
-**Workspace** (multi-component projects like FerroTunnel):
-```
-ferrotunnel/
-├── Cargo.toml              # Workspace
-├── ferrotunnel/            # Main library
-├── ferrotunnel-protocol/   # Protocol
-└── ferrotunnel-common/     # Shared
-```
+## Crates
 
-FerroTunnel needs a workspace because:
-- Multiple publishable crates
-- Client + server binaries
-- Plugin system requires separate crate
-- Clear separation of concerns
+| Crate | Purpose |
+|-------|---------|
+| `ferrotunnel` | Main API: `Client::builder()`, `Server::builder()`, re-exports, prelude |
+| `ferrotunnel-core` | Tunnel engine: connection, session, multiplexer, transport (TCP/TLS) |
+| `ferrotunnel-http` | Ingress, HTTP/WS proxy, TCP ingress |
+| `ferrotunnel-protocol` | Frame types, codec, validation |
+| `ferrotunnel-plugin` | Plugin traits, registry, builtins (auth, logger, rate_limit, circuit_breaker) |
+| `ferrotunnel-observability` | Metrics, tracing, dashboard (Axum + SSE + Web UI) |
+| `ferrotunnel-common` | Error types, `Result<T>`, shared config |
+| `ferrotunnel-cli` | `ferrotunnel` binary: `server`, `client`, `version` subcommands |
 
-## Crate Descriptions
+## Integration Tests
 
-### `ferrotunnel` ✅
-
-**Main library crate** - The primary entry point for using FerroTunnel as a library:
-- **Builder API**: `Client::builder()` and `Server::builder()` for ergonomic configuration.
-- **Facade**: Re-exports commonly used types from subcrates.
-- **Prelude**: `ferrotunnel::prelude::*` for easy imports.
-
-### `Library API` ✅
-
-FerroTunnel is designed to be **embeddable**. You can include the `ferrotunnel` crate in your own Rust applications to create custom tunnel clients or servers.
-
-**Example: Embedded Client**
-```rust
-use ferrotunnel::Client;
-
-let client = Client::builder()
-    .server_addr("tunnel.example.com:7835")
-    .token("my-token")
-    .build()?;
-client.start().await?;
-```
-
-### `ferrotunnel-protocol` ✅
-
-**Wire protocol** for tunnel communication:
-- **12 frame types**: Handshake, Register, Data, etc.
-- **Length-prefixed codec**: Efficient bincode encoding
-- **Validation**: Max frame size (4MB default)
-- **Zero-copy**: Uses `Bytes` for performance
-
-### `ferrotunnel-common` ✅
-
-**Shared types** and utilities:
-- **Error types**: Comprehensive `TunnelError` enum
-- **Result alias**: `Result<T>` for consistency
-- **UUID handling**: Session and stream identifiers
-
-### `ferrotunnel-core` ✅
-
-**Core tunnel engine**:
-- **Connection**: Manages the persistent control connection / Heartbeats.
-- **Session**: Concept of a "tunnel session".
-- **Multiplexer**: Handles multiple concurrent streams over one connection.
-
-### `ferrotunnel-http` ✅
-
-**HTTP Layer**:
-- **Ingress**: Receives public HTTP requests and routes them to sessions.
-- **Proxy**: Forwards requests from the client to localhost.
-
-### `ferrotunnel-client` & `ferrotunnel-server` ✅
-
-**Reference Implementations**:
-- CLI binaries for running the tunnel and server standalone.
-- Built on top of the library API.
-
-### `ferrotunnel-observability` ✅
-
-**Metrics, Tracing, and Dashboard** (Phase 6 & 7):
-- **Dashboard server**: Axum-based server providing a real-time WebUI (port 4040) and SSE stream for live updates.
-- **REST API**: Endpoints for inspecting tunnels, requests, and replaying traffic.
-- **Prometheus Metrics**: High-performance counters and histograms on port 9090.
-- **OpenTelemetry**: Distributed tracing support for request-level visibility.
-- **Unified Init**: Convenience API for initializing observability in any binary.
-
-### `tools/` ✅
-
-**Diagnostic and Testing Suite** (Phase 8):
-- **loadgen**: High-performance load generator for throughput testing.
-- **soak**: Long-running suite for memory leak and stability detection.
-- **profiler**: Scripts for CPU flamegraphs and memory profiling.
-
-### `tests/` ✅
-
-**Workspace-Level Integration Tests** (`ferrotunnel-tests` crate):
-
-Integration tests live at the workspace root to enable true end-to-end testing across all crates:
-
-| Test File | Coverage |
-|-----------|----------|
+| File | Coverage |
+|------|----------|
 | `tunnel_test.rs` | Server startup, client connection, HTTP proxying |
-| `plugin_test.rs` | Plugin execution order, auth, rate limiting |
-| `tls_test.rs` | TLS connections end-to-end |
-| `concurrent_test.rs` | Concurrent request handling |
+| `plugin_test.rs` | Auth, rate limiting, execution order |
+| `tls_test.rs` | TLS end-to-end |
+| `tcp_test.rs` | TCP tunnel echo |
+| `concurrent_test.rs` | Concurrent requests |
 | `multi_client_test.rs` | Multiple clients, reconnection |
-| `error_test.rs` | Timeout, connection refused scenarios |
+| `error_test.rs` | Timeout, connection refused |
 
 ```bash
-# Run integration tests
 cargo test -p ferrotunnel-tests --test integration
 ```
 
-### `benches/` ✅
+## Examples
 
-**Workspace-Level Benchmarks** (`ferrotunnel-benches` crate):
+| Category | Examples |
+|----------|----------|
+| basic | `embedded_server`, `embedded_client`, `auto_reconnect` |
+| plugins | `custom_plugin`, `header_filter`, `ip_blocklist`, `plugin_chain` |
+| advanced | `tls_config`, `multi_tunnel` |
+| production | `with_metrics`, `graceful_shutdown` |
+| use-cases | `dev_tunnel`, `webhook_receiver` |
 
-Performance tests for critical paths:
-- **`e2e_tunnel`**: Full stack benchmark (Frame encoding -> Tunnel -> Plugins)
-- **`throughput`**: Raw data transfer benchmarking
+## Benchmarks
+
+| Benchmark | Purpose |
+|-----------|---------|
+| `e2e_tunnel` | Full stack |
+| `full_stack` | End-to-end |
+| `throughput` | Raw data transfer |
+| `tcp_throughput` | TCP tunnel |
+| `latency` | Latency percentiles |
 
 ```bash
-# Run benchmarks
 cargo bench -p ferrotunnel-benches
+./scripts/benchmark.sh save          # Save baseline
+./scripts/benchmark.sh main full_stack,tcp_throughput  # Compare
 ```
 
-### `examples/` ✅
-
-**Workspace-Level Examples** (`ferrotunnel-examples` crate):
-
-Examples are organized by category:
-
-| Category | Examples | Description |
-|----------|----------|-------------|
-| **basic** | `embedded_server`, `embedded_client` | Minimal embedding examples |
-| **plugins** | `custom_plugin`, `header_filter`, `plugin_chain` | Plugin system usage |
-| **advanced** | `tls_config`, `multi_tunnel` | Security and complex setups |
+## Commands
 
 ```bash
-# Run specific example
-cargo run -p ferrotunnel-examples --example custom_plugin
-
-# Test all examples
-./scripts/test-examples.sh
-```
-
-## Building
-
-```bash
-# Build all crates
-cargo build --workspace
-
-# Run tests
-cargo test --workspace
-
-# Build specific crate
-cargo build --package ferrotunnel-protocol
-
-# Run linting
-make check
-
-# Format code
-make fmt
-
-# Generate documentation
-cargo doc --open
+make build      # cargo build --workspace
+make test       # cargo test --workspace --all-features
+make check      # fmt + clippy
+make fmt        # cargo fmt --all
+make lint       # cargo clippy --workspace --all-targets --all-features -- -D warnings
+make bench      # cargo bench --workspace
+make all        # fmt, check, test, build
 ```
 
 ## Publishing
 
-The workspace allows independent publishing:
+Publish in dependency order: `ferrotunnel-common` → `ferrotunnel-protocol` → … → `ferrotunnel`.
 
-```bash
-# Publish in dependency order
-cd ferrotunnel-common && cargo publish
-cd ../ferrotunnel-protocol && cargo publish
-cd ../ferrotunnel && cargo publish
-```
-
-Or use automated GitHub Actions (see `.github/workflows/publish.yml`).
-
-## Development Workflow
-
-1. **Make changes** to any crate
-2. **Run checks**: `make check` (format + lint)
-3. **Run tests**: `make test`
-4. **Commit**: Changes pass CI automatically
-5. **Release**: Tag release (`v*`), CI builds binaries and publishes Docker images automatically.
+See `.github/workflows/publish.yml` for CI automation.
 
 ## References
 
 - [Cargo Workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)
-- [Tokio Architecture](https://github.com/tokio-rs/tokio)
-- [Semantic Versioning](https://semver.org/)
+- [Tokio](https://github.com/tokio-rs/tokio)

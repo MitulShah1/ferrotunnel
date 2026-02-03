@@ -8,7 +8,7 @@ This crate contains the core traits and infrastructure for the Ferrotunnel plugi
 
 ## Plugin Developer Guide
 
-FerroTunnel supports a powerful trait-based plugin system that allows you to intercept and modify request/response traffic, enforce authentication, rate limiting, and more.
+FerroTunnel supports a trait-based plugin system for intercepting and modifying request/response traffic, authentication, rate limiting, and more.
 
 ### Quick Start
 
@@ -88,7 +88,7 @@ You can test plugins in two ways:
 
 ### Usage
 
-Register your plugin in `ferrotunnel-server/src/main.rs`:
+Register your plugin in `ferrotunnel-cli/src/commands/server.rs`:
 
 ```rust
 registry.register(Arc::new(RwLock::new(MyPlugin)));

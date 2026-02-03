@@ -12,8 +12,8 @@ keywords = ["tunnel", "networking", "async", "core"]
 categories = ["network-programming", "asynchronous"]
 
 [dependencies]
-ferrotunnel-common = { version = "1.0.0", path = "../ferrotunnel-common" }
-ferrotunnel-protocol = { version = "1.0.0", path = "../ferrotunnel-protocol" }
+ferrotunnel-common = { version = "0.1.0", path = "../ferrotunnel-common" }
+ferrotunnel-protocol = { version = "0.1.0", path = "../ferrotunnel-protocol" }
 
 tokio = { workspace = true }
 tokio-util = { workspace = true }
@@ -29,7 +29,7 @@ rustls = { version = "0.23", default-features = false, features = [
     "ring",
     "std",
 ] }
-rustls-pemfile = "2"
+rustls-pki-types = { version = "1.9", features = ["std"] }
 
 # Auth hardening
 thiserror = { workspace = true }

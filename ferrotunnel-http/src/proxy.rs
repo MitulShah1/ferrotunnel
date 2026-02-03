@@ -41,7 +41,7 @@ impl From<std::convert::Infallible> for ProxyError {
     }
 }
 
-use tracing::{debug, error};
+use tracing::error;
 
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, ProxyError>;
 
@@ -185,12 +185,9 @@ impl<L> HttpProxy<L> {
         let io = TokioIo::new(stream);
 
         tokio::spawn(async move {
-            if let Err(err) = http1::Builder::new()
+            let _ = http1::Builder::new()
                 .serve_connection(io, hyper_service)
-                .await
-            {
-                debug!("Error serving proxy connection: {err:?}");
-            }
+                .await;
         });
     }
 }

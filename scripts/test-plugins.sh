@@ -100,8 +100,8 @@ run_example_test "ip_blocklist"
 echo ""
 echo -e "${GREEN}All plugin logic examples passed!${NC}"
 
-# If we want to test plugins inside a real server, we need to run ferrotunnel-server
-# but ferrotunnel-server is hardcoded to only use built-in plugins in main.rs currently.
+# If we want to test plugins inside a real server, we need to run ferrotunnel server
+# but ferrotunnel-cli is hardcoded to only use built-in plugins in server.rs currently.
 # To test custom plugins E2E, we'd need a binary that loads them.
 # The user wants "scripts/test-plugins.sh".
 # Since the examples currently just run logic, this script effectively just runs them.

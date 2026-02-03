@@ -15,7 +15,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
-use tracing::{debug, warn};
+use tracing::warn;
 
 /// Pool for reusing read buffers in `VirtualStream`
 pub type ReadBufferPool = ObjectPool<Vec<u8>>;
@@ -79,10 +79,6 @@ impl Multiplexer {
         match &frame {
             Frame::OpenStream(open_stream) => {
                 let stream_id = open_stream.stream_id;
-                debug!(
-                    "Accepting new stream {} ({:?})",
-                    stream_id, open_stream.protocol
-                );
                 let (tx, rx) = bounded_async(10);
 
                 match self.streams.entry(stream_id) {
@@ -116,8 +112,6 @@ impl Multiplexer {
                     if tx.send(Ok(frame)).await.is_err() {
                         self.streams.remove(&stream_id);
                     }
-                } else {
-                    debug!("Received frame for unknown stream {}", stream_id);
                 }
             }
             Frame::CloseStream { stream_id, .. } => {
@@ -128,8 +122,6 @@ impl Multiplexer {
                     if tx.send(Ok(frame)).await.is_err() {
                         self.streams.remove(&stream_id);
                     }
-                } else {
-                    debug!("Received frame for unknown stream {}", stream_id);
                 }
             }
             _ => {}

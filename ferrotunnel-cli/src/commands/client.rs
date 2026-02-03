@@ -1,23 +1,20 @@
-// Use mimalloc as the global allocator for better performance
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
-mod middleware;
+//! Client subcommand implementation
 
 use anyhow::Result;
 use chrono::Utc;
-use clap::Parser;
+use clap::Args;
 use ferrotunnel_core::TunnelClient;
+use ferrotunnel_http::proxy::LocalProxyService;
+use ferrotunnel_http::proxy::ProxyError;
 use ferrotunnel_observability::dashboard::models::{DashboardTunnelInfo, TunnelStatus};
 use ferrotunnel_observability::{init_basic_observability, init_minimal_logging, shutdown_tracing};
 use ferrotunnel_protocol::frame::Protocol;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpStream;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 
-// Import middleware types
-use ferrotunnel_http::proxy::ProxyError;
-use middleware::DashboardCaptureLayer;
+use crate::middleware::DashboardCaptureLayer;
 
 // Need to match the BoxBody type used in ferrotunnel-http
 type BoxBody = http_body_util::combinators::BoxBody<bytes::Bytes, ProxyError>;
@@ -25,10 +22,6 @@ type BoxBody = http_body_util::combinators::BoxBody<bytes::Bytes, ProxyError>;
 trait StreamHandler: Send + Sync {
     fn handle(&self, stream: ferrotunnel_core::stream::multiplexer::VirtualStream);
 }
-
-// Make sure LocalProxyService is accessible. If not re-exported, we might need to rely on generic bounds or fix lib.rs
-// Assuming ferrotunnel_http::proxy::LocalProxyService is pub.
-use ferrotunnel_http::proxy::LocalProxyService;
 
 impl<L> StreamHandler for ferrotunnel_http::HttpProxy<L>
 where
@@ -47,10 +40,9 @@ where
     }
 }
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[derive(Args, Debug)]
 #[allow(clippy::struct_excessive_bools)]
-struct Args {
+pub struct ClientArgs {
     /// Server address (host:port)
     #[arg(long, env = "FERROTUNNEL_SERVER")]
     server: String,
@@ -87,7 +79,7 @@ struct Args {
     #[arg(long, env = "FERROTUNNEL_TLS_CA")]
     tls_ca: Option<std::path::PathBuf>,
 
-    /// server name (SNI) for TLS verification
+    /// Server name (SNI) for TLS verification
     #[arg(long, env = "FERROTUNNEL_TLS_SERVER_NAME")]
     tls_server_name: Option<String>,
 
@@ -104,10 +96,7 @@ struct Args {
     observability: bool,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let args = Args::parse();
-
+pub async fn run(args: ClientArgs) -> Result<()> {
     // Setup observability only if enabled (disabled by default for lower latency)
     if args.observability {
         init_basic_observability("ferrotunnel-client");
@@ -119,9 +108,9 @@ async fn main() -> Result<()> {
     info!("Starting FerroTunnel Client v{}", env!("CARGO_PKG_VERSION"));
 
     // Start Dashboard and configure proxy
-    let proxy: std::sync::Arc<dyn StreamHandler> = if args.no_dashboard {
+    let proxy: Arc<dyn StreamHandler> = if args.no_dashboard {
         // Initialize basic Proxy (Identity layer)
-        std::sync::Arc::new(ferrotunnel_http::HttpProxy::new(args.local_addr.clone()))
+        Arc::new(ferrotunnel_http::HttpProxy::new(args.local_addr.clone()))
     } else {
         setup_dashboard(&args).await
     };
@@ -141,20 +130,15 @@ async fn main() -> Result<()> {
                 async move {
                     if stream.protocol() == Protocol::TCP {
                         // Handle raw TCP stream
-                        let peer_id = stream.id();
-                        debug!("Handling raw TCP stream {}", peer_id);
                         tokio::spawn(async move {
                             match TcpStream::connect(&local_addr).await {
                                 Ok(mut local_stream) => {
                                     let mut tunnel_stream = stream;
-                                    if let Err(e) = tokio::io::copy_bidirectional(
+                                    let _ = tokio::io::copy_bidirectional(
                                         &mut tunnel_stream,
                                         &mut local_stream,
                                     )
-                                    .await
-                                    {
-                                        debug!("TCP tunnel copy error: {}", e);
-                                    }
+                                    .await;
                                 }
                                 Err(e) => {
                                     error!(
@@ -188,9 +172,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn setup_dashboard(args: &Args) -> std::sync::Arc<dyn StreamHandler> {
+async fn setup_dashboard(args: &ClientArgs) -> Arc<dyn StreamHandler> {
     use ferrotunnel_observability::dashboard::{create_router, DashboardState, EventBroadcaster};
-    use std::sync::Arc;
     use tokio::sync::RwLock;
 
     let dashboard_state = Arc::new(RwLock::new(DashboardState::new(1000)));
@@ -240,7 +223,7 @@ async fn setup_dashboard(args: &Args) -> std::sync::Arc<dyn StreamHandler> {
     Arc::new(ferrotunnel_http::HttpProxy::new(args.local_addr.clone()).with_layer(capture_layer))
 }
 
-fn setup_tls(mut client: TunnelClient, args: &Args) -> TunnelClient {
+fn setup_tls(mut client: TunnelClient, args: &ClientArgs) -> TunnelClient {
     if args.tls {
         if args.tls_skip_verify {
             info!("TLS enabled with certificate verification skipped (insecure)");

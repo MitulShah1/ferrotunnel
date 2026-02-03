@@ -5,8 +5,7 @@ members = [
     "ferrotunnel-common",
     "ferrotunnel",
     "ferrotunnel-core",
-    "ferrotunnel-server",
-    "ferrotunnel-client",
+    "ferrotunnel-cli",
     "ferrotunnel-http",
     "ferrotunnel-plugin",
     "ferrotunnel-observability",
@@ -19,7 +18,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.0"
+version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
 authors = ["Mitul Shah <shahmitul005@gmail.com>"]
@@ -54,7 +53,7 @@ tokio = { version = "1", features = ["full"] }
 
 # Logging
 tracing = "0.1"
-ferrotunnel-observability = { version = "1.0.0", path = "ferrotunnel-observability" }
+ferrotunnel-observability = { version = "0.1.0", path = "ferrotunnel-observability" }
 
 # High-performance allocator
 mimalloc = { version = "0.1", default-features = false }

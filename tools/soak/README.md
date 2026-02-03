@@ -1,6 +1,6 @@
 # FerroTunnel Soak Testing Tool
 
-A robust soak testing utility for verifying the long-term stability and reliability of FerroTunnel.
+Soak testing tool for verifying long-term stability of FerroTunnel.
 
 ## Features
 

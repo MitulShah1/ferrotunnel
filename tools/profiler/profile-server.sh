@@ -31,7 +31,7 @@ mkdir -p "$OUTPUT_DIR"
 
 # Build release with debug symbols
 echo -e "${YELLOW}Building release with debug symbols...${NC}"
-CARGO_PROFILE_RELEASE_DEBUG=true cargo build --release -p ferrotunnel-server
+CARGO_PROFILE_RELEASE_DEBUG=true cargo build --release -p ferrotunnel-cli
 
 # Check if cargo-flamegraph is installed
 # Check for perf on Linux
@@ -51,8 +51,8 @@ OUTPUT_FILE="${OUTPUT_DIR}/server_${TIMESTAMP}.svg"
 timeout --signal=SIGINT "$DURATION" cargo flamegraph \
     --root \
     --output "$OUTPUT_FILE" \
-    --bin ferrotunnel-server \
-    -- --bind "127.0.0.1:9000" --token "profiling-test-token" --http-bind "127.0.0.1:8080" \
+    --bin ferrotunnel \
+    -- server --bind "127.0.0.1:9000" --token "profiling-test-token" --http-bind "127.0.0.1:8080" \
     2>/dev/null || true
 
 echo ""

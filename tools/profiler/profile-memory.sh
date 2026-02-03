@@ -11,12 +11,13 @@ set -e
 
 OUTPUT_DIR="${PROFILE_OUTPUT:-./target/profiles}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BINARY="${1:-ferrotunnel-server}"
-shift || true
+BINARY="${1:-ferrotunnel}"
+SUBCOMMAND="${2:-server}"
+shift 2 || shift || true
 ARGS="$@"
 
 # If profiling server and no args provided, add default args
-if [ "$BINARY" == "ferrotunnel-server" ] && [ -z "$ARGS" ]; then
+if [ "$BINARY" == "ferrotunnel" ] && [ "$SUBCOMMAND" == "server" ] && [ -z "$ARGS" ]; then
     ARGS="--bind 127.0.0.1:9000 --token profiling-test-token --http-bind 127.0.0.1:8080"
 fi
 
@@ -35,9 +36,10 @@ mkdir -p "$OUTPUT_DIR"
 
 # Build release
 echo -e "${YELLOW}Building release...${NC}"
-cargo build --release -p "$BINARY" 2>/dev/null || cargo build --release --workspace
+cargo build --release -p ferrotunnel-cli 2>/dev/null || cargo build --release --workspace
 
 BINARY_PATH="./target/release/${BINARY}"
+FULL_ARGS="$SUBCOMMAND $ARGS"
 
 if [ ! -f "$BINARY_PATH" ]; then
     echo -e "${YELLOW}Binary not found: ${BINARY_PATH}${NC}"
@@ -54,7 +56,7 @@ if command -v heaptrack &> /dev/null; then
 
     OUTPUT_FILE="${OUTPUT_DIR}/heaptrack_${BINARY}_${TIMESTAMP}.gz"
 
-    heaptrack -o "$OUTPUT_FILE" "$BINARY_PATH" $ARGS
+    heaptrack -o "$OUTPUT_FILE" "$BINARY_PATH" $FULL_ARGS
 
     echo ""
     echo -e "${GREEN}Profiling complete!${NC}"
@@ -69,7 +71,7 @@ elif command -v valgrind &> /dev/null; then
 
     OUTPUT_FILE="${OUTPUT_DIR}/massif_${BINARY}_${TIMESTAMP}.out"
 
-    valgrind --tool=massif --massif-out-file="$OUTPUT_FILE" "$BINARY_PATH" $ARGS
+    valgrind --tool=massif --massif-out-file="$OUTPUT_FILE" "$BINARY_PATH" $FULL_ARGS
 
     echo ""
     echo -e "${GREEN}Profiling complete!${NC}"

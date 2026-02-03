@@ -1,18 +1,15 @@
-// Use mimalloc as the global allocator for better performance
-#[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+//! Server subcommand implementation
 
 use anyhow::Result;
-use clap::Parser;
+use clap::Args;
 use ferrotunnel_core::TunnelServer;
 use ferrotunnel_observability::{gather_metrics, init_basic_observability, init_minimal_logging};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use tracing::{error, info};
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
+#[derive(Args, Debug)]
+pub struct ServerArgs {
     /// Address to bind to
     #[arg(long, default_value = "0.0.0.0:7835", env = "FERROTUNNEL_BIND")]
     bind: SocketAddr,
@@ -58,10 +55,7 @@ struct Args {
     observability: bool,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let args = Args::parse();
-
+pub async fn run(args: ServerArgs) -> Result<()> {
     // Setup observability only if enabled (disabled by default for lower latency)
     if args.observability {
         init_basic_observability("ferrotunnel-server");

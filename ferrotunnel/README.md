@@ -4,33 +4,43 @@
 [![Documentation](https://docs.rs/ferrotunnel/badge.svg)](https://docs.rs/ferrotunnel)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](LICENSE)
 
-A production-ready, secure reverse tunnel system in Rust.
+Reverse tunnel library for Rust applications.
 
 ## Quick Start
 
-Add this to your `Cargo.toml`:
-
 ```toml
 [dependencies]
-ferrotunnel = "0.9"
+ferrotunnel = "0.1"
+```
+
+```rust
+use ferrotunnel::Client;
+
+#[tokio::main]
+async fn main() -> ferrotunnel::Result<()> {
+    let mut client = Client::builder()
+        .server_addr("tunnel.example.com:7835")
+        .token("my-token")
+        .local_addr("127.0.0.1:8080")
+        .build()?;
+
+    client.start().await?;
+    Ok(())
+}
 ```
 
 ## Features
 
-- 🔒 **Secure** - TLS encryption, token-based authentication
-- ⚡ **Fast** - Built on Tokio for high-performance async I/O
-- 🔌 **Protocol Support** - HTTP, HTTPS, WebSocket, gRPC, TCP
-- 📊 **Observable** - Comprehensive logging and metrics
-- 🛡️ **Resilient** - Automatic reconnection, heartbeat monitoring
+- TLS 1.3 encryption with rustls
+- Token-based authentication
+- HTTP, WebSocket, and TCP tunneling
+- Automatic reconnection with backoff
+- Prometheus metrics and tracing
 
 ## Documentation
 
-See the [full documentation](https://docs.rs/ferrotunnel) for detailed usage.
+See [docs.rs/ferrotunnel](https://docs.rs/ferrotunnel) for API documentation.
 
 ## License
 
-Licensed under either of:
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-at your option.
+MIT OR Apache-2.0

@@ -13,7 +13,7 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
-RUN cargo build --release --bin ferrotunnel-server --bin ferrotunnel-client
+RUN cargo build --release -p ferrotunnel-cli
 
 FROM debian:bookworm-slim AS runtime
 WORKDIR /app
@@ -23,11 +23,11 @@ RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/
 # Create non-root user
 RUN groupadd -r ferrotunnel && useradd -r -g ferrotunnel ferrotunnel
 
-COPY --from=builder /app/target/release/ferrotunnel-server /usr/local/bin/
-COPY --from=builder /app/target/release/ferrotunnel-client /usr/local/bin/
+COPY --from=builder /app/target/release/ferrotunnel /usr/local/bin/
 
 USER ferrotunnel
-EXPOSE 8080 9090 4040
+EXPOSE 7835 8080 9090 4040
 
 # Default to server, but allows easy override for client
-CMD ["ferrotunnel-server", "--bind", "0.0.0.0:7835"]
+ENTRYPOINT ["ferrotunnel"]
+CMD ["server", "--bind", "0.0.0.0:7835"]
