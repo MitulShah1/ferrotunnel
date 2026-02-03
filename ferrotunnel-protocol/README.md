@@ -10,8 +10,8 @@ Wire protocol definitions and codec for [FerroTunnel](https://github.com/MitulSh
 This crate defines the binary protocol used for tunnel communication:
 
 - **12 frame types** for control, data, and keepalive
-- **Length-prefixed codec** with bincode serialization
-- **4MB max frame size** with validation
+- **Length-prefixed codec** (4-byte length + 1-byte type) with bincode control frames
+- **16MB max frame size** with validation
 
 ## Frame Types
 

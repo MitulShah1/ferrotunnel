@@ -4,16 +4,23 @@ pub mod tracing;
 #[cfg(feature = "dashboard")]
 pub mod dashboard;
 
-pub use metrics::{gather_metrics, init_metrics, REGISTRY};
+pub use metrics::{gather_metrics, init_metrics, metrics_enabled, REGISTRY};
 pub use tracing::{init_tracing, shutdown_tracing, TracingConfig};
 
 /// Basic initialization for minimal overhead
-pub fn init_basic_observability(service_name: &str) {
-    init_metrics();
-    let _ = init_tracing(TracingConfig {
-        service_name: service_name.to_string(),
-        otlp_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
-    });
+pub fn init_basic_observability(service_name: &str, enable_tracing: bool, enable_metrics: bool) {
+    if enable_metrics {
+        init_metrics();
+    }
+
+    if enable_tracing {
+        let _ = init_tracing(TracingConfig {
+            service_name: service_name.to_string(),
+            otlp_endpoint: std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok(),
+        });
+    } else {
+        init_minimal_logging();
+    }
 }
 
 /// Minimal logging setup without metrics or OpenTelemetry infrastructure

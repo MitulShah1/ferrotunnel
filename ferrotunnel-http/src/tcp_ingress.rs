@@ -168,6 +168,11 @@ async fn handle_tcp_connection(
     Ok(())
 }
 
+/// Buffer size for bidirectional copy. Must match MAX_DATA_FRAME_PAYLOAD in multiplexer
+/// to avoid "Frame too large" decoder desync when payload bytes (e.g. 0x78787878) are
+/// misread as frame length.
+const TCP_COPY_BUFFER_SIZE: usize = 64 * 1024; // 64KB
+
 /// Bidirectional copy with metrics tracking
 async fn copy_bidirectional_with_metrics<A, B>(
     mut a: A,
@@ -178,19 +183,27 @@ where
     A: AsyncRead + AsyncWrite + Unpin,
     B: AsyncRead + AsyncWrite + Unpin,
 {
-    let result = tokio::io::copy_bidirectional(&mut a, &mut b).await?;
+    let result = tokio::io::copy_bidirectional_with_sizes(
+        &mut a,
+        &mut b,
+        TCP_COPY_BUFFER_SIZE,
+        TCP_COPY_BUFFER_SIZE,
+    )
+    .await?;
 
     // Record metrics
     #[cfg(feature = "metrics")]
     #[allow(clippy::cast_precision_loss)]
     {
-        use ferrotunnel_observability::metrics::BYTES_TRANSFERRED_TOTAL;
-        BYTES_TRANSFERRED_TOTAL
-            .with_label_values(&["tcp_ingress"])
-            .inc_by(result.1 as f64);
-        BYTES_TRANSFERRED_TOTAL
-            .with_label_values(&["tcp_egress"])
-            .inc_by(result.0 as f64);
+        use ferrotunnel_observability::metrics::{metrics_enabled, BYTES_TRANSFERRED_TOTAL};
+        if metrics_enabled() {
+            BYTES_TRANSFERRED_TOTAL
+                .with_label_values(&["tcp_ingress"])
+                .inc_by(result.1 as f64);
+            BYTES_TRANSFERRED_TOTAL
+                .with_label_values(&["tcp_egress"])
+                .inc_by(result.0 as f64);
+        }
     }
 
     Ok(result)

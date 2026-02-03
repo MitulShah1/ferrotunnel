@@ -91,17 +91,22 @@ pub struct ClientArgs {
     #[arg(long, env = "FERROTUNNEL_TLS_KEY")]
     tls_key: Option<std::path::PathBuf>,
 
-    /// Enable observability (metrics and tracing) - disabled by default for lower latency
+    /// Enable tracing (metrics is separate via --metrics)
     #[arg(long, env = "FERROTUNNEL_OBSERVABILITY")]
     observability: bool,
+
+    /// Enable metrics collection
+    #[arg(long, env = "FERROTUNNEL_METRICS")]
+    metrics: bool,
 }
 
 pub async fn run(args: ClientArgs) -> Result<()> {
-    // Setup observability only if enabled (disabled by default for lower latency)
-    if args.observability {
-        init_basic_observability("ferrotunnel-client");
+    let enable_tracing = args.observability;
+    let enable_metrics = args.metrics;
+
+    if enable_tracing || enable_metrics {
+        init_basic_observability("ferrotunnel-client", enable_tracing, enable_metrics);
     } else {
-        // Minimal logging setup without full observability infrastructure
         init_minimal_logging();
     }
 

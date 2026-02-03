@@ -10,8 +10,8 @@ use std::io;
 use std::time::Duration;
 use tokio::net::TcpStream;
 
-const RECV_BUFFER_SIZE: usize = 256 * 1024;
-const SEND_BUFFER_SIZE: usize = 256 * 1024;
+const RECV_BUFFER_SIZE: usize = 1024 * 1024;
+const SEND_BUFFER_SIZE: usize = 1024 * 1024;
 const KEEPALIVE_TIME: Duration = Duration::from_secs(30);
 const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(10);
 

@@ -3,6 +3,9 @@ use prometheus::{
     register_counter, register_counter_vec, register_gauge, register_histogram, Counter,
     CounterVec, Gauge, Histogram, Registry,
 };
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static METRICS_ENABLED: AtomicBool = AtomicBool::new(false);
 
 lazy_static! {
     pub static ref REGISTRY: Registry = Registry::new();
@@ -53,7 +56,13 @@ lazy_static! {
 pub fn init_metrics() {
     // Explicitly trigger lazy_static initialization
     let _ = &*REGISTRY;
+    METRICS_ENABLED.store(true, Ordering::Relaxed);
     tracing::info!("Metrics infrastructure initialized");
+}
+
+/// Returns true if metrics collection is enabled.
+pub fn metrics_enabled() -> bool {
+    METRICS_ENABLED.load(Ordering::Relaxed)
 }
 
 /// Gather all metrics into Prometheus format
