@@ -4,7 +4,7 @@
 //! Useful for database connections, SSH, and custom protocols.
 
 use ferrotunnel_common::Result;
-use ferrotunnel_core::tunnel::session::SessionStore;
+use ferrotunnel_core::tunnel::session::SessionStoreBackend;
 use ferrotunnel_protocol::frame::Protocol;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -41,19 +41,23 @@ impl Default for TcpIngressConfig {
 /// TCP ingress server for raw socket tunneling
 pub struct TcpIngress {
     addr: SocketAddr,
-    sessions: SessionStore,
+    sessions: SessionStoreBackend,
     config: TcpIngressConfig,
     connection_semaphore: Arc<Semaphore>,
 }
 
 impl TcpIngress {
     /// Create a new TCP ingress with default configuration
-    pub fn new(addr: SocketAddr, sessions: SessionStore) -> Self {
+    pub fn new(addr: SocketAddr, sessions: SessionStoreBackend) -> Self {
         Self::with_config(addr, sessions, TcpIngressConfig::default())
     }
 
     /// Create a new TCP ingress with custom configuration
-    pub fn with_config(addr: SocketAddr, sessions: SessionStore, config: TcpIngressConfig) -> Self {
+    pub fn with_config(
+        addr: SocketAddr,
+        sessions: SessionStoreBackend,
+        config: TcpIngressConfig,
+    ) -> Self {
         let connection_semaphore = Arc::new(Semaphore::new(config.max_connections));
         Self {
             addr,
@@ -116,7 +120,7 @@ impl TcpIngress {
 /// Handle a single TCP connection through the tunnel
 async fn handle_tcp_connection(
     client_stream: TcpStream,
-    multiplexer: ferrotunnel_core::stream::multiplexer::Multiplexer,
+    multiplexer: ferrotunnel_core::stream::Multiplexer,
     peer_addr: SocketAddr,
     config: TcpIngressConfig,
 ) -> Result<()> {
@@ -191,19 +195,9 @@ where
     )
     .await?;
 
-    // Record metrics
     #[cfg(feature = "metrics")]
-    #[allow(clippy::cast_precision_loss)]
-    {
-        use ferrotunnel_observability::metrics::{metrics_enabled, BYTES_TRANSFERRED_TOTAL};
-        if metrics_enabled() {
-            BYTES_TRANSFERRED_TOTAL
-                .with_label_values(&["tcp_ingress"])
-                .inc_by(result.1 as f64);
-            BYTES_TRANSFERRED_TOTAL
-                .with_label_values(&["tcp_egress"])
-                .inc_by(result.0 as f64);
-        }
+    if let Some(m) = ferrotunnel_observability::tunnel_metrics() {
+        m.record_bytes((result.0 + result.1) as usize);
     }
 
     Ok(result)
@@ -224,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_tcp_ingress_creation() {
-        let sessions = SessionStore::new();
+        let sessions = SessionStoreBackend::default();
         let addr = "127.0.0.1:5000".parse().unwrap();
         let ingress = TcpIngress::new(addr, sessions);
         assert_eq!(ingress.addr, addr);
@@ -232,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_tcp_ingress_custom_config() {
-        let sessions = SessionStore::new();
+        let sessions = SessionStoreBackend::default();
         let addr = "127.0.0.1:5000".parse().unwrap();
         let config = TcpIngressConfig {
             max_connections: 500,

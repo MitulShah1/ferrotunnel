@@ -1,5 +1,5 @@
 use ferrotunnel_common::Result;
-use ferrotunnel_core::tunnel::session::SessionStore;
+use ferrotunnel_core::tunnel::session::SessionStoreBackend;
 use ferrotunnel_plugin::{PluginAction, PluginRegistry, RequestContext, ResponseContext};
 use ferrotunnel_protocol::frame::Protocol;
 use http_body_util::{BodyExt, Empty};
@@ -41,7 +41,7 @@ impl Default for IngressConfig {
 
 pub struct HttpIngress {
     addr: SocketAddr,
-    sessions: SessionStore,
+    sessions: SessionStoreBackend,
     registry: Arc<PluginRegistry>,
     config: IngressConfig,
     connection_semaphore: Arc<Semaphore>,
@@ -50,13 +50,17 @@ pub struct HttpIngress {
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
 
 impl HttpIngress {
-    pub fn new(addr: SocketAddr, sessions: SessionStore, registry: Arc<PluginRegistry>) -> Self {
+    pub fn new(
+        addr: SocketAddr,
+        sessions: SessionStoreBackend,
+        registry: Arc<PluginRegistry>,
+    ) -> Self {
         Self::with_config(addr, sessions, registry, IngressConfig::default())
     }
 
     pub fn with_config(
         addr: SocketAddr,
-        sessions: SessionStore,
+        sessions: SessionStoreBackend,
         registry: Arc<PluginRegistry>,
         config: IngressConfig,
     ) -> Self {
@@ -120,7 +124,7 @@ impl HttpIngress {
 #[allow(clippy::too_many_lines)]
 async fn handle_request(
     req: Request<hyper::body::Incoming>,
-    sessions: SessionStore,
+    sessions: SessionStoreBackend,
     registry: Arc<PluginRegistry>,
     peer_addr: SocketAddr,
     config: IngressConfig,

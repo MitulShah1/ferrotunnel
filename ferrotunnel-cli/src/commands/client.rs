@@ -20,7 +20,7 @@ use crate::middleware::DashboardCaptureLayer;
 type BoxBody = http_body_util::combinators::BoxBody<bytes::Bytes, ProxyError>;
 
 trait StreamHandler: Send + Sync {
-    fn handle(&self, stream: ferrotunnel_core::stream::multiplexer::VirtualStream);
+    fn handle(&self, stream: ferrotunnel_core::stream::VirtualStream);
 }
 
 impl<L> StreamHandler for ferrotunnel_http::HttpProxy<L>
@@ -35,7 +35,7 @@ where
         + 'static,
     <L::Service as tower::Service<hyper::Request<hyper::body::Incoming>>>::Future: Send,
 {
-    fn handle(&self, stream: ferrotunnel_core::stream::multiplexer::VirtualStream) {
+    fn handle(&self, stream: ferrotunnel_core::stream::VirtualStream) {
         self.handle_stream(stream);
     }
 }

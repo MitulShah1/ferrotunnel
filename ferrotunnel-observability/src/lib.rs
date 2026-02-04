@@ -4,7 +4,9 @@ pub mod tracing;
 #[cfg(feature = "dashboard")]
 pub mod dashboard;
 
-pub use metrics::{gather_metrics, init_metrics, metrics_enabled, REGISTRY};
+pub use metrics::{
+    gather_metrics, init_metrics, metrics_enabled, tunnel_metrics, TunnelMetrics, REGISTRY,
+};
 pub use tracing::{init_tracing, shutdown_tracing, TracingConfig};
 
 /// Basic initialization for minimal overhead

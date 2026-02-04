@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use ferrotunnel_core::stream::multiplexer::VirtualStream;
+use ferrotunnel_core::stream::VirtualStream;
 use ferrotunnel_core::transport::socket_tuning::configure_socket_silent;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Incoming;

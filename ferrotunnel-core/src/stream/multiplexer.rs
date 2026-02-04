@@ -11,7 +11,7 @@ use bytes::Bytes;
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use ferrotunnel_common::Result;
-use ferrotunnel_protocol::frame::{Frame, OpenStreamFrame, Protocol};
+use ferrotunnel_protocol::frame::{Frame, OpenStreamFrame, Protocol, StreamPriority};
 use kanal::{bounded_async, AsyncReceiver, AsyncSender, ReceiveError, SendError};
 use std::io;
 use std::pin::Pin;
@@ -33,6 +33,9 @@ const NEW_STREAM_QUEUE_CAPACITY: usize = 32;
 
 type CachedSender = (u32, AsyncSender<Result<Frame>>);
 
+/// Channel item for the batched sender: priority (send order) and frame.
+pub type PrioritizedFrame = (StreamPriority, Frame);
+
 /// Manages multiple virtual streams over a single connection
 ///
 /// Uses lock-free data structures for high-concurrency performance:
@@ -43,16 +46,18 @@ type CachedSender = (u32, AsyncSender<Result<Frame>>);
 #[derive(Clone, Debug)]
 pub struct Multiplexer {
     streams: Arc<DashMap<u32, AsyncSender<Result<Frame>>>>,
+    /// Stream priority for send scheduling (cleaned on CloseStream).
+    stream_priorities: Arc<DashMap<u32, StreamPriority>>,
     last_sender: Arc<Mutex<Option<CachedSender>>>,
     next_stream_id: Arc<AtomicU32>,
-    frame_tx: AsyncSender<Frame>,
+    frame_tx: AsyncSender<PrioritizedFrame>,
     new_stream_tx: AsyncSender<VirtualStream>,
     buffer_pool: ReadBufferPool,
 }
 
 impl Multiplexer {
     pub fn new(
-        frame_tx: AsyncSender<Frame>,
+        frame_tx: AsyncSender<PrioritizedFrame>,
         is_client: bool,
     ) -> (Self, AsyncReceiver<VirtualStream>) {
         let (new_stream_tx, new_stream_rx) = bounded_async(NEW_STREAM_QUEUE_CAPACITY);
@@ -60,6 +65,7 @@ impl Multiplexer {
         (
             Self {
                 streams: Arc::new(DashMap::new()),
+                stream_priorities: Arc::new(DashMap::new()),
                 last_sender: Arc::new(Mutex::new(None)),
                 next_stream_id: Arc::new(AtomicU32::new(initial_stream_id)),
                 frame_tx,
@@ -68,6 +74,23 @@ impl Multiplexer {
             },
             new_stream_rx,
         )
+    }
+
+    /// Priority for a frame when sending (used by batched sender order).
+    fn priority_for_frame(
+        frame: &Frame,
+        priorities: &DashMap<u32, StreamPriority>,
+    ) -> StreamPriority {
+        match frame {
+            Frame::Data { stream_id, .. } => priorities
+                .get(stream_id)
+                .map_or(StreamPriority::Normal, |r| *r),
+            Frame::Heartbeat { .. } | Frame::HandshakeAck { .. } => StreamPriority::Critical,
+            Frame::CloseStream { stream_id, .. } => priorities
+                .get(stream_id)
+                .map_or(StreamPriority::Normal, |r| *r),
+            _ => StreamPriority::Normal,
+        }
     }
 
     /// Get the buffer pool for reusing read buffers
@@ -81,10 +104,11 @@ impl Multiplexer {
         self.next_stream_id.fetch_add(2, Ordering::Relaxed)
     }
 
-    /// Send a frame directly to the wire
+    /// Send a frame directly to the wire (priority derived from frame type and stream).
     pub async fn send_frame(&self, frame: Frame) -> Result<()> {
+        let priority = Self::priority_for_frame(&frame, &self.stream_priorities);
         self.frame_tx
-            .send(frame)
+            .send((priority, frame))
             .await
             .map_err(|e| io::Error::new(io::ErrorKind::BrokenPipe, e.to_string()).into())
     }
@@ -97,6 +121,7 @@ impl Multiplexer {
         match &frame {
             Frame::OpenStream(open_stream) => {
                 let stream_id = open_stream.stream_id;
+                let priority = open_stream.priority;
                 // P1.2: Use larger channel capacity
                 let (tx, rx) = bounded_async(STREAM_CHANNEL_CAPACITY);
 
@@ -109,12 +134,14 @@ impl Multiplexer {
                         entry.insert(tx);
                     }
                 }
+                self.stream_priorities.insert(stream_id, priority);
 
                 let read_buffer = self.buffer_pool.try_acquire().unwrap_or_default();
-                let stream = VirtualStream::new_with_buffer(
+                let stream = VirtualStream::new(
                     stream_id,
                     rx,
                     self.frame_tx.clone(),
+                    priority,
                     read_buffer,
                     self.buffer_pool.clone(),
                     open_stream.protocol,
@@ -150,8 +177,8 @@ impl Multiplexer {
                     // Best effort delivery of close frame
                     let _ = tx.send(Ok(frame)).await;
                 }
-                // Always remove the stream on close
                 self.streams.remove(&stream_id);
+                self.stream_priorities.remove(&stream_id);
             }
             _ => {}
         }
@@ -175,29 +202,44 @@ impl Multiplexer {
         Some(tx)
     }
 
-    /// Open a new outbound stream
+    /// Open a new outbound stream with default priority.
     pub async fn open_stream(&self, protocol: Protocol) -> Result<VirtualStream> {
+        self.open_stream_with_priority(protocol, StreamPriority::default())
+            .await
+    }
+
+    /// Open a new outbound stream with the given priority (for QoS scheduling).
+    pub async fn open_stream_with_priority(
+        &self,
+        protocol: Protocol,
+        priority: StreamPriority,
+    ) -> Result<VirtualStream> {
         let stream_id = self.allocate_stream_id();
 
-        // P1.2: Use larger channel capacity
         let (tx, rx) = bounded_async(STREAM_CHANNEL_CAPACITY);
         self.streams.insert(stream_id, tx);
 
+        self.stream_priorities.insert(stream_id, priority);
         self.frame_tx
-            .send(Frame::OpenStream(Box::new(OpenStreamFrame {
-                stream_id,
-                protocol,
-                headers: vec![],
-                body_hint: None,
-            })))
+            .send((
+                priority,
+                Frame::OpenStream(Box::new(OpenStreamFrame {
+                    stream_id,
+                    protocol,
+                    headers: vec![],
+                    body_hint: None,
+                    priority,
+                })),
+            ))
             .await
             .map_err(|e| io::Error::new(io::ErrorKind::BrokenPipe, e.to_string()))?;
 
         let read_buffer = self.buffer_pool.try_acquire().unwrap_or_default();
-        Ok(VirtualStream::new_with_buffer(
+        Ok(VirtualStream::new(
             stream_id,
             rx,
             self.frame_tx.clone(),
+            priority,
             read_buffer,
             self.buffer_pool.clone(),
             protocol,
@@ -233,7 +275,8 @@ type SendFuture =
 pub struct VirtualStream {
     stream_id: u32,
     rx: AsyncReceiver<Result<Frame>>,
-    tx: AsyncSender<Frame>,
+    tx: AsyncSender<PrioritizedFrame>,
+    priority: StreamPriority,
     read_buffer: Vec<u8>,
     read_buffer_bytes: Option<Bytes>,
     /// P3.3: Cursor position in read_buffer (avoids O(n) drain)
@@ -260,33 +303,12 @@ impl std::fmt::Debug for VirtualStream {
 }
 
 impl VirtualStream {
-    /// Create a new `VirtualStream` without pooling (for backward compatibility)
+    /// Create a new `VirtualStream` with a pooled read buffer.
     pub fn new(
         stream_id: u32,
         rx: AsyncReceiver<Result<Frame>>,
-        tx: AsyncSender<Frame>,
-        protocol: Protocol,
-    ) -> Self {
-        Self {
-            stream_id,
-            rx,
-            tx,
-            read_buffer: Vec::new(),
-            read_buffer_bytes: None,
-            read_buffer_pos: 0,
-            buffer_pool: None,
-            pending_recv: None,
-            pending_send: None,
-            pending_send_len: 0,
-            protocol,
-        }
-    }
-
-    /// Create a new `VirtualStream` with a pooled buffer
-    pub fn new_with_buffer(
-        stream_id: u32,
-        rx: AsyncReceiver<Result<Frame>>,
-        tx: AsyncSender<Frame>,
+        tx: AsyncSender<PrioritizedFrame>,
+        priority: StreamPriority,
         read_buffer: Vec<u8>,
         buffer_pool: ReadBufferPool,
         protocol: Protocol,
@@ -295,6 +317,7 @@ impl VirtualStream {
             stream_id,
             rx,
             tx,
+            priority,
             read_buffer,
             read_buffer_bytes: None,
             read_buffer_pos: 0,
@@ -439,11 +462,12 @@ impl AsyncWrite for VirtualStream {
             data,
             end_of_stream: false,
         };
+        let priority = self.priority;
 
         let tx = self.tx.clone();
         // P3.1: Store length instead of frame, move frame into future
         self.pending_send_len = chunk_size;
-        self.pending_send = Some(Box::pin(async move { tx.send(frame).await }));
+        self.pending_send = Some(Box::pin(async move { tx.send((priority, frame)).await }));
 
         // Poll the new future (we set it in the block above)
         let fut = match self.pending_send.as_mut() {
@@ -488,9 +512,10 @@ impl AsyncWrite for VirtualStream {
             stream_id: self.stream_id,
             reason: ferrotunnel_protocol::frame::CloseReason::Normal,
         };
+        let priority = self.priority;
 
         let tx = self.tx.clone();
-        self.pending_send = Some(Box::pin(async move { tx.send(frame).await }));
+        self.pending_send = Some(Box::pin(async move { tx.send((priority, frame)).await }));
 
         let fut = match self.pending_send.as_mut() {
             Some(f) => f,

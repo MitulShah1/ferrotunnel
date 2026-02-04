@@ -2,8 +2,10 @@
 #![allow(clippy::cast_possible_truncation)]
 use bytes::Bytes;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use ferrotunnel_core::stream::PrioritizedFrame;
 use ferrotunnel_core::transport::batched_sender::run_batched_sender;
 use ferrotunnel_protocol::codec::TunnelCodec;
+use ferrotunnel_protocol::frame::StreamPriority;
 use ferrotunnel_protocol::Frame;
 use kanal::bounded_async;
 use tokio::io::{duplex, AsyncReadExt};
@@ -19,7 +21,7 @@ fn bench_batched_sender_throughput(c: &mut Criterion) {
             b.to_async(&rt).iter_custom(|iters| {
                 async move {
                     // Setup pipeline
-                    let (frame_tx, frame_rx) = bounded_async::<Frame>(100);
+                    let (frame_tx, frame_rx) = bounded_async::<PrioritizedFrame>(100);
                     let (writer, mut reader) = duplex(65536); // Pipe buffer size
 
                     // Spawn batched sender
@@ -45,7 +47,10 @@ fn bench_batched_sender_throughput(c: &mut Criterion) {
                             data: payload.clone(), // Cheap clone (ref count increment)
                             end_of_stream: false,
                         };
-                        frame_tx.send(frame).await.unwrap();
+                        frame_tx
+                            .send((StreamPriority::Normal, frame))
+                            .await
+                            .unwrap();
                     }
 
                     // Close channel and wait for flush
