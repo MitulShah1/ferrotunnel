@@ -1,5 +1,5 @@
 use crate::auth::validate_token_format;
-use crate::stream::multiplexer::{Multiplexer, VirtualStream};
+use crate::stream::{Multiplexer, PrioritizedFrame, VirtualStream};
 use crate::transport::batched_sender::run_batched_sender;
 use crate::transport::{self, TransportConfig};
 use ferrotunnel_common::{Result, TunnelError};
@@ -9,7 +9,7 @@ use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
 use futures::{SinkExt, StreamExt};
 use kanal::bounded_async;
 use std::future::Future;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::time::interval;
 use tokio_util::codec::Framed;
 use tracing::{error, info};
@@ -231,7 +231,7 @@ impl TunnelClient {
                 .extend_from_slice(&parts.read_buf);
         }
 
-        let (frame_tx, frame_rx) = bounded_async::<Frame>(1024);
+        let (frame_tx, frame_rx) = bounded_async::<PrioritizedFrame>(1024);
         tokio::spawn(run_batched_sender(frame_rx, write_half, parts.codec));
 
         let (multiplexer, new_stream_rx) = Multiplexer::new(frame_tx, true);
@@ -254,6 +254,8 @@ impl TunnelClient {
         let mut heartbeat_interval = interval(Duration::from_secs(30));
 
         loop {
+            #[cfg_attr(not(feature = "metrics"), allow(unused_variables))]
+            let decode_start = Instant::now();
             tokio::select! {
                 _ = heartbeat_interval.tick() => {
                     #[allow(clippy::cast_possible_truncation)]
@@ -268,8 +270,21 @@ impl TunnelClient {
                 }
                 result = split_stream.next() => {
                     match result {
-                        Some(Ok(Frame::HeartbeatAck { .. })) => {}
+                        Some(Ok(Frame::HeartbeatAck { .. })) => {
+                            #[cfg(feature = "metrics")]
+                            if let Some(m) = ferrotunnel_observability::tunnel_metrics() {
+                                m.record_decode(1, 0, decode_start.elapsed());
+                            }
+                        }
                         Some(Ok(frame)) => {
+                            #[cfg(feature = "metrics")]
+                            if let Some(m) = ferrotunnel_observability::tunnel_metrics() {
+                                let bytes = match &frame {
+                                    Frame::Data { data, .. } => data.len(),
+                                    _ => 0,
+                                };
+                                m.record_decode(1, bytes, decode_start.elapsed());
+                            }
                             if let Err(e) = multiplexer.process_frame(frame).await {
                                 error!("Multiplexer error: {}", e);
                             }

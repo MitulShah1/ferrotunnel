@@ -1,10 +1,9 @@
 use crate::auth::{constant_time_eq, validate_token_format};
 use crate::resource_limits::{ServerResourceLimits, SessionPermit};
-use crate::stream::multiplexer::Multiplexer;
+use crate::stream::{Multiplexer, PrioritizedFrame};
 use crate::transport::batched_sender::run_batched_sender;
 use crate::transport::{self, BoxedStream, TransportConfig};
-use crate::tunnel::session::Session;
-use crate::tunnel::session::SessionStore;
+use crate::tunnel::session::{Session, SessionStoreBackend, ShardedSessionStore};
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::constants::{MAX_PROTOCOL_VERSION, MIN_PROTOCOL_VERSION};
@@ -12,7 +11,7 @@ use ferrotunnel_protocol::frame::{Frame, HandshakeFrame, HandshakeStatus};
 use futures::{SinkExt, StreamExt};
 use kanal::bounded_async;
 use std::net::SocketAddr;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::net::TcpListener;
 use tokio_util::codec::Framed;
 use tracing::{error, info, warn};
@@ -21,7 +20,7 @@ use uuid::Uuid;
 pub struct TunnelServer {
     addr: SocketAddr,
     auth_token: String,
-    sessions: SessionStore,
+    sessions: SessionStoreBackend,
     session_timeout: Duration,
     resource_limits: ServerResourceLimits,
     transport_config: TransportConfig,
@@ -32,11 +31,18 @@ impl TunnelServer {
         Self {
             addr,
             auth_token,
-            sessions: SessionStore::new(),
+            sessions: SessionStoreBackend::default(),
             session_timeout: Duration::from_secs(90),
             resource_limits: ServerResourceLimits::default(),
             transport_config: TransportConfig::default(),
         }
+    }
+
+    /// Use a sharded session store for lower contention under many concurrent tunnel_id lookups.
+    #[must_use]
+    pub fn with_sharded_sessions(mut self, n_shards: usize) -> Self {
+        self.sessions = SessionStoreBackend::Sharded(ShardedSessionStore::with_shards(n_shards));
+        self
     }
 
     #[must_use]
@@ -93,7 +99,7 @@ impl TunnelServer {
         self
     }
 
-    pub fn sessions(&self) -> SessionStore {
+    pub fn sessions(&self) -> SessionStoreBackend {
         self.sessions.clone()
     }
 
@@ -151,7 +157,7 @@ impl TunnelServer {
     async fn handle_connection(
         stream: BoxedStream,
         addr: SocketAddr,
-        sessions: SessionStore,
+        sessions: SessionStoreBackend,
         expected_token: String,
         _session_permit: SessionPermit,
     ) -> Result<()> {
@@ -234,7 +240,7 @@ impl TunnelServer {
                         stream.read_buffer_mut().extend_from_slice(&parts.read_buf);
                     }
 
-                    let (frame_tx, frame_rx) = bounded_async::<Frame>(1024);
+                    let (frame_tx, frame_rx) = bounded_async::<PrioritizedFrame>(1024);
 
                     // Spawn batched sender task for vectored I/O performance
                     tokio::spawn(run_batched_sender(frame_rx, write_half, parts.codec));
@@ -299,11 +305,24 @@ impl TunnelServer {
     async fn process_messages(
         mut stream: tokio_util::codec::FramedRead<tokio::io::ReadHalf<BoxedStream>, TunnelCodec>,
         session_id: Uuid,
-        sessions: SessionStore,
+        sessions: SessionStoreBackend,
         multiplexer: Multiplexer,
     ) -> Result<()> {
-        while let Some(result) = stream.next().await {
-            let frame = result?;
+        loop {
+            #[cfg_attr(not(feature = "metrics"), allow(unused_variables))]
+            let decode_start = Instant::now();
+            let result = stream.next().await;
+            let Some(frame_result) = result else { break };
+            let frame = frame_result?;
+
+            #[cfg(feature = "metrics")]
+            if let Some(m) = ferrotunnel_observability::tunnel_metrics() {
+                let bytes = match &frame {
+                    Frame::Data { data, .. } => data.len(),
+                    _ => 0,
+                };
+                m.record_decode(1, bytes, decode_start.elapsed());
+            }
 
             // Update heartbeat for any activity
             if let Some(mut session) = sessions.get_mut(&session_id) {

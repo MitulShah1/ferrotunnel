@@ -17,7 +17,7 @@ doc = false
 
 [dependencies]
 # Core functionality
-ferrotunnel-core = { version = "0.1.0", path = "../ferrotunnel-core" }
+ferrotunnel-core = { version = "0.1.0", path = "../ferrotunnel-core", features = ["metrics"] }
 ferrotunnel-http = { version = "0.1.0", path = "../ferrotunnel-http" }
 ferrotunnel-protocol = { version = "0.1.0", path = "../ferrotunnel-protocol" }
 ferrotunnel-plugin = { version = "0.1.0", path = "../ferrotunnel-plugin" }

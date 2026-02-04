@@ -22,9 +22,10 @@ This crate provides the core tunnel logic:
 - **TunnelServer** - Listens for connections, authenticates clients, manages sessions
 
 ### Stream
-- **Multiplexer** - Multiplexes virtual streams over one TCP connection
-- **VirtualStream** - AsyncRead/AsyncWrite implementation for tunneled data
-- **Bytes pool** - Thread-local buffer pooling for zero-copy transfers (configurable via env)
+- **Multiplexer** - Multiplexes virtual streams over one TCP connection; frames are sent in priority order (Critical → High → Normal → Low).
+- **VirtualStream** - AsyncRead/AsyncWrite implementation for tunneled data; created with a stream priority for QoS.
+- **open_stream** / **open_stream_with_priority** - Open streams with default or specified priority.
+- **Bytes pool** - Thread-local buffer pooling for zero-copy transfers (configurable via env).
 
 ### Transport
 - **TCP transport** - Standard TCP connection
