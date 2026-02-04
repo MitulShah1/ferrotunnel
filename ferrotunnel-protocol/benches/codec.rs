@@ -9,7 +9,7 @@ use bytes::{Bytes, BytesMut};
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::frame::{
-    Frame, HandshakeFrame, HandshakeStatus, OpenStreamFrame, Protocol,
+    Frame, HandshakeFrame, HandshakeStatus, OpenStreamFrame, Protocol, StreamPriority,
 };
 use std::collections::HashMap;
 use tokio_util::codec::{Decoder, Encoder};
@@ -52,6 +52,7 @@ fn create_test_frames() -> Vec<(&'static str, Frame)> {
                     ("Content-Type".to_string(), "application/json".to_string()),
                 ],
                 body_hint: Some(1024),
+                priority: StreamPriority::default(),
             })),
         ),
         (

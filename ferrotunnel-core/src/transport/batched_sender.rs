@@ -8,13 +8,14 @@
 //! - Only batch when under sustained load (reduces latency for interactive use)
 //! - Removed unnecessary flush() for raw TCP (TCP_NODELAY handles it)
 
+use crate::stream::PrioritizedFrame;
 use bytes::{BufMut, Bytes, BytesMut};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::Frame;
 use kanal::AsyncReceiver;
 use std::io;
 use std::io::IoSlice;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 use tokio::time::timeout;
 use tokio_util::codec::Encoder;
@@ -32,6 +33,7 @@ const BATCH_TIMEOUT_MICROS: u64 = 50;
 const MIN_FRAMES_FOR_BATCHING: usize = 2;
 
 /// Spawns a batched sender task that collects frames and flushes them together.
+/// Frames are drained in priority order (Critical → High → Normal → Low).
 ///
 /// With length-prefixed framing, each frame is encoded with a header. Data
 /// frames use vectored writes to avoid copying payload bytes.
@@ -41,7 +43,7 @@ const MIN_FRAMES_FOR_BATCHING: usize = 2;
 /// - Short timeout (50µs) balances latency vs throughput
 /// - Single frame: flush immediately (no wait)
 pub async fn run_batched_sender<W>(
-    frame_rx: AsyncReceiver<Frame>,
+    frame_rx: AsyncReceiver<PrioritizedFrame>,
     mut writer: W,
     mut codec: TunnelCodec,
 ) where
@@ -55,8 +57,8 @@ pub async fn run_batched_sender<W>(
         encoded_segments.clear();
 
         // Wait for first frame
-        if let Ok(frame) = frame_rx.recv().await {
-            frames.push(frame);
+        if let Ok(pf) = frame_rx.recv().await {
+            frames.push(pf);
         } else {
             break;
         }
@@ -64,7 +66,7 @@ pub async fn run_batched_sender<W>(
         // Try to collect more frames without blocking (non-blocking drain)
         while frames.len() < MAX_BATCH_SIZE {
             match frame_rx.try_recv() {
-                Ok(Some(frame)) => frames.push(frame),
+                Ok(Some(pf)) => frames.push(pf),
                 Ok(None) | Err(_) => break,
             }
         }
@@ -73,7 +75,7 @@ pub async fn run_batched_sender<W>(
         // This improves throughput under load while keeping latency low
         if frames.len() >= MIN_FRAMES_FOR_BATCHING && frames.len() < MAX_BATCH_SIZE {
             let deadline = Duration::from_micros(BATCH_TIMEOUT_MICROS);
-            let start = std::time::Instant::now();
+            let start = Instant::now();
 
             while frames.len() < MAX_BATCH_SIZE {
                 let remaining = deadline.saturating_sub(start.elapsed());
@@ -81,17 +83,34 @@ pub async fn run_batched_sender<W>(
                     break;
                 }
                 match timeout(remaining, frame_rx.recv()).await {
-                    Ok(Ok(frame)) => frames.push(frame),
+                    Ok(Ok(pf)) => frames.push(pf),
                     _ => break,
                 }
             }
         }
 
+        // Send in priority order: Critical first, then High, Normal, Low
+        frames.sort_by_key(|(p, _)| p.drain_order());
+
+        let n_frames = frames.len();
+
+        #[cfg(feature = "metrics")]
+        if let Some(m) = ferrotunnel_observability::tunnel_metrics() {
+            m.set_queue_depth(n_frames);
+        }
+
+        let encode_start = Instant::now();
         // Encode all frames using vectored writes for zero-copy data frames
-        for frame in frames.drain(..) {
+        for (_priority, frame) in frames.drain(..) {
             if let Err(e) = encode_frame_segments(&mut codec, frame, &mut encoded_segments) {
                 warn!("Skipping invalid frame: {}", e);
             }
+        }
+        let encoded_bytes: usize = encoded_segments.iter().map(Bytes::len).sum();
+
+        #[cfg(feature = "metrics")]
+        if let Some(m) = ferrotunnel_observability::tunnel_metrics() {
+            m.record_encode(n_frames, encoded_bytes, encode_start.elapsed());
         }
 
         // Write to socket using vectored I/O
@@ -212,20 +231,30 @@ mod tests {
     use super::*;
     use bytes::Bytes;
     use ferrotunnel_protocol::codec::TunnelCodec;
+    use ferrotunnel_protocol::frame::StreamPriority;
     use kanal::bounded_async;
     use tokio::io::duplex;
     use tokio::io::AsyncReadExt;
 
+    fn pf(priority: StreamPriority, frame: Frame) -> PrioritizedFrame {
+        (priority, frame)
+    }
+
     #[tokio::test]
     async fn test_batched_sender_single_frame() {
-        let (tx, rx) = bounded_async::<Frame>(10);
+        let (tx, rx) = bounded_async::<PrioritizedFrame>(10);
         let (writer, mut reader) = duplex(8192);
 
         tokio::spawn(async move {
             run_batched_sender(rx, writer, TunnelCodec::new()).await;
         });
 
-        tx.send(Frame::Heartbeat { timestamp: 123 }).await.unwrap();
+        tx.send(pf(
+            StreamPriority::Normal,
+            Frame::Heartbeat { timestamp: 123 },
+        ))
+        .await
+        .unwrap();
         drop(tx);
 
         // Verify we can read something (basic check)
@@ -236,7 +265,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_batched_sender_multiple_frames() {
-        let (tx, rx) = bounded_async::<Frame>(10);
+        let (tx, rx) = bounded_async::<PrioritizedFrame>(10);
         let (writer, mut reader) = duplex(8192);
 
         tokio::spawn(async move {
@@ -244,7 +273,12 @@ mod tests {
         });
 
         for i in 0..5 {
-            tx.send(Frame::Heartbeat { timestamp: i }).await.unwrap();
+            tx.send(pf(
+                StreamPriority::Normal,
+                Frame::Heartbeat { timestamp: i },
+            ))
+            .await
+            .unwrap();
         }
         drop(tx);
 
@@ -256,7 +290,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_batched_sender_data_frames() {
-        let (tx, rx) = bounded_async::<Frame>(10);
+        let (tx, rx) = bounded_async::<PrioritizedFrame>(10);
         let (writer, mut reader) = duplex(65536);
 
         tokio::spawn(async move {
@@ -264,11 +298,14 @@ mod tests {
         });
 
         for i in 0..3 {
-            tx.send(Frame::Data {
-                stream_id: i,
-                data: Bytes::from("test data"),
-                end_of_stream: false,
-            })
+            tx.send(pf(
+                StreamPriority::Normal,
+                Frame::Data {
+                    stream_id: i,
+                    data: Bytes::from("test data"),
+                    end_of_stream: false,
+                },
+            ))
             .await
             .unwrap();
         }
@@ -282,15 +319,20 @@ mod tests {
     #[tokio::test]
     async fn test_immediate_flush_single_frame() {
         // Test that single frames are flushed immediately (no timeout delay)
-        let (tx, rx) = bounded_async::<Frame>(10);
+        let (tx, rx) = bounded_async::<PrioritizedFrame>(10);
         let (writer, mut reader) = duplex(8192);
 
         tokio::spawn(async move {
             run_batched_sender(rx, writer, TunnelCodec::new()).await;
         });
 
-        let start = std::time::Instant::now();
-        tx.send(Frame::Heartbeat { timestamp: 1 }).await.unwrap();
+        let start = Instant::now();
+        tx.send(pf(
+            StreamPriority::Normal,
+            Frame::Heartbeat { timestamp: 1 },
+        ))
+        .await
+        .unwrap();
 
         // Should receive quickly (not waiting for batch timeout)
         let mut buf = [0u8; 100];

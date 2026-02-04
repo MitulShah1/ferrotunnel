@@ -7,6 +7,7 @@
 
 use bytes::Bytes;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use ferrotunnel_protocol::frame::StreamPriority;
 use ferrotunnel_protocol::{Frame, TunnelCodec};
 use kanal::bounded_async;
 use std::time::{Duration, Instant};
@@ -72,7 +73,7 @@ fn bench_batched_sender_latency(c: &mut Criterion) {
 
     c.bench_function("batched_sender_latency", |b| {
         b.to_async(&rt).iter_custom(|iters| async move {
-            let (tx, rx) = bounded_async::<Frame>(1000);
+            let (tx, rx) = bounded_async::<(StreamPriority, Frame)>(1000);
             let (writer, _reader) = duplex(1024 * 1024);
 
             // Spawn batched sender
@@ -91,7 +92,7 @@ fn bench_batched_sender_latency(c: &mut Criterion) {
                 let frame = Frame::Heartbeat { timestamp: 12345 };
 
                 let start = Instant::now();
-                tx.send(frame).await.unwrap();
+                tx.send((StreamPriority::Critical, frame)).await.unwrap();
 
                 // Wait for batch flush (approximation)
                 tokio::time::sleep(Duration::from_micros(50)).await;
@@ -115,7 +116,7 @@ fn bench_batched_sender_latency(c: &mut Criterion) {
 
 /// Measure multiplexer stream I/O latency
 fn bench_multiplexer_io_latency(c: &mut Criterion) {
-    use ferrotunnel_core::stream::multiplexer::Multiplexer;
+    use ferrotunnel_core::stream::Multiplexer;
     use ferrotunnel_protocol::frame::Protocol;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 

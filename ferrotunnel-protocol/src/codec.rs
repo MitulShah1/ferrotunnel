@@ -8,7 +8,7 @@
 //! This is similar to Rathole's approach and avoids COBS overhead.
 
 use crate::constants::MAX_FRAME_SIZE;
-use crate::frame::Frame;
+use crate::frame::{Frame, ZeroCopyFrame};
 use bytes::{Buf, BufMut, BytesMut};
 use std::io;
 use tokio_util::codec::{Decoder, Encoder};
@@ -65,6 +65,84 @@ impl TunnelCodec {
     #[inline]
     pub fn max_frame_size(&self) -> usize {
         self.max_frame_size
+    }
+
+    /// Decode as many complete frames as possible from `src`, appending to `out`.
+    /// Returns the number of bytes consumed from `src`. Call with the same `BytesMut` and
+    /// remaining bytes for incremental reading. Data frames are copied to owned `Frame`.
+    pub fn decode_batch(
+        &mut self,
+        src: &mut BytesMut,
+        out: &mut Vec<Frame>,
+    ) -> Result<usize, io::Error> {
+        let mut consumed = 0;
+        loop {
+            let before = src.len();
+            match self.decode(src)? {
+                Some(frame) => {
+                    consumed += before - src.len();
+                    out.push(frame);
+                }
+                None => break,
+            }
+        }
+        Ok(consumed)
+    }
+
+    /// Parse data frames from `buf` without copying payload (zero-copy).
+    /// Only complete data frames are returned; control frames are skipped (caller should use
+    /// `decode` for mixed frames). Returns (bytes consumed, zero-copy data frames).
+    pub fn decode_data_frames_zerocopy<'a>(
+        &self,
+        buf: &'a [u8],
+        out: &mut Vec<ZeroCopyFrame<'a>>,
+    ) -> Result<usize, io::Error> {
+        let max_frame_size = self.max_frame_size;
+        let mut offset = 0;
+        while offset + HEADER_SIZE <= buf.len() {
+            let length = u32::from_be_bytes([
+                buf[offset],
+                buf[offset + 1],
+                buf[offset + 2],
+                buf[offset + 3],
+            ]) as usize;
+            if length == 0 || length > max_frame_size {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Invalid frame length: {}", length),
+                ));
+            }
+            let total_size = 4 + length;
+            if buf.len() < offset + total_size {
+                break;
+            }
+            let frame_type = buf[offset + 4];
+            if frame_type == FRAME_TYPE_DATA {
+                // type(1) + stream_id(4) + flags(1) = 6
+                if length < 6 {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "Data frame payload too short",
+                    ));
+                }
+                let stream_id = u32::from_be_bytes([
+                    buf[offset + 5],
+                    buf[offset + 6],
+                    buf[offset + 7],
+                    buf[offset + 8],
+                ]);
+                let flags = buf[offset + 9];
+                let fin = (flags & FLAG_EOS) != 0;
+                let data = &buf[offset + 10..offset + total_size];
+                out.push(ZeroCopyFrame::Data {
+                    stream_id,
+                    data,
+                    fin,
+                });
+            }
+            offset += total_size;
+        }
+        Ok(offset)
     }
 }
 
@@ -387,5 +465,68 @@ mod tests {
         buf.put_u8(FRAME_TYPE_CONTROL);
         let result = codec.decode(&mut buf);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decode_batch() {
+        let mut codec = TunnelCodec::new();
+        let mut buf = BytesMut::new();
+        codec
+            .encode(Frame::Heartbeat { timestamp: 1 }, &mut buf)
+            .unwrap();
+        codec
+            .encode(Frame::Heartbeat { timestamp: 2 }, &mut buf)
+            .unwrap();
+        codec
+            .encode(Frame::Heartbeat { timestamp: 3 }, &mut buf)
+            .unwrap();
+        let total_len = buf.len();
+
+        let mut out = Vec::new();
+        let consumed = codec.decode_batch(&mut buf, &mut out).unwrap();
+        assert_eq!(consumed, total_len);
+        assert_eq!(out.len(), 3);
+        assert!(matches!(out[0], Frame::Heartbeat { timestamp: 1 }));
+        assert!(matches!(out[1], Frame::Heartbeat { timestamp: 2 }));
+        assert!(matches!(out[2], Frame::Heartbeat { timestamp: 3 }));
+    }
+
+    #[test]
+    fn test_decode_data_frames_zerocopy() {
+        use crate::frame::ZeroCopyFrame;
+        let codec = TunnelCodec::new();
+        let mut wire = BytesMut::new();
+        wire.put_u32(6 + 4); // length: type(1)+stream_id(4)+flags(1)+data(4)=10, so 10
+        wire.put_u8(FRAME_TYPE_DATA);
+        wire.put_u32(42);
+        wire.put_u8(FLAG_EOS);
+        wire.extend_from_slice(b"abcd");
+
+        let mut out = Vec::new();
+        let consumed = codec
+            .decode_data_frames_zerocopy(wire.as_ref(), &mut out)
+            .unwrap();
+        assert_eq!(consumed, 4 + 10);
+        assert_eq!(out.len(), 1);
+        match &out[0] {
+            ZeroCopyFrame::Data {
+                stream_id,
+                data,
+                fin,
+            } => {
+                assert_eq!(*stream_id, 42);
+                assert_eq!(*data, b"abcd");
+                assert!(*fin);
+            }
+        }
+        let owned = out[0].to_owned();
+        assert!(matches!(
+            owned,
+            Frame::Data {
+                stream_id: 42,
+                end_of_stream: true,
+                ..
+            }
+        ));
     }
 }

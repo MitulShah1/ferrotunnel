@@ -11,6 +11,7 @@
 
 use bytes::Bytes;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use ferrotunnel_protocol::frame::StreamPriority;
 use ferrotunnel_protocol::{Frame, TunnelCodec};
 use futures_util::{SinkExt, StreamExt};
 use kanal::bounded_async;
@@ -110,7 +111,7 @@ fn bench_batched_sender(c: &mut Criterion) {
             &batch_size,
             |b, &batch_size| {
                 b.to_async(&rt).iter(|| async move {
-                    let (tx, rx) = bounded_async::<Frame>(batch_size * 2);
+                    let (tx, rx) = bounded_async::<(StreamPriority, Frame)>(batch_size * 2);
                     let (writer, _reader) = duplex(128 * 1024);
 
                     // Spawn batched sender
@@ -130,7 +131,7 @@ fn bench_batched_sender(c: &mut Criterion) {
                             data: Bytes::from(vec![0u8; 1024]),
                             end_of_stream: false,
                         };
-                        tx.send(frame).await.unwrap();
+                        tx.send((StreamPriority::Normal, frame)).await.unwrap();
                     }
 
                     // Give time for batch to flush
@@ -145,14 +146,14 @@ fn bench_batched_sender(c: &mut Criterion) {
 
 /// Benchmark multiplexer stream creation
 fn bench_multiplexer_stream_creation(c: &mut Criterion) {
-    use ferrotunnel_core::stream::multiplexer::Multiplexer;
+    use ferrotunnel_core::stream::{Multiplexer, PrioritizedFrame};
     use ferrotunnel_protocol::frame::Protocol;
 
     let rt = Runtime::new().unwrap();
 
     c.bench_function("multiplexer_stream_creation", |b| {
         b.to_async(&rt).iter(|| async {
-            let (tx, _rx) = bounded_async(100);
+            let (tx, _rx) = bounded_async::<PrioritizedFrame>(100);
             let (mux, _new_stream_rx) = Multiplexer::new(tx, true);
 
             // Create 10 streams
@@ -165,7 +166,7 @@ fn bench_multiplexer_stream_creation(c: &mut Criterion) {
 
 /// Benchmark complete round-trip through multiplexer
 fn bench_multiplexer_round_trip(c: &mut Criterion) {
-    use ferrotunnel_core::stream::multiplexer::Multiplexer;
+    use ferrotunnel_core::stream::{Multiplexer, PrioritizedFrame};
     use ferrotunnel_protocol::frame::Protocol;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -176,7 +177,7 @@ fn bench_multiplexer_round_trip(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
             b.to_async(&rt).iter(|| async {
-                let (frame_tx, _frame_rx) = bounded_async(100);
+                let (frame_tx, _frame_rx) = bounded_async::<PrioritizedFrame>(100);
                 let (mux, stream_rx) = Multiplexer::new(frame_tx, true);
 
                 // Simulate server-side accepting stream

@@ -1,9 +1,6 @@
 //! Transport layer abstraction for TCP and TLS
-
-pub mod batched_sender;
-pub mod socket_tuning;
-pub mod tcp;
-pub mod tls;
+//!
+//! For a transport-agnostic frame API (QUIC/HTTP2 ready), see [`FrameSender`] and [`FrameReceiver`].
 
 use std::io;
 use std::net::SocketAddr;
@@ -11,12 +8,27 @@ use std::pin::Pin;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpListener;
 
+pub mod batched_sender;
+pub mod frame_transport;
+pub mod socket_tuning;
+pub mod tcp;
+pub mod tcp_frame;
+pub mod tls;
+
+pub use frame_transport::{FrameConnectionSplit, FrameReceiver, FrameSender};
+pub use tcp_frame::{TcpFrameReceiver, TcpFrameSender};
+
 pub trait AsyncStream: AsyncRead + AsyncWrite + Send + Unpin {}
 
 impl<T: AsyncRead + AsyncWrite + Send + Unpin> AsyncStream for T {}
 
 pub type BoxedStream = Pin<Box<dyn AsyncStream>>;
 
+/// Transport selection for the control connection.
+///
+/// Future versions may extend this with `Quic(...)` (v0.4) or `Http2(...)` (v0.2);
+/// the same [`Frame`](ferrotunnel_protocol::Frame) protocol can run over any variant
+/// via [`FrameSender`] / [`FrameReceiver`].
 #[derive(Debug, Clone, Default)]
 pub enum TransportConfig {
     #[default]

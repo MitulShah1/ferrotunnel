@@ -50,6 +50,13 @@ kanal = "0.1"
 # Lock-free object pooling
 crossbeam-queue = "0.3"
 
+# Optional metrics (decode/encode latency, queue depth)
+ferrotunnel-observability = { version = "0.1.0", path = "../ferrotunnel-observability", optional = true }
+
+[features]
+default = []
+metrics = ["dep:ferrotunnel-observability"]
+
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
 

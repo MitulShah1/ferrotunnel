@@ -3,7 +3,7 @@
 #![allow(clippy::pedantic)]
 #![allow(unused_imports, unused_variables)]
 use criterion::{criterion_group, criterion_main, Criterion, Throughput};
-use ferrotunnel_core::stream::multiplexer::Multiplexer;
+use ferrotunnel_core::stream::Multiplexer;
 use ferrotunnel_protocol::frame::{Frame, Protocol};
 use kanal::bounded_async;
 use std::time::Duration;

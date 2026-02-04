@@ -5,6 +5,50 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+/// Stream priority (0 = lowest, 3 = highest). Used for QoS scheduling (e.g. control vs bulk).
+/// Ord is for send scheduling: Critical is sent first, then High, Normal, Low.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum StreamPriority {
+    #[default]
+    /// Default / best-effort
+    Normal = 0,
+    /// Low priority (bulk data)
+    Low = 1,
+    /// High priority (control, latency-sensitive)
+    High = 2,
+    /// Highest (e.g. heartbeats, critical control)
+    Critical = 3,
+}
+
+impl StreamPriority {
+    pub const fn as_u8(self) -> u8 {
+        self as u8
+    }
+
+    /// Drain order for the batched sender: lower value = sent first (Critical first, then High, Normal, Low).
+    pub const fn drain_order(self) -> u8 {
+        match self {
+            Self::Critical => 0,
+            Self::High => 1,
+            Self::Normal => 2,
+            Self::Low => 3,
+        }
+    }
+}
+
+impl PartialOrd for StreamPriority {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for StreamPriority {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.drain_order().cmp(&other.drain_order())
+    }
+}
+
 /// Stream open request payload - boxed to reduce Frame enum size
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct OpenStreamFrame {
@@ -12,6 +56,9 @@ pub struct OpenStreamFrame {
     pub protocol: Protocol,
     pub headers: Vec<(String, String)>,
     pub body_hint: Option<u64>,
+    /// Optional priority for scheduling (default Normal).
+    #[serde(default)]
+    pub priority: StreamPriority,
 }
 
 /// Handshake payload - boxed to reduce Frame enum size
@@ -139,6 +186,35 @@ pub enum CloseReason {
     Error(String),
     LocalServiceUnreachable,
     ProtocolViolation,
+}
+
+/// Zero-copy view of a data frame (borrows from parse buffer).
+/// Use in batch decode paths; convert to [`Frame`] with [`ZeroCopyFrame::to_owned`] when crossing task boundaries.
+#[derive(Debug, Clone, Copy)]
+pub enum ZeroCopyFrame<'a> {
+    Data {
+        stream_id: u32,
+        data: &'a [u8],
+        fin: bool,
+    },
+}
+
+impl ZeroCopyFrame<'_> {
+    /// Convert to owned [`Frame`] (copies data into [`bytes::Bytes`]).
+    #[inline]
+    pub fn to_owned(self) -> Frame {
+        match self {
+            ZeroCopyFrame::Data {
+                stream_id,
+                data,
+                fin,
+            } => Frame::Data {
+                stream_id,
+                data: Bytes::copy_from_slice(data),
+                end_of_stream: fin,
+            },
+        }
+    }
 }
 
 /// Error codes
