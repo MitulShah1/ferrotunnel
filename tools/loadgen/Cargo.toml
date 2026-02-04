@@ -51,4 +51,4 @@ linkedlist = "warn"
 
 # Optional: for memory tracking on Linux
 [target.'cfg(target_os = "linux")'.dependencies]
-procfs = "0.16"
+procfs = "0.18"
