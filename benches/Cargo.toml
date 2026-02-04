@@ -48,7 +48,7 @@ ferrotunnel-plugin = { path = "../ferrotunnel-plugin" }
 
 tokio = { workspace = true }
 tokio-util = { workspace = true }
-criterion = { version = "0.5", features = ["async_tokio"] }
+criterion = { version = "0.8", features = ["async_tokio"] }
 bytes = { workspace = true }
 rand = "0.8"
 bincode-next = { workspace = true }
