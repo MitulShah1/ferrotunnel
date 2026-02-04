@@ -74,7 +74,9 @@ pub async fn run(args: ServerArgs) -> Result<()> {
         let metrics_addr = args.metrics_bind;
         tokio::spawn(async move {
             use axum::{routing::get, Router};
-            let app = Router::new().route("/metrics", get(|| async { gather_metrics() }));
+            let app = Router::new()
+                .route("/metrics", get(|| async { gather_metrics() }))
+                .route("/health/ready", get(|| async { "OK" }));
             info!("Metrics server listening on http://{}", metrics_addr);
             match tokio::net::TcpListener::bind(metrics_addr).await {
                 Ok(listener) => {
@@ -108,6 +110,10 @@ pub async fn run(args: ServerArgs) -> Result<()> {
     }
     let sessions = server.sessions();
 
+    // Start Control Plane Service immediately (non-blocking)
+    info!("Starting Control Plane on {}", args.bind);
+    let server_handle = tokio::spawn(async move { server.run().await });
+
     info!("Initializing Plugin System");
     let mut registry = ferrotunnel_plugin::PluginRegistry::new();
 
@@ -122,16 +128,11 @@ pub async fn run(args: ServerArgs) -> Result<()> {
         ferrotunnel_plugin::builtin::TokenAuthPlugin::new(vec![args.token.clone()]),
     )));
 
-    // Initialize plugins
-    registry
-        .init_all()
-        .await
-        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
     let registry = std::sync::Arc::new(registry);
 
     info!("Starting HTTP Ingress on {}", args.http_bind);
     let http_ingress =
-        ferrotunnel_http::HttpIngress::new(args.http_bind, sessions.clone(), registry);
+        ferrotunnel_http::HttpIngress::new(args.http_bind, sessions.clone(), registry.clone());
     let http_handle = tokio::spawn(async move { http_ingress.start().await });
 
     // Start TCP Ingress (if enabled)
@@ -143,9 +144,16 @@ pub async fn run(args: ServerArgs) -> Result<()> {
         None
     };
 
+    // Initialize plugins (after binding ports to avoid "Connection Refused")
+    // Incoming requests will wait on the plugin lock if they arrive during init
+    registry
+        .init_all()
+        .await
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+
     // Run both services
     tokio::try_join!(
-        server.run(),
+        async { server_handle.await.map_err(std::io::Error::other)? },
         async { http_handle.await.map_err(std::io::Error::other)? },
         async {
             if let Some(h) = tcp_handle {

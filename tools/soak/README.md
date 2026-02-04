@@ -12,13 +12,28 @@ Soak testing tool for verifying long-term stability of FerroTunnel.
 
 ## Usage
 
+### 1. Start the Server
+The soak tool is a client that connects to a running FerroTunnel server. You must start the server first:
+
+```bash
+cargo run --release --bin ferrotunnel -- server --token my-secret-token --bind 127.0.0.1:7835
+```
+
+### 2. Run the Soak Test
+
+In a new terminal:
+
 ```bash
 # Run for 1 hour with 50 concurrent connections
 cargo run -p ferrotunnel-soak -- \
+    --tunnel-addr 127.0.0.1:7835 \
+    --token my-secret-token \
     --target 127.0.0.1:9999 \
     --concurrency 50 \
     --duration 60
 ```
+
+> **Note:** If you see `Connection refused` errors, it means the tool cannot reach the server at `127.0.0.1:7835`. Ensure the server is running and accessible.
 
 ### Arguments
 

@@ -1,6 +1,6 @@
 # Code of Conduct
 
-The FerroTunnel project adheres to the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct). This describes the minimum behavior expected from all contributors.
+The FerroTunnel project adheres to the [Rust Code of Conduct](https://rust-lang.org/policies/code-of-conduct/). This describes the minimum behavior expected from all contributors.
 
 ## Our Pledge
 
@@ -34,6 +34,10 @@ All complaints will be reviewed and investigated promptly and fairly.
 
 The project team is obligated to respect the privacy and security of the reporter of any incident.
 
+### Moderation
+
+To avoid confusion with the Rust project’s own moderation, we state our policy explicitly. Reports are handled by the FerroTunnel maintainers. We may respond with a warning, temporarily restrict participation (e.g. on GitHub), or permanently exclude someone, depending on severity and history. If you disagree with a moderation decision, please contact us **in private** (e.g. by email); we ask that complaints about moderation not be pursued in public issue threads or PRs.
+
 ## Attribution
 
-This Code of Conduct is adapted from the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct) and the [Contributor Covenant](https://www.contributor-covenant.org/version/2/0/code_of_conduct.html), version 2.0.
+This Code of Conduct is adapted from the [Rust Code of Conduct](https://rust-lang.org/policies/code-of-conduct/) and the [Contributor Covenant](https://www.contributor-covenant.org/version/2/0/code_of_conduct.html), version 2.0.

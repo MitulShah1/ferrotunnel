@@ -69,7 +69,7 @@ async fn test_rate_limit_enforces() {
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
     // 2 requests per second limit
-    let plugin = RateLimitPlugin::new(2);
+    let plugin = RateLimitPlugin::try_new(2).expect("valid rate limit");
 
     let mut request = http::Request::builder().uri("/test").body(()).unwrap();
 

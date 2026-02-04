@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     registry.register(Arc::new(RwLock::new(auth)));
 
     // Plugin 2: Rate limiting (10 requests per second per IP)
-    let rate_limit = RateLimitPlugin::new(10);
+    let rate_limit = RateLimitPlugin::try_new(10).expect("valid rate limit");
     registry.register(Arc::new(RwLock::new(rate_limit)));
 
     // Plugin 3: Request/response logging

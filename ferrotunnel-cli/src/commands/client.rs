@@ -1,6 +1,6 @@
 //! Client subcommand implementation
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use chrono::Utc;
 use clap::Args;
 use ferrotunnel_core::TunnelClient;
@@ -40,16 +40,44 @@ where
     }
 }
 
+/// TLS and connection feature flags (flattened into ClientArgs)
 #[derive(Args, Debug)]
 #[allow(clippy::struct_excessive_bools)]
+pub struct ClientFeatureArgs {
+    /// Dashboard port
+    #[arg(long, default_value = "4040", env = "FERROTUNNEL_DASHBOARD_PORT")]
+    pub dashboard_port: u16,
+
+    /// Disable dashboard
+    #[arg(long)]
+    pub no_dashboard: bool,
+
+    /// Enable TLS for server connection
+    #[arg(long, env = "FERROTUNNEL_TLS")]
+    pub tls: bool,
+
+    /// Skip TLS certificate verification (insecure, for self-signed certs)
+    #[arg(long, env = "FERROTUNNEL_TLS_SKIP_VERIFY")]
+    pub tls_skip_verify: bool,
+
+    /// Enable tracing (metrics is separate via --metrics)
+    #[arg(long, env = "FERROTUNNEL_OBSERVABILITY")]
+    pub observability: bool,
+
+    /// Enable metrics collection
+    #[arg(long, env = "FERROTUNNEL_METRICS")]
+    pub metrics: bool,
+}
+
+#[derive(Args, Debug)]
 pub struct ClientArgs {
     /// Server address (host:port)
     #[arg(long, env = "FERROTUNNEL_SERVER")]
     server: String,
 
-    /// Authentication token
+    /// Authentication token. If omitted, uses FERROTUNNEL_TOKEN env var, or prompts securely.
     #[arg(long, env = "FERROTUNNEL_TOKEN")]
-    token: String,
+    token: Option<String>,
 
     /// Log level
     #[arg(long, default_value = "info", env = "RUST_LOG")]
@@ -59,21 +87,8 @@ pub struct ClientArgs {
     #[arg(long, default_value = "127.0.0.1:8000", env = "FERROTUNNEL_LOCAL_ADDR")]
     local_addr: String,
 
-    /// Dashboard port
-    #[arg(long, default_value = "4040", env = "FERROTUNNEL_DASHBOARD_PORT")]
-    dashboard_port: u16,
-
-    /// Disable dashboard
-    #[arg(long)]
-    no_dashboard: bool,
-
-    /// Enable TLS for server connection
-    #[arg(long, env = "FERROTUNNEL_TLS")]
-    tls: bool,
-
-    /// Skip TLS certificate verification (insecure, for self-signed certs)
-    #[arg(long, env = "FERROTUNNEL_TLS_SKIP_VERIFY")]
-    tls_skip_verify: bool,
+    #[command(flatten)]
+    pub features: ClientFeatureArgs,
 
     /// Path to CA certificate for TLS verification
     #[arg(long, env = "FERROTUNNEL_TLS_CA")]
@@ -90,19 +105,28 @@ pub struct ClientArgs {
     /// Path to client private key file (PEM format) for mutual TLS
     #[arg(long, env = "FERROTUNNEL_TLS_KEY")]
     tls_key: Option<std::path::PathBuf>,
+}
 
-    /// Enable tracing (metrics is separate via --metrics)
-    #[arg(long, env = "FERROTUNNEL_OBSERVABILITY")]
-    observability: bool,
+/// Resolve token from args, then env, then secure prompt.
+fn resolve_token(args: &ClientArgs) -> Result<String> {
+    if let Some(ref t) = args.token {
+        return Ok(t.clone());
+    }
+    if let Ok(t) = std::env::var("FERROTUNNEL_TOKEN") {
+        return Ok(t);
+    }
+    prompt_token()
+}
 
-    /// Enable metrics collection
-    #[arg(long, env = "FERROTUNNEL_METRICS")]
-    metrics: bool,
+/// Prompt for token on TTY without echoing (secure input).
+fn prompt_token() -> Result<String> {
+    rpassword::prompt_password("Token: ")
+        .context("Could not read token from terminal (is stdin a TTY?). Set FERROTUNNEL_TOKEN or pass --token")
 }
 
 pub async fn run(args: ClientArgs) -> Result<()> {
-    let enable_tracing = args.observability;
-    let enable_metrics = args.metrics;
+    let enable_tracing = args.features.observability;
+    let enable_metrics = args.features.metrics;
 
     if enable_tracing || enable_metrics {
         init_basic_observability("ferrotunnel-client", enable_tracing, enable_metrics);
@@ -112,17 +136,29 @@ pub async fn run(args: ClientArgs) -> Result<()> {
 
     info!("Starting FerroTunnel Client v{}", env!("CARGO_PKG_VERSION"));
 
+    let token = resolve_token(&args)?;
+
+    // When dashboard is enabled, use a single tunnel ID for both dashboard display and server routing
+    let tunnel_id_opt: Option<uuid::Uuid> = if args.features.no_dashboard {
+        None
+    } else {
+        Some(uuid::Uuid::new_v4())
+    };
+
     // Start Dashboard and configure proxy
-    let proxy: Arc<dyn StreamHandler> = if args.no_dashboard {
+    let proxy: Arc<dyn StreamHandler> = if let Some(tunnel_id) = tunnel_id_opt {
+        setup_dashboard(&args, tunnel_id).await
+    } else {
         // Initialize basic Proxy (Identity layer)
         Arc::new(ferrotunnel_http::HttpProxy::new(args.local_addr.clone()))
-    } else {
-        setup_dashboard(&args).await
     };
 
     // Simple reconnection loop
     loop {
-        let mut client = TunnelClient::new(args.server.clone(), args.token.clone());
+        let mut client = TunnelClient::new(args.server.clone(), token.clone());
+        if let Some(tid) = &tunnel_id_opt {
+            client = client.with_tunnel_id(tid.to_string());
+        }
         client = setup_tls(client, &args);
 
         let proxy_ref = proxy.clone();
@@ -177,7 +213,7 @@ pub async fn run(args: ClientArgs) -> Result<()> {
     Ok(())
 }
 
-async fn setup_dashboard(args: &ClientArgs) -> Arc<dyn StreamHandler> {
+async fn setup_dashboard(args: &ClientArgs, tunnel_id: uuid::Uuid) -> Arc<dyn StreamHandler> {
     use ferrotunnel_observability::dashboard::{create_router, DashboardState, EventBroadcaster};
     use tokio::sync::RwLock;
 
@@ -185,7 +221,7 @@ async fn setup_dashboard(args: &ClientArgs) -> Arc<dyn StreamHandler> {
     let broadcaster = Arc::new(EventBroadcaster::new(100));
 
     let app = create_router(dashboard_state.clone(), broadcaster.clone());
-    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], args.dashboard_port));
+    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], args.features.dashboard_port));
 
     info!("Starting Dashboard at http://{}", addr);
     tokio::spawn(async move {
@@ -201,8 +237,7 @@ async fn setup_dashboard(args: &ClientArgs) -> Arc<dyn StreamHandler> {
         }
     });
 
-    // Register the local tunnel in the dashboard
-    let tunnel_id = uuid::Uuid::new_v4();
+    // Register the local tunnel in the dashboard (same ID used for server routing)
     {
         let mut state = dashboard_state.write().await;
         let tunnel_info = DashboardTunnelInfo {
@@ -229,8 +264,8 @@ async fn setup_dashboard(args: &ClientArgs) -> Arc<dyn StreamHandler> {
 }
 
 fn setup_tls(mut client: TunnelClient, args: &ClientArgs) -> TunnelClient {
-    if args.tls {
-        if args.tls_skip_verify {
+    if args.features.tls {
+        if args.features.tls_skip_verify {
             info!("TLS enabled with certificate verification skipped (insecure)");
             client = client.with_tls_skip_verify();
         } else if let Some(ref ca_path) = args.tls_ca {

@@ -1,31 +1,18 @@
-//! Example: Webhook Receiver
+//! Example: Receive Webhooks on Your Local Machine
 //!
-//! This example shows how to use FerroTunnel to receive webhooks from external
-//! services (GitHub, Stripe, etc.) to your local development machine.
-//!
-//! # Use Case
-//!
-//! When developing webhook integrations, you need external services to reach
-//! your local machine. FerroTunnel creates a secure tunnel so services can
-//! send webhooks to your local development server.
-//!
-//! # Architecture
-//!
-//! ```text
-//! GitHub/Stripe/etc.  -->  FerroTunnel Server  -->  FerroTunnel Client  -->  Local Webhook Handler
-//!     (External)           (Cloud/VPS)              (Your Machine)           (localhost:3000)
-//! ```
+//! Forward webhooks from external services (GitHub, Stripe, etc.) to your local
+//! development server so you can develop and test webhook integrations.
 //!
 //! # Usage
 //!
-//! 1. Start your local webhook handler on port 3000
+//! 1. Start your local webhook handler on port 3000.
 //! 2. Run this example:
 //!
 //! ```bash
-//! cargo run --example webhook_receiver -- --server tunnel.example.com:7835
+//! cargo run --example receive_webhooks_locally -- --server tunnel.example.com:7835
 //! ```
 //!
-//! 3. Configure the external service to send webhooks to your tunnel URL
+//! 3. Configure the external service to send webhooks to your tunnel URL.
 
 use ferrotunnel::Client;
 use std::env;
@@ -56,7 +43,6 @@ async fn main() -> ferrotunnel::Result<()> {
     );
     println!();
 
-    // Build and start the client
     let mut client = Client::builder()
         .server_addr(&server_addr)
         .token(&token)
@@ -78,7 +64,6 @@ async fn main() -> ferrotunnel::Result<()> {
     println!();
     println!("Waiting for webhooks... (Press Ctrl+C to stop)");
 
-    // Wait for Ctrl+C
     tokio::signal::ctrl_c().await?;
 
     println!();

@@ -170,6 +170,13 @@ else
     log_fail "Tunnel not connected: $TUNNELS"
 fi
 
+# Ingress routes by Host header (tunnel ID); get first tunnel's id for requests
+TUNNEL_ID=$(echo "$TUNNELS" | jq -r '.[0].id // empty')
+if [[ -z "$TUNNEL_ID" ]]; then
+    log_fail "Could not get tunnel ID from dashboard"
+    exit 1
+fi
+
 # ============================================================
 log_step "Test 3: Send Traffic Through Tunnel"
 # ============================================================
@@ -177,6 +184,7 @@ log_step "Test 3: Send Traffic Through Tunnel"
 for i in {1..5}; do
     RESPONSE=$(curl -sf -X POST \
         -H "Content-Type: application/json" \
+        -H "Host: $TUNNEL_ID" \
         -H "X-Tunnel-Token: $TOKEN" \
         -d "{\"id\": $i, \"msg\": \"hello dashboard\"}" \
         http://127.0.0.1:$INGRESS_PORT/ || echo "FAILED")
@@ -189,7 +197,7 @@ for i in {1..5}; do
 done
 
 # Also test GET
-RESPONSE=$(curl -sf -H "X-Tunnel-Token: $TOKEN" http://127.0.0.1:$INGRESS_PORT/test-path || echo "FAILED")
+RESPONSE=$(curl -sf -H "Host: $TUNNEL_ID" -H "X-Tunnel-Token: $TOKEN" http://127.0.0.1:$INGRESS_PORT/test-path || echo "FAILED")
 if echo "$RESPONSE" | grep -q "Hello from GET"; then
     log_ok "GET request success"
 else

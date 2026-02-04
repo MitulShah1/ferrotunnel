@@ -133,11 +133,11 @@ We support safe harbor for security researchers who:
 
 - Make a good faith effort to avoid privacy violations, destruction of data, and interruption or degradation of our service
 - Only interact with accounts you own or for which you have explicit permission
-- Contact us at **security@ferrotunnel.dev** if you encounter any user data during testing
+- Contact us at **shahmitul005@gmail.com** if you encounter any user data during testing
 - Do not exploit vulnerabilities beyond the minimum necessary to confirm their existence
 
 We will not pursue legal action against researchers who follow these guidelines.
 
 ## Questions?
 
-If you have any questions about this security policy, please contact **security@ferrotunnel.dev**.
+If you have any questions about this security policy, please contact **shahmitul005@gmail.com**.

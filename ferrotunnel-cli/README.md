@@ -47,7 +47,16 @@ ferrotunnel server --token my-secret-token
 Run the tunnel client:
 
 ```bash
+# With token on command line
 ferrotunnel client --server tunnel.example.com:7835 --token my-secret-token
+
+# Token from environment (recommended for scripts)
+export FERROTUNNEL_TOKEN=my-secret-token
+ferrotunnel client --server tunnel.example.com:7835
+
+# Token prompted securely (when omitted and not in env)
+ferrotunnel client --server tunnel.example.com:7835
+# → Prompts: "Token: " (input is not echoed)
 ```
 
 **Options:**
@@ -55,7 +64,7 @@ ferrotunnel client --server tunnel.example.com:7835 --token my-secret-token
 | Option | Env Variable | Default | Description |
 |--------|--------------|---------|-------------|
 | `--server` | `FERROTUNNEL_SERVER` | (required) | Server address (`host:port`) |
-| `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
+| `--token` | `FERROTUNNEL_TOKEN` | (optional) | Authentication token; if omitted, uses env or prompts securely |
 | `--local-addr` | `FERROTUNNEL_LOCAL_ADDR` | `127.0.0.1:8000` | Local service to forward |
 | `--dashboard-port` | `FERROTUNNEL_DASHBOARD_PORT` | `4040` | Dashboard port |
 | `--no-dashboard` | - | `false` | Disable dashboard |
@@ -84,8 +93,8 @@ ferrotunnel version
 # Terminal 1: Start server
 ferrotunnel server --token secret
 
-# Terminal 2: Start client
-ferrotunnel client --server localhost:7835 --token secret --local-addr 127.0.0.1:8080
+# Terminal 2: Start client (token from env or prompt if omitted)
+ferrotunnel client --server localhost:7835 --local-addr 127.0.0.1:8080
 
 # Terminal 3: Start local service
 python3 -m http.server 8080
@@ -105,12 +114,16 @@ ferrotunnel client --server tunnel.example.com:7835 --token secret \
 
 ### Using Environment Variables
 
+Avoid putting the token on the command line (visible in process list and shell history). Use the environment or a secure prompt instead:
+
 ```bash
 export FERROTUNNEL_TOKEN=my-secret-token
 export FERROTUNNEL_SERVER=tunnel.example.com:7835
 
 ferrotunnel client --local-addr 127.0.0.1:3000
 ```
+
+If `--token` and `FERROTUNNEL_TOKEN` are both unset, the client prompts for the token on the TTY (input is not echoed).
 
 ## Developer Tools
 

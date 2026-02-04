@@ -89,7 +89,9 @@ fn bench_plugin_chain(c: &mut Criterion) {
         reg.register(Arc::new(RwLock::new(TokenAuthPlugin::new(vec![
             "token".to_string()
         ]))));
-        reg.register(Arc::new(RwLock::new(RateLimitPlugin::new(10000))));
+        reg.register(Arc::new(RwLock::new(RateLimitPlugin::new(
+            std::num::NonZeroU32::new(10000).unwrap(),
+        ))));
         reg.register(Arc::new(RwLock::new(LoggerPlugin::new())));
         reg.init_all().await.unwrap();
         reg

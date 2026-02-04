@@ -1,11 +1,7 @@
-//! Example: Development Tunnel
+//! Example: Expose Local Development Server
 //!
-//! This example shows how to use FerroTunnel for local development,
-//! exposing your local development server to the internet for testing.
-//!
-//! # Use Cases
-//!
-//! - Share your work-in-progress with teammates
+//! Use FerroTunnel to expose your local dev server (e.g. React, Next.js) so you can:
+//! - Share work-in-progress with teammates
 //! - Test mobile apps against your local backend
 //! - Debug integrations with external services
 //! - Demo features before deployment
@@ -13,14 +9,8 @@
 //! # Usage
 //!
 //! ```bash
-//! # Expose local React/Next.js dev server (default port 3000)
-//! cargo run --example dev_tunnel
-//!
-//! # Expose a different port
-//! cargo run --example dev_tunnel -- --local 127.0.0.1:8000
-//!
-//! # Connect to remote tunnel server
-//! cargo run --example dev_tunnel -- --server tunnel.example.com:7835
+//! cargo run --example expose_local_dev
+//! cargo run --example expose_local_dev -- --local 127.0.0.1:8000 --server tunnel.example.com:7835
 //! ```
 
 use ferrotunnel::Client;
@@ -79,7 +69,6 @@ async fn main() -> ferrotunnel::Result<()> {
         }
     }
 
-    // Wait for Ctrl+C
     tokio::signal::ctrl_c().await?;
 
     println!();

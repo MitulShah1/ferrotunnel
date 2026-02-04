@@ -2,19 +2,63 @@
 //!
 //! Pools `BytesMut` buffers to avoid allocations and eliminate the
 //! `Bytes::copy_from_slice()` overhead in the hot data path.
+//!
+//! Pool limits are configurable via environment variables (read once at first use):
+//! - `FERROTUNNEL_POOL_MAX_SIZE`: max buffers per thread (default: 32)
+//! - `FERROTUNNEL_POOL_MAX_CAPACITY_BYTES`: max capacity of a pooled buffer in bytes (default: 65536)
+//! - `FERROTUNNEL_POOL_DEFAULT_CAPACITY_BYTES`: default capacity for new buffers (default: 4096)
 
 use bytes::BytesMut;
 use std::cell::RefCell;
+use std::sync::OnceLock;
 
-/// Maximum number of buffers to keep in the pool per thread
-const MAX_POOL_SIZE: usize = 32;
+/// Default maximum number of buffers per thread
+const DEFAULT_MAX_POOL_SIZE: usize = 32;
 
-/// Maximum capacity of a buffer that can be pooled (64KB)
-/// Larger buffers are not pooled to avoid memory bloat
-const MAX_POOLED_CAPACITY: usize = 64 * 1024;
+/// Default maximum capacity of a buffer that can be pooled (64KB)
+const DEFAULT_MAX_POOLED_CAPACITY: usize = 64 * 1024;
 
 /// Default buffer capacity for new allocations
 const DEFAULT_BUFFER_CAPACITY: usize = 4096;
+
+/// Pool configuration (loaded from env on first use).
+struct PoolConfig {
+    max_pool_size: usize,
+    max_pooled_capacity: usize,
+    default_buffer_capacity: usize,
+}
+
+fn load_config() -> PoolConfig {
+    let max_pool_size = std::env::var("FERROTUNNEL_POOL_MAX_SIZE")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .filter(|&n: &usize| n > 0)
+        .unwrap_or(DEFAULT_MAX_POOL_SIZE);
+
+    let max_pooled_capacity = std::env::var("FERROTUNNEL_POOL_MAX_CAPACITY_BYTES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .filter(|&n: &usize| n > 0)
+        .unwrap_or(DEFAULT_MAX_POOLED_CAPACITY);
+
+    let default_buffer_capacity = std::env::var("FERROTUNNEL_POOL_DEFAULT_CAPACITY_BYTES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .filter(|&n: &usize| n > 0)
+        .unwrap_or(DEFAULT_BUFFER_CAPACITY);
+
+    PoolConfig {
+        max_pool_size,
+        max_pooled_capacity,
+        default_buffer_capacity,
+    }
+}
+
+static CONFIG: OnceLock<PoolConfig> = OnceLock::new();
+
+fn config() -> &'static PoolConfig {
+    CONFIG.get_or_init(load_config)
+}
 
 thread_local! {
     /// Thread-local pool of reusable byte buffers
@@ -39,20 +83,20 @@ thread_local! {
 /// let data = buf.freeze();
 /// ```
 pub fn acquire_bytes(capacity: usize) -> BytesMut {
+    let min_cap = capacity.max(config().default_buffer_capacity);
     BYTES_POOL.with(|pool| {
         pool.borrow_mut().pop().map_or_else(
             || {
                 // Pool empty, allocate new buffer
-                let capacity = capacity.max(DEFAULT_BUFFER_CAPACITY);
-                BytesMut::with_capacity(capacity)
+                BytesMut::with_capacity(min_cap)
             },
             |mut b| {
                 // Clear the buffer for reuse
                 b.clear();
 
                 // Ensure it has enough capacity
-                if b.capacity() < capacity {
-                    b.reserve(capacity - b.capacity());
+                if b.capacity() < min_cap {
+                    b.reserve(min_cap - b.capacity());
                 }
 
                 b
@@ -76,15 +120,13 @@ pub fn acquire_bytes(capacity: usize) -> BytesMut {
 /// release_bytes(buf);
 /// ```
 pub fn release_bytes(bytes: BytesMut) {
-    // Only pool buffers within reasonable size limits
-    if bytes.capacity() <= MAX_POOLED_CAPACITY {
+    let cfg = config();
+    if bytes.capacity() <= cfg.max_pooled_capacity {
         BYTES_POOL.with(|pool| {
             let mut p = pool.borrow_mut();
-            // Only keep up to MAX_POOL_SIZE buffers
-            if p.len() < MAX_POOL_SIZE {
+            if p.len() < cfg.max_pool_size {
                 p.push(bytes);
             }
-            // Otherwise drop the buffer
         });
     }
 }
@@ -126,29 +168,35 @@ mod tests {
 
     #[test]
     fn test_pool_size_limit() {
-        // Clear pool first
         let _ = pool_stats();
+        let limit = std::env::var("FERROTUNNEL_POOL_MAX_SIZE")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(DEFAULT_MAX_POOL_SIZE);
 
-        // Fill pool beyond limit
-        for _ in 0..MAX_POOL_SIZE + 10 {
+        for _ in 0..limit + 10 {
             let buf = BytesMut::with_capacity(1024);
             release_bytes(buf);
         }
 
         let (size, _) = pool_stats();
-        assert_eq!(size, MAX_POOL_SIZE); // Should not exceed limit
+        assert_eq!(size, limit);
     }
 
     #[test]
     fn test_large_buffer_not_pooled() {
-        // Acquire and release a large buffer
-        let large_buf = BytesMut::with_capacity(MAX_POOLED_CAPACITY + 1);
+        let max_cap = std::env::var("FERROTUNNEL_POOL_MAX_CAPACITY_BYTES")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(DEFAULT_MAX_POOLED_CAPACITY);
+
+        let large_buf = BytesMut::with_capacity(max_cap + 1);
         let initial_stats = pool_stats();
 
         release_bytes(large_buf);
 
         let final_stats = pool_stats();
-        assert_eq!(initial_stats.0, final_stats.0); // Pool size unchanged
+        assert_eq!(initial_stats.0, final_stats.0);
     }
 
     #[test]

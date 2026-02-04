@@ -2,7 +2,7 @@
 
 ## Project Structure
 
-FerroTunnel uses a **tokio-style workspace**—the standard pattern for multi-crate Rust projects.
+FerroTunnel uses a **tokio-style workspace** the standard pattern for multi-crate Rust projects.
 
 ```
 ferrotunnel/
@@ -165,12 +165,12 @@ ferrotunnel/
 │   ├── advanced/
 │   │   ├── tls_config.rs
 │   │   └── multi_tunnel.rs
-│   ├── production/
-│   │   ├── with_metrics.rs
-│   │   └── graceful_shutdown.rs
-│   └── use-cases/
-│       ├── dev_tunnel.rs
-│       └── webhook_receiver.rs
+│   ├── operational/
+│   │   ├── server_observability.rs
+│   │   └── server_graceful_shutdown.rs
+│   └── scenarios/
+│       ├── expose_local_dev.rs
+│       └── receive_webhooks_locally.rs
 ├── benches/
 │   ├── Cargo.toml
 │   ├── lib.rs
@@ -237,8 +237,8 @@ cargo test -p ferrotunnel-tests --test integration
 | basic | `embedded_server`, `embedded_client`, `auto_reconnect` |
 | plugins | `custom_plugin`, `header_filter`, `ip_blocklist`, `plugin_chain` |
 | advanced | `tls_config`, `multi_tunnel` |
-| production | `with_metrics`, `graceful_shutdown` |
-| use-cases | `dev_tunnel`, `webhook_receiver` |
+| operational | `server_observability`, `server_graceful_shutdown` |
+| scenarios | `expose_local_dev`, `receive_webhooks_locally` |
 
 ## Benchmarks
 
@@ -267,12 +267,6 @@ make lint       # cargo clippy --workspace --all-targets --all-features -- -D wa
 make bench      # cargo bench --workspace
 make all        # fmt, check, test, build
 ```
-
-## Publishing
-
-Publish in dependency order: `ferrotunnel-common` → `ferrotunnel-protocol` → … → `ferrotunnel`.
-
-See `.github/workflows/publish.yml` for CI automation.
 
 ## References
 

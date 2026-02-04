@@ -36,3 +36,6 @@ extra/
 # Config files (may contain secrets)
 *.toml.local
 config/*.secret.*
+
+# profiling result
+profiling_results/

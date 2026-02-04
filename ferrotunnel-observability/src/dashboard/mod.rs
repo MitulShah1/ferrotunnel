@@ -88,11 +88,11 @@ pub fn create_router(state: SharedDashboardState, broadcaster: Arc<EventBroadcas
     let api_routes = Router::new()
         .route("/health", get(handlers::health_handler))
         .route("/tunnels", get(handlers::list_tunnels_handler))
-        .route("/tunnels/:id", get(handlers::get_tunnel_handler))
+        .route("/tunnels/{id}", get(handlers::get_tunnel_handler))
         .route("/requests", get(handlers::list_requests_handler))
-        .route("/requests/:id", get(handlers::get_request_handler))
+        .route("/requests/{id}", get(handlers::get_request_handler))
         .route(
-            "/requests/:id/replay",
+            "/requests/{id}/replay",
             post(handlers::replay_request_handler),
         )
         .route("/metrics", get(handlers::metrics_handler))

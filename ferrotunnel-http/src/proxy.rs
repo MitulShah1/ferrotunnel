@@ -127,18 +127,28 @@ where
     }
 }
 
-fn error_response(status: StatusCode, msg: &str) -> Response<BoxBody> {
+/// Pre-allocated bytes for common error bodies (avoids allocation in hot/error path).
+const MSG_PROXY_ERROR: &[u8] = b"Proxy error";
+const MSG_INTERNAL_ERROR: &[u8] = b"Internal error";
+
+/// Builds a plain-text error response. Shared by proxy and CLI dashboard middleware.
+/// Uses static bytes for common messages to avoid allocation.
+pub fn error_response(status: StatusCode, msg: &str) -> Response<BoxBody> {
+    let bytes = if msg == "Proxy error" {
+        Bytes::from_static(MSG_PROXY_ERROR)
+    } else {
+        Bytes::copy_from_slice(msg.as_bytes())
+    };
     Response::builder()
         .status(status)
         .body(
-            Full::new(Bytes::from(msg.to_string()))
+            Full::new(bytes)
                 .map_err(|_| ProxyError::Custom("Error construction failed".into()))
                 .boxed(),
         )
         .unwrap_or_else(|_| {
-            // Fallback: return a minimal response if builder fails
             Response::new(
-                Full::new(Bytes::from("Internal error"))
+                Full::new(Bytes::from_static(MSG_INTERNAL_ERROR))
                     .map_err(|_| ProxyError::Custom("Error construction failed".into()))
                     .boxed(),
             )

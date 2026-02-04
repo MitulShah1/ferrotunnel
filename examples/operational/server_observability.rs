@@ -1,42 +1,19 @@
 //! Example: Server with Full Observability
 //!
-//! This example demonstrates how to run a FerroTunnel server with full
-//! observability: Prometheus metrics, structured logging, and tracing.
-//!
-//! # Endpoints
-//! - `:7835` - Tunnel control plane
-//! - `:8080` - HTTP ingress
-//! - `:9090/metrics` - Prometheus metrics
+//! Runs a FerroTunnel server with Prometheus metrics, structured logging, and
+//! optional tracing. Use this when you need to monitor the server in deployment.
 //!
 //! # Usage
 //!
 //! ```bash
-//! # Run with default settings
-//! cargo run --example with_metrics
-//!
-//! # Run with custom OTLP endpoint
-//! OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 cargo run --example with_metrics
-//! ```
-//!
-//! # Prometheus Queries
-//!
-//! ```promql
-//! # Request rate
-//! rate(ferrotunnel_requests_total[5m])
-//!
-//! # Active tunnels
-//! ferrotunnel_active_tunnels
-//!
-//! # Latency percentiles
-//! histogram_quantile(0.99, rate(ferrotunnel_request_duration_seconds_bucket[5m]))
+//! cargo run --example server_observability
+//! OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 cargo run --example server_observability
 //! ```
 
 use ferrotunnel::Server;
 
 #[tokio::main]
 async fn main() -> ferrotunnel::Result<()> {
-    // Initialize observability (logging + tracing)
-    // In production, you'd configure OTLP exporter via environment variables
     tracing_subscriber::fmt()
         .with_env_filter(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "info,ferrotunnel=debug".to_string()),
@@ -56,7 +33,6 @@ async fn main() -> ferrotunnel::Result<()> {
     println!("  ferrotunnel_active_tunnels");
     println!();
 
-    // Build server with observability features
     let mut server = Server::builder()
         .bind("0.0.0.0:7835".parse().expect("valid address"))
         .http_bind("0.0.0.0:8080".parse().expect("valid address"))
@@ -69,7 +45,6 @@ async fn main() -> ferrotunnel::Result<()> {
         "Prometheus metrics available at http://0.0.0.0:9090/metrics"
     );
 
-    // Start server (blocks until shutdown)
     server.start().await?;
 
     Ok(())

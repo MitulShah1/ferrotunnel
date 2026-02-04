@@ -54,28 +54,28 @@ name = "multi_tunnel"
 path = "advanced/multi_tunnel.rs"
 
 # ============================================================================
-# Production Examples - Production-ready configurations
+# Operational Examples - Server lifecycle and observability
 # ============================================================================
 
 [[example]]
-name = "graceful_shutdown"
-path = "production/graceful_shutdown.rs"
+name = "server_graceful_shutdown"
+path = "operational/server_graceful_shutdown.rs"
 
 [[example]]
-name = "with_metrics"
-path = "production/with_metrics.rs"
+name = "server_observability"
+path = "operational/server_observability.rs"
 
 # ============================================================================
-# Use-Case Examples - Common use cases
+# Scenario Examples - Common usage scenarios
 # ============================================================================
 
 [[example]]
-name = "webhook_receiver"
-path = "use-cases/webhook_receiver.rs"
+name = "expose_local_dev"
+path = "scenarios/expose_local_dev.rs"
 
 [[example]]
-name = "dev_tunnel"
-path = "use-cases/dev_tunnel.rs"
+name = "receive_webhooks_locally"
+path = "scenarios/receive_webhooks_locally.rs"
 
 [dependencies]
 # Core ferrotunnel library

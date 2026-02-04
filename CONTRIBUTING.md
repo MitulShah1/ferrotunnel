@@ -4,7 +4,7 @@ Thank you for your interest in contributing to FerroTunnel! We welcome contribut
 
 ## Code of Conduct
 
-All contributors are expected to follow the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct).
+All contributors are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md), which adheres to the [Rust Code of Conduct](https://rust-lang.org/policies/code-of-conduct/).
 
 ## How to Contribute
 
@@ -26,7 +26,7 @@ All contributors are expected to follow the [Rust Code of Conduct](https://www.r
 ## Development Setup
 
 ### Prerequisites
-- [Rust](https://www.rust-lang.org/tools/install) (stable, version 1.75+)
+- [Rust](https://www.rust-lang.org/tools/install) (stable, version 1.90+)
 - `make` (for running development commands)
 
 ### Common Commands

@@ -7,18 +7,24 @@
 //!
 //! ```text
 //! examples/
-//! ├── basic/              # Getting started examples
+//! ├── basic/              # Getting started
 //! │   ├── embedded_server.rs
 //! │   ├── embedded_client.rs
 //! │   └── auto_reconnect.rs
-//! ├── plugins/            # Plugin development examples
+//! ├── plugins/            # Plugin development
 //! │   ├── custom_plugin.rs
-//! │   ├── hello_plugin.rs
 //! │   ├── header_filter.rs
-//! │   └── ip_blocklist.rs
-//! └── advanced/           # Production patterns
-//!     ├── tls_config.rs
-//!     └── multi_tunnel.rs
+//! │   ├── ip_blocklist.rs
+//! │   └── plugin_chain.rs
+//! ├── advanced/           # TLS and multi-tunnel
+//! │   ├── tls_config.rs
+//! │   └── multi_tunnel.rs
+//! ├── operational/        # Server lifecycle and observability
+//! │   ├── server_graceful_shutdown.rs
+//! │   └── server_observability.rs
+//! └── scenarios/          # Common usage scenarios
+//!     ├── expose_local_dev.rs
+//!     └── receive_webhooks_locally.rs
 //! ```
 //!
 //! ## Basic Examples
@@ -53,14 +59,36 @@
 //!
 //! ## Advanced Examples
 //!
-//! Production configurations and patterns:
-//!
 //! - **`tls_config`** - Configure TLS for secure connections
 //! - **`multi_tunnel`** - Run multiple tunnels for different services
 //!
 //! ```bash
 //! cargo run -p ferrotunnel-examples --example tls_config -- --mode server
 //! cargo run -p ferrotunnel-examples --example multi_tunnel
+//! ```
+//!
+//! ## Operational Examples
+//!
+//! Server lifecycle and observability:
+//!
+//! - **`server_graceful_shutdown`** - Shutdown on SIGTERM/SIGINT and drain connections
+//! - **`server_observability`** - Server with Prometheus metrics and logging
+//!
+//! ```bash
+//! cargo run -p ferrotunnel-examples --example server_graceful_shutdown
+//! cargo run -p ferrotunnel-examples --example server_observability
+//! ```
+//!
+//! ## Scenario Examples
+//!
+//! Common usage scenarios:
+//!
+//! - **`expose_local_dev`** - Expose your local dev server (e.g. React) for sharing and testing
+//! - **`receive_webhooks_locally`** - Forward webhooks (GitHub, Stripe) to your local machine
+//!
+//! ```bash
+//! cargo run -p ferrotunnel-examples --example expose_local_dev
+//! cargo run -p ferrotunnel-examples --example receive_webhooks_locally
 //! ```
 //!
 //! ## Quick Start

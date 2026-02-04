@@ -78,11 +78,15 @@ impl Backoff {
         self.attempt
     }
 
-    #[allow(clippy::cast_possible_wrap)]
     fn calculate_delay(&self) -> Duration {
-        // Calculate base delay with exponential growth
+        // Calculate base delay with exponential growth (cap attempt to avoid i32 wrap)
         let base_secs = self.config.base.as_secs_f64();
-        let exp_delay = base_secs * self.config.factor.powi(self.attempt as i32);
+        let attempt: i32 = self
+            .attempt
+            .min(i32::MAX as u32)
+            .try_into()
+            .unwrap_or(i32::MAX);
+        let exp_delay = base_secs * self.config.factor.powi(attempt);
 
         // Apply jitter
         let jitter_range = exp_delay * self.config.jitter;

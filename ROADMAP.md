@@ -26,11 +26,13 @@ Embeddable, extensible, and observable reverse tunnel for Rust developers.
 
 ### Future (post v0.1.0)
 
-- **v0.2.0** - gRPC support
-- **v0.3.0** - HTTP/3 (QUIC)
-- **v0.4.0** - WebSocket tunneling
-- **v0.5.0** - Multi-region support
-- **v0.6.0** - Custom domains
+- **v0.2.0** - HTTP/2 support (ingress & client)
+- **v0.3.0** - gRPC support
+- **v0.4.0** - QUIC transport (HTTP/3)
+- **v0.5.0** - Connection pooling (upstream/client)
+- **v0.6.0** - WebSocket tunneling
+- **v0.7.0** - Multi-region support
+- **v0.8.0** - Custom domains
 - **v1.0.0** - Breaking changes if needed
 
 ---
@@ -64,27 +66,6 @@ Embeddable, extensible, and observable reverse tunnel for Rust developers.
 - ✅ **Only embeddable** Rust tunnel (crates.io)
 - ✅ **Most extensible** via plugin system
 - ✅ **Best observability** with built-in dashboard
-
----
-
-## Risk Mitigation
-
-### Technical Risks
-
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Performance doesn't match Rathole | High | Benchmark early, optimize hot paths |
-| Plugin system too complex | Medium | Start simple, iterate based on feedback |
-| Dashboard becomes scope creep | Medium | MVP first (basic UI), enhance later |
-| QUIC/HTTP/3 too complex | Low | Move to v0.3+ if needed |
-
-### Community Risks
-
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| No community adoption | High | Marketing, clear docs, blog posts |
-| Competition from Rathole | Medium | Highlight differentiators clearly |
-| Contributors needed | Low | Good first issues, clear contributing guide |
 
 ---
 

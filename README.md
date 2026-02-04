@@ -1,14 +1,14 @@
-# FerroTunnel
+# FerroTunnel 🦀
 
 [![CI](https://github.com/MitulShah1/ferrotunnel/workflows/CI/badge.svg)](https://github.com/MitulShah1/ferrotunnel/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel)](https://crates.io/crates/ferrotunnel)
 [![Documentation](https://docs.rs/ferrotunnel/badge.svg)](https://docs.rs/ferrotunnel)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
-[![Rust Version](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org)
+[![Rust Version](https://img.shields.io/badge/rust-1.90%2B-orange.svg)](https://www.rust-lang.org)
 
-**Reverse Tunnel in Rust**
+**High-performance reverse tunnel you can embed in your Rust applications.**
 
-FerroTunnel is a reverse tunnel that works as a **CLI tool** or **library**. Embed it in your Rust applications, extend it with plugins, and monitor traffic via the built-in dashboard.
+FerroTunnel multiplexes streams over a single connection (like ngrok/Cloudflare Tunnel) but ships as a **library-first** crate. Expose local services behind NAT, route HTTP by hostname, intercept requests with plugins with minimal memory footprint and sub-millisecond latency. Works as CLI or `Client::builder()` API. Written in Rust.
 
 ## Quick Start
 
@@ -21,8 +21,8 @@ cargo install ferrotunnel-cli
 # Start server
 ferrotunnel server --token secret
 
-# Start client (in another terminal)
-ferrotunnel client --server localhost:7835 --token secret --local-addr 127.0.0.1:8080
+# Start client (in another terminal; token from env or secure prompt if omitted)
+ferrotunnel client --server localhost:7835 --local-addr 127.0.0.1:8080
 ```
 
 ### Library
@@ -96,7 +96,7 @@ ferrotunnel client [OPTIONS]
 | Option | Env Variable | Default | Description |
 |--------|--------------|---------|-------------|
 | `--server` | `FERROTUNNEL_SERVER` | required | Server address |
-| `--token` | `FERROTUNNEL_TOKEN` | required | Auth token |
+| `--token` | `FERROTUNNEL_TOKEN` | optional | Auth token; if omitted, uses env or prompts securely |
 | `--local-addr` | `FERROTUNNEL_LOCAL_ADDR` | `127.0.0.1:8000` | Local service |
 | `--dashboard-port` | `FERROTUNNEL_DASHBOARD_PORT` | `4040` | Dashboard port |
 | `--tls` | `FERROTUNNEL_TLS` | false | Enable TLS |
@@ -138,11 +138,12 @@ docker-compose up --build
 ## Documentation
 
 - [CLI Reference](ferrotunnel-cli/README.md)
+- [Contributing](CONTRIBUTING.md) & [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Architecture](ARCHITECTURE.md)
+- [Benchmark & Performance](docs/benchmark.md)
 - [Deployment Guide](docs/deployment.md)
 - [Plugin Development](docs/plugin-development.md)
 - [Security](docs/security.md)
-- [Troubleshooting](docs/troubleshooting.md)
 
 ## Development
 
@@ -165,6 +166,26 @@ cargo bench --workspace
 - [`tools/loadgen`](tools/loadgen/) - Load testing
 - [`tools/soak`](tools/soak/) - Stability testing
 - [`tools/profiler`](tools/profiler/) - Performance profiling
+
+## Benchmark
+
+FerroTunnel is benchmarked against [rathole](https://github.com/rapiz1/rathole) and [frp](https://github.com/fatedier/frp). Unlike rathole/frp which use 1:1 TCP forwarding, FerroTunnel uses **multiplexed streams over a single connection** the same architecture used by [ngrok](https://ngrok.com/docs/http/) and [Cloudflare Tunnel](https://developers.cloudflare.com/speed/optimization/protocol/http2-to-origin/) (HTTP/2 multiplexing). This enables HTTP routing, plugins, and multi-service tunnels.
+
+| Metric | FerroTunnel | Rathole | frp |
+|--------|-------------|---------|-----|
+| **Throughput** | 382 MB/s | 1349 MB/s | 690 MB/s |
+| **Latency (P99)** | 0.114ms | 0.075ms | 0.131ms |
+| **Memory/conn** | 47.3 KB | 35.8 KB | 113.7 KB |
+
+**Why the throughput difference?** Multiplexing adds frame encoding/decoding overhead this is the cost of features like HTTP host routing, request plugins, and running many services over one tunnel. FerroTunnel is **18% faster than frp** on latency and uses **58% less memory**.
+
+<p align="center">
+  <img src="docs/static/server_heap_graph.png" alt="Server Heap Graph" width="45%">
+  <img src="docs/static/top_allocations.png" alt="Top Allocations" width="45%">
+</p>
+<p align="center"><em>Memory profile: flat heap usage, minimal allocations under load</em></p>
+
+See [docs/benchmark.md](docs/benchmark.md) for detailed analysis of the architectural trade-offs and [ferrotunnel-benchmarks](https://github.com/MitulShah1/ferrotunnel-benchmarks) for reproducible tests.
 
 ## License
 

@@ -366,9 +366,11 @@ impl AsyncRead for VirtualStream {
             self.pending_recv = Some(Box::pin(async move { rx.recv().await }));
         }
 
-        // Poll the pending future - unwrap is safe, we just set it above
-        #[allow(clippy::unwrap_used)]
-        let fut = self.pending_recv.as_mut().unwrap();
+        // Poll the pending future (we set it in the block above)
+        let fut = match self.pending_recv.as_mut() {
+            Some(f) => f,
+            None => return Poll::Pending,
+        };
         match fut.as_mut().poll(cx) {
             Poll::Ready(result) => {
                 self.pending_recv = None;
@@ -443,9 +445,11 @@ impl AsyncWrite for VirtualStream {
         self.pending_send_len = chunk_size;
         self.pending_send = Some(Box::pin(async move { tx.send(frame).await }));
 
-        // Poll the new future - unwrap is safe, we just set it above
-        #[allow(clippy::unwrap_used)]
-        let fut = self.pending_send.as_mut().unwrap();
+        // Poll the new future (we set it in the block above)
+        let fut = match self.pending_send.as_mut() {
+            Some(f) => f,
+            None => return Poll::Pending,
+        };
         match fut.as_mut().poll(cx) {
             Poll::Ready(result) => {
                 self.pending_send = None;
@@ -488,9 +492,10 @@ impl AsyncWrite for VirtualStream {
         let tx = self.tx.clone();
         self.pending_send = Some(Box::pin(async move { tx.send(frame).await }));
 
-        // unwrap is safe, we just set it above
-        #[allow(clippy::unwrap_used)]
-        let fut = self.pending_send.as_mut().unwrap();
+        let fut = match self.pending_send.as_mut() {
+            Some(f) => f,
+            None => return Poll::Pending,
+        };
         match fut.as_mut().poll(cx) {
             Poll::Ready(result) => {
                 self.pending_send = None;

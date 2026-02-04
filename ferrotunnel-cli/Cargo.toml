@@ -13,6 +13,7 @@ categories = ["command-line-utilities", "network-programming"]
 [[bin]]
 name = "ferrotunnel"
 path = "src/main.rs"
+doc = false
 
 [dependencies]
 # Core functionality
@@ -20,7 +21,10 @@ ferrotunnel-core = { version = "0.1.0", path = "../ferrotunnel-core" }
 ferrotunnel-http = { version = "0.1.0", path = "../ferrotunnel-http" }
 ferrotunnel-protocol = { version = "0.1.0", path = "../ferrotunnel-protocol" }
 ferrotunnel-plugin = { version = "0.1.0", path = "../ferrotunnel-plugin" }
-ferrotunnel-observability = { workspace = true, features = ["dashboard", "axum"] }
+ferrotunnel-observability = { workspace = true, features = [
+    "dashboard",
+    "axum",
+] }
 
 # CLI
 clap = { version = "4.4", features = ["derive", "env", "wrap_help"] }
@@ -39,6 +43,7 @@ http-body-util = "0.1"
 
 # Utilities
 anyhow = { workspace = true }
+rpassword = "7.4"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { workspace = true }
 bytes = { workspace = true }

@@ -2,11 +2,13 @@
 # Test all FerroTunnel examples
 #
 # Usage:
-#   ./scripts/test-examples.sh           # Run all examples
-#   ./scripts/test-examples.sh basic     # Run only basic examples
-#   ./scripts/test-examples.sh plugins   # Run only plugin examples
-#   ./scripts/test-examples.sh advanced  # Run only advanced examples
-#   ./scripts/test-examples.sh --quick   # Quick compile check only
+#   ./scripts/test-examples.sh             # Run all examples
+#   ./scripts/test-examples.sh basic       # Run only basic examples
+#   ./scripts/test-examples.sh plugins     # Run only plugin examples
+#   ./scripts/test-examples.sh advanced    # Run only advanced examples
+#   ./scripts/test-examples.sh operational # Run only operational examples
+#   ./scripts/test-examples.sh scenarios   # Run only scenario examples
+#   ./scripts/test-examples.sh --quick     # Quick compile check only
 
 # Colors
 RED='\033[0;31m'
@@ -74,9 +76,7 @@ run_demo_example() {
     fi
 }
 
-# ============================================================================
-# BASIC EXAMPLES
-# ============================================================================
+# Basic examples
 if [ "$FILTER" = "all" ] || [ "$FILTER" = "basic" ]; then
     echo -e "${BLUE}┌─ Basic Examples ─────────────────────────────────────────────┐${NC}"
     mark_passed "embedded_server" "(compiled)"
@@ -85,9 +85,7 @@ if [ "$FILTER" = "all" ] || [ "$FILTER" = "basic" ]; then
     echo -e "${BLUE}└──────────────────────────────────────────────────────────────┘${NC}"
 fi
 
-# ============================================================================
-# PLUGIN EXAMPLES
-# ============================================================================
+# Plugin examples
 if [ "$FILTER" = "all" ] || [ "$FILTER" = "plugins" ]; then
     echo -e "\n${BLUE}┌─ Plugin Examples ────────────────────────────────────────────┐${NC}"
 
@@ -104,9 +102,7 @@ if [ "$FILTER" = "all" ] || [ "$FILTER" = "plugins" ]; then
     echo -e "${BLUE}└──────────────────────────────────────────────────────────────┘${NC}"
 fi
 
-# ============================================================================
-# ADVANCED EXAMPLES
-# ============================================================================
+# Advanced examples
 if [ "$FILTER" = "all" ] || [ "$FILTER" = "advanced" ]; then
     echo -e "\n${BLUE}┌─ Advanced Examples ──────────────────────────────────────────┐${NC}"
     mark_passed "tls_config" "(compiled)"
@@ -114,9 +110,23 @@ if [ "$FILTER" = "all" ] || [ "$FILTER" = "advanced" ]; then
     echo -e "${BLUE}└──────────────────────────────────────────────────────────────┘${NC}"
 fi
 
-# ============================================================================
-# SUMMARY
-# ============================================================================
+# Operational examples
+if [ "$FILTER" = "all" ] || [ "$FILTER" = "operational" ]; then
+    echo -e "\n${BLUE}┌─ Operational Examples ──────────────────────────────────────┐${NC}"
+    mark_passed "server_graceful_shutdown" "(compiled)"
+    mark_passed "server_observability" "(compiled)"
+    echo -e "${BLUE}└──────────────────────────────────────────────────────────────┘${NC}"
+fi
+
+# Scenario examples
+if [ "$FILTER" = "all" ] || [ "$FILTER" = "scenarios" ]; then
+    echo -e "\n${BLUE}┌─ Scenario Examples ─────────────────────────────────────────┐${NC}"
+    mark_passed "expose_local_dev" "(compiled)"
+    mark_passed "receive_webhooks_locally" "(compiled)"
+    echo -e "${BLUE}└──────────────────────────────────────────────────────────────┘${NC}"
+fi
+
+# Summary
 echo ""
 echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo -e "  ${GREEN}Passed:${NC} $PASSED    ${RED}Failed:${NC} $FAILED"

@@ -24,6 +24,7 @@ This crate provides the core tunnel logic:
 ### Stream
 - **Multiplexer** - Multiplexes virtual streams over one TCP connection
 - **VirtualStream** - AsyncRead/AsyncWrite implementation for tunneled data
+- **Bytes pool** - Thread-local buffer pooling for zero-copy transfers (configurable via env)
 
 ### Transport
 - **TCP transport** - Standard TCP connection
@@ -42,6 +43,16 @@ server.run().await?;
 let mut client = TunnelClient::new("localhost:7835".into(), "secret".into());
 client.connect_and_run(|stream| async { /* handle stream */ }).await?;
 ```
+
+## Configuration
+
+Buffer pool limits (used by the stream layer) can be tuned via environment variables. Values are read once at first use.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FERROTUNNEL_POOL_MAX_SIZE` | 32 | Max number of buffers per thread in the pool |
+| `FERROTUNNEL_POOL_MAX_CAPACITY_BYTES` | 65536 | Max capacity (bytes) of a buffer that is pooled; larger buffers are not reused |
+| `FERROTUNNEL_POOL_DEFAULT_CAPACITY_BYTES` | 4096 | Default capacity for newly allocated buffers |
 
 ## License
 

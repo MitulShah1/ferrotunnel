@@ -10,6 +10,8 @@ homepage = { workspace = true }
 description = "Observability infrastructure for FerroTunnel (Metrics & Tracing)"
 keywords = ["tunnel", "observability", "metrics", "tracing", "opentelemetry"]
 categories = ["network-programming"]
+# Ensure dashboard module and static assets are included in the package (for rust-embed when feature "dashboard" is enabled)
+include = ["src/**", "Cargo.toml", "README.md"]
 
 [dependencies]
 ferrotunnel-common = { version = "0.1.0", path = "../ferrotunnel-common" }
@@ -17,7 +19,6 @@ anyhow = { workspace = true }
 
 # Metrics
 prometheus = { version = "0.14", features = ["process"] }
-lazy_static = "1.4"
 
 # Tracing & OpenTelemetry
 tracing = { workspace = true }
@@ -79,7 +80,7 @@ needless_continue = "allow"
 ignored_unit_patterns = "allow"
 unnecessary_literal_bound = "allow"
 module_name_repetitions = "allow"
-# Allow unwrap for lazy_static metric registration
+# Allow unwrap for LazyLock metric registration
 unwrap_used = "allow"
 expect_used = "allow"
 dbg_macro = "warn"

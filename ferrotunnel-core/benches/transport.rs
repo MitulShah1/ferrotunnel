@@ -8,7 +8,10 @@ use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
-#[allow(clippy::missing_panics_doc)]
+/// Starts an echo server on the given address and returns its local socket address.
+///
+/// # Panics
+/// Panics if binding to `addr` fails or if the listener's local address cannot be obtained.
 async fn run_echo_server(addr: &str) -> String {
     let listener = TcpListener::bind(addr).await.unwrap();
     let local_addr = listener.local_addr().unwrap().to_string();
@@ -44,12 +47,14 @@ fn bench_transport_connect(c: &mut Criterion) {
     let mut group = c.benchmark_group("transport_connect");
 
     group.bench_function("tcp_connect", |b| {
-        b.to_async(&rt).iter(|| async {
-            #[allow(clippy::unused_async)]
-            let config = TransportConfig::default();
-            let _stream = transport::connect(black_box(&config), black_box(&addr))
-                .await
-                .unwrap();
+        b.to_async(&rt).iter(|| {
+            let addr = addr.clone();
+            async move {
+                let config = TransportConfig::default();
+                let _stream = transport::connect(black_box(&config), black_box(&addr))
+                    .await
+                    .unwrap();
+            }
         });
     });
 

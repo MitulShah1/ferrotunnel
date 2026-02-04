@@ -1,61 +1,87 @@
-use lazy_static::lazy_static;
+//! Prometheus metrics for FerroTunnel.
+//!
+//! Naming follows [Prometheus best practices](https://prometheus.io/docs/practices/naming/):
+//! - **Counters**: suffix `_total` (e.g. `ferrotunnel_connections_total`).
+//! - **Units**: include in the name (e.g. `_seconds` for duration, `_bytes` for size).
+//! - **Gauges**: no `_total`; use descriptive names (e.g. `ferrotunnel_active_connections`).
+
 use prometheus::{
     register_counter, register_counter_vec, register_gauge, register_histogram, Counter,
     CounterVec, Gauge, Histogram, Registry,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::LazyLock;
 
 static METRICS_ENABLED: AtomicBool = AtomicBool::new(false);
 
-lazy_static! {
-    pub static ref REGISTRY: Registry = Registry::new();
+pub static REGISTRY: LazyLock<Registry> = LazyLock::new(Registry::new);
 
-    // Tunnel metrics
-    pub static ref TOTAL_CONNECTIONS: Counter = register_counter!(
+// Tunnel metrics (counters use _total; gauges do not)
+pub static TOTAL_CONNECTIONS: LazyLock<Counter> = LazyLock::new(|| {
+    register_counter!(
         "ferrotunnel_connections_total",
         "Total number of tunnel connections established"
-    ).unwrap();
+    )
+    .unwrap()
+});
 
-    pub static ref ACTIVE_CONNECTIONS: Gauge = register_gauge!(
+pub static ACTIVE_CONNECTIONS: LazyLock<Gauge> = LazyLock::new(|| {
+    register_gauge!(
         "ferrotunnel_active_connections",
         "Number of currently active tunnel connections"
-    ).unwrap();
+    )
+    .unwrap()
+});
 
-    // Data metrics
-    pub static ref BYTES_TRANSFERRED_TOTAL: CounterVec = register_counter_vec!(
+// Data metrics (_bytes and _total)
+pub static BYTES_TRANSFERRED_TOTAL: LazyLock<CounterVec> = LazyLock::new(|| {
+    register_counter_vec!(
         "ferrotunnel_bytes_transferred_total",
         "Total bytes transferred through the tunnel",
         &["direction"] // "ingress", "egress"
-    ).unwrap();
+    )
+    .unwrap()
+});
 
-    // Request metrics
-    pub static ref TOTAL_REQUESTS: Counter = register_counter!(
+// Request metrics
+pub static TOTAL_REQUESTS: LazyLock<Counter> = LazyLock::new(|| {
+    register_counter!(
         "ferrotunnel_requests_total",
         "Total number of HTTP requests processed"
-    ).unwrap();
+    )
+    .unwrap()
+});
 
-    pub static ref REQUEST_LATENCY: Histogram = register_histogram!(
+pub static REQUEST_LATENCY: LazyLock<Histogram> = LazyLock::new(|| {
+    register_histogram!(
         "ferrotunnel_request_duration_seconds",
         "HTTP request latency in seconds"
-    ).unwrap();
+    )
+    .unwrap()
+});
 
-    pub static ref ACTIVE_STREAMS: Gauge = register_gauge!(
+pub static ACTIVE_STREAMS: LazyLock<Gauge> = LazyLock::new(|| {
+    register_gauge!(
         "ferrotunnel_active_streams",
         "Number of currently active multiplexed streams"
-    ).unwrap();
+    )
+    .unwrap()
+});
 
-    // Error metrics
-    pub static ref ERRORS_TOTAL: CounterVec = register_counter_vec!(
+// Error metrics (_total for counter)
+pub static ERRORS_TOTAL: LazyLock<CounterVec> = LazyLock::new(|| {
+    register_counter_vec!(
         "ferrotunnel_errors_total",
         "Total number of errors by type",
         &["type"] // "connection", "request", "plugin", "protocol"
-    ).unwrap();
-}
+    )
+    .unwrap()
+});
 
 /// Initialize the metrics system
 pub fn init_metrics() {
-    // Explicitly trigger lazy_static initialization
-    let _ = &*REGISTRY;
+    // Explicitly trigger LazyLock initialization
+    let _ = LazyLock::force(&REGISTRY);
     METRICS_ENABLED.store(true, Ordering::Relaxed);
     tracing::info!("Metrics infrastructure initialized");
 }

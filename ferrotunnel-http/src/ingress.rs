@@ -210,10 +210,7 @@ async fn handle_request(
         // If we want to support default tunnel for testing, we can keep find_multiplexer logic
         // BUT strict multi-tenancy requires us to fail.
         // Let's assume strict for now as per issue description "Insecure Global Routing".
-        return Ok(full_response(
-            StatusCode::NOT_FOUND,
-            format!("Tunnel '{tunnel_id}' not found").as_str(),
-        ));
+        return Ok(full_response(StatusCode::NOT_FOUND, "Tunnel not found"));
     };
 
     // Reconstruct request for forwarding using the ORIGINAL streaming body
@@ -373,6 +370,9 @@ fn parse_and_normalize_host(
     Ok(normalized.to_string())
 }
 
+/// Initial reserve for response body collection to reduce reallocations.
+const BODY_COLLECT_RESERVE: usize = 64 * 1024;
+
 /// Collect response body with a size limit to prevent denial-of-service attacks
 async fn collect_body_with_limit(
     body: hyper::body::Incoming,
@@ -380,7 +380,7 @@ async fn collect_body_with_limit(
 ) -> std::result::Result<Bytes, &'static str> {
     use http_body_util::BodyExt;
 
-    let mut collected = Vec::new();
+    let mut collected = Vec::with_capacity(BODY_COLLECT_RESERVE.min(max_size));
     let mut body = body;
 
     while let Some(frame_result) = body.frame().await {
@@ -399,10 +399,28 @@ async fn collect_body_with_limit(
     Ok(Bytes::from(collected))
 }
 
+/// Static bytes for common response bodies to avoid allocation.
+const BODY_OK: &[u8] = b"OK";
+const BODY_TUNNEL_NOT_READY: &[u8] = b"Tunnel not ready";
+const BODY_TUNNEL_NOT_FOUND: &[u8] = b"Tunnel not found";
+
 fn full_response(status: StatusCode, body: &str) -> Response<BoxBody> {
-    let bytes = Bytes::copy_from_slice(body.as_bytes());
+    let bytes = match body {
+        "OK" => Bytes::from_static(BODY_OK),
+        "Tunnel not ready" => Bytes::from_static(BODY_TUNNEL_NOT_READY),
+        "Tunnel not found" => Bytes::from_static(BODY_TUNNEL_NOT_FOUND),
+        "Internal error"
+        | "Failed to build plugin response"
+        | "Plugin processing error"
+        | "Failed to open stream"
+        | "Tunnel handshake failed"
+        | "Tunnel handshake timeout"
+        | "Failed to send request"
+        | "Upstream response timeout"
+        | "Response timeout" => Bytes::copy_from_slice(body.as_bytes()),
+        _ => Bytes::copy_from_slice(body.as_bytes()),
+    };
     // Response::builder() with valid status and body should never fail
-    // Using unwrap_or to provide a fallback empty response if somehow it does
     Response::builder()
         .status(status)
         .body(
