@@ -141,6 +141,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           path: artifacts
+          pattern: ferrotunnel-*
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
