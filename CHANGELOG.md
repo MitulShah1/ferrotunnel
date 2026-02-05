@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-02-02
+## [1.0.0] - 2026-02-05
 
 ### Highlights
 
-FerroTunnel v0.1.0 is the initial public release.
+FerroTunnel v1.0.0 is the first stable release.
 
 ### Features
 
@@ -89,5 +89,5 @@ FerroTunnel v0.1.0 is the initial public release.
 | `ferrotunnel-observability` | Metrics, tracing, and dashboard |
 | `ferrotunnel-common` | Shared types and errors |
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v0.1.0
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.0

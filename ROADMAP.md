@@ -20,20 +20,20 @@ Embeddable, extensible, and observable reverse tunnel for Rust developers.
 
 ### Stable
 
-- **v0.1.0** - Current stable release ✅
+- **v1.0.0** - Current stable release ✅
   - Protocol, tunnel, HTTP/TCP ingress, plugin system, observability, dashboard, unified CLI
   - Published to crates.io
 
-### Future (post v0.1.0)
+### Planned
 
-- **v0.2.0** - HTTP/2 support (ingress & client)
-- **v0.3.0** - gRPC support
-- **v0.4.0** - QUIC transport (HTTP/3)
-- **v0.5.0** - Connection pooling (upstream/client)
-- **v0.6.0** - WebSocket tunneling
-- **v0.7.0** - Multi-region support
-- **v0.8.0** - Custom domains
-- **v1.0.0** - Breaking changes if needed
+- **v1.0.1** - HTTP/2 support (ingress & client)
+- **v1.0.2** - gRPC support
+- **v1.0.3** - QUIC transport (HTTP/3)
+- **v1.0.4** - Connection pooling (upstream/client)
+- **v1.0.5** - WebSocket tunneling
+- **v1.0.6** - Multi-region support
+- **v1.0.7** - Custom domains
+- **v2.0.0** - Breaking changes (if needed)
 
 ---
 

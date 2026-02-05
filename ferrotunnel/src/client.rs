@@ -250,22 +250,9 @@ impl ClientBuilder {
     ///
     /// When enabled, the client will use TLS to connect to the server.
     #[must_use]
-    pub fn tls(mut self, config: TlsConfig) -> Self {
-        if config.enabled {
-            self.transport_config = Some(TransportConfig::Tls(TlsTransportConfig {
-                ca_cert_path: config.ca_cert_path.map(|p| p.to_string_lossy().to_string()),
-                cert_path: config
-                    .cert_path
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_default(),
-                key_path: config
-                    .key_path
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_default(),
-                server_name: config.server_name,
-                client_auth: config.client_auth,
-                skip_verify: false,
-            }));
+    pub fn tls(mut self, config: &TlsConfig) -> Self {
+        if let Some(tls) = TlsTransportConfig::from_common(config) {
+            self.transport_config = Some(TransportConfig::Tls(tls));
         }
         self
     }
@@ -371,7 +358,7 @@ mod tests {
         let client = Client::builder()
             .server_addr("localhost:7835")
             .token("secret")
-            .tls(tls)
+            .tls(&tls)
             .build()
             .expect("should build");
 

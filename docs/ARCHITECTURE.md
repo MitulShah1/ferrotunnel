@@ -1,5 +1,33 @@
 # FerroTunnel Architecture
 
+## High-level overview
+
+```mermaid
+flowchart TB
+    subgraph external["External"]
+        User[User / Client app]
+        Backend[Local services]
+    end
+
+    subgraph server_side["Tunnel server (public)"]
+        HTTP[HTTP Ingress :8080]
+        Control[Control plane :7835]
+        Plugins[Plugin registry]
+        HTTP --> Plugins
+        Control --> Sessions[Session store]
+    end
+
+    subgraph client_side["Tunnel client (private)"]
+        Client[FerroTunnel client]
+        Client --> Tunnel[Tunnel connection]
+    end
+
+    User --> HTTP
+    Control --> Tunnel
+    Tunnel --> Client
+    Client --> Backend
+```
+
 ## Project Structure
 
 FerroTunnel uses a **tokio-style workspace** the standard pattern for multi-crate Rust projects.
@@ -203,6 +231,39 @@ ferrotunnel/
 
 ## Crates
 
+```mermaid
+flowchart TB
+    subgraph app["Application layer"]
+        CLI[ferrotunnel-cli]
+        API[ferrotunnel]
+    end
+
+    subgraph services["Services"]
+        Core[ferrotunnel-core]
+        HTTP[ferrotunnel-http]
+        Plugin[ferrotunnel-plugin]
+        Obs[ferrotunnel-observability]
+    end
+
+    subgraph shared["Shared"]
+        Protocol[ferrotunnel-protocol]
+        Common[ferrotunnel-common]
+    end
+
+    CLI --> API
+    API --> Core
+    API --> HTTP
+    API --> Plugin
+    API --> Obs
+    Core --> Protocol
+    Core --> Common
+    HTTP --> Core
+    HTTP --> Plugin
+    HTTP --> Common
+    Plugin --> Common
+    Obs --> Common
+```
+
 | Crate | Purpose |
 |-------|---------|
 | `ferrotunnel` | Main API: `Client::builder()`, `Server::builder()`, re-exports, prelude |
@@ -213,6 +274,31 @@ ferrotunnel/
 | `ferrotunnel-observability` | Metrics, tracing, dashboard (Axum + SSE + Web UI) |
 | `ferrotunnel-common` | Error types, `Result<T>`, shared config |
 | `ferrotunnel-cli` | `ferrotunnel` binary: `server`, `client`, `version` subcommands |
+
+## Request path (data flow)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Ingress as HTTP Ingress
+    participant Plugin as Plugins
+    participant Core as ferrotunnel-core
+    participant Client as Tunnel client
+    participant Backend as Local service
+
+    User->>Ingress: HTTP request (Host, path)
+    Ingress->>Plugin: Pre-request
+    Plugin-->>Ingress: Allow / Deny
+    Ingress->>Core: Lookup session, open stream
+    Core->>Client: Frame (stream ID, data)
+    Client->>Backend: Forward to upstream
+    Backend-->>Client: Response
+    Client-->>Core: Frame (stream ID, data)
+    Core-->>Ingress: Stream data
+    Ingress->>Plugin: Post-response
+    Plugin-->>Ingress: -
+    Ingress-->>User: HTTP response
+```
 
 ## Integration Tests
 
@@ -257,6 +343,23 @@ cargo bench -p ferrotunnel-benches
 ```
 
 ## Commands
+
+```mermaid
+flowchart LR
+    subgraph dev["Development"]
+        A[make build]
+        B[make test]
+        C[make check]
+        D[make fmt]
+        E[make lint]
+    end
+    subgraph perf["Performance"]
+        F[make bench]
+    end
+    C --> D
+    C --> E
+    A --> B
+```
 
 ```bash
 make build      # cargo build --workspace

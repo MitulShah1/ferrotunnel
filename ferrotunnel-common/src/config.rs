@@ -2,7 +2,6 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::time::Duration;
 
 /// TLS configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -54,33 +53,6 @@ impl Default for LimitsConfig {
     }
 }
 
-/// Resilience configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResilienceConfig {
-    /// Base delay for reconnection backoff
-    pub reconnect_base: Duration,
-    /// Maximum delay for reconnection backoff
-    pub reconnect_max: Duration,
-    /// Jitter factor (0.0 - 1.0)
-    pub jitter_factor: f64,
-    /// Duration to keep circuit breaker open
-    pub circuit_open_duration: Duration,
-    /// Number of failures before opening circuit
-    pub circuit_failure_threshold: u32,
-}
-
-impl Default for ResilienceConfig {
-    fn default() -> Self {
-        Self {
-            reconnect_base: Duration::from_secs(1),
-            reconnect_max: Duration::from_secs(60),
-            jitter_factor: 0.3,
-            circuit_open_duration: Duration::from_secs(30),
-            circuit_failure_threshold: 5,
-        }
-    }
-}
-
 /// Rate limiting configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RateLimitConfig {
@@ -100,13 +72,4 @@ impl Default for RateLimitConfig {
             burst_factor: 2,
         }
     }
-}
-
-/// Combined hardening configuration
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct HardeningConfig {
-    pub tls: TlsConfig,
-    pub limits: LimitsConfig,
-    pub resilience: ResilienceConfig,
-    pub rate_limit: RateLimitConfig,
 }

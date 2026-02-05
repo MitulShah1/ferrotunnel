@@ -22,6 +22,35 @@ pub struct TlsTransportConfig {
     pub skip_verify: bool,
 }
 
+impl TlsTransportConfig {
+    /// Build from common [`ferrotunnel_common::TlsConfig`] when TLS is enabled; returns `None` otherwise.
+    #[must_use]
+    pub fn from_common(config: &ferrotunnel_common::TlsConfig) -> Option<Self> {
+        if !config.enabled {
+            return None;
+        }
+        Some(Self {
+            ca_cert_path: config
+                .ca_cert_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string()),
+            cert_path: config
+                .cert_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default(),
+            key_path: config
+                .key_path
+                .as_ref()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_default(),
+            server_name: config.server_name.clone(),
+            client_auth: config.client_auth,
+            skip_verify: false,
+        })
+    }
+}
+
 fn load_certs(path: &Path) -> io::Result<Vec<CertificateDer<'static>>> {
     CertificateDer::pem_file_iter(path)
         .map_err(|e| io::Error::new(ErrorKind::InvalidData, e))?

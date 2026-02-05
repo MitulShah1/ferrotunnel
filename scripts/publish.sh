@@ -14,8 +14,8 @@ if [ ! -f "Cargo.toml" ]; then
     exit 1
 fi
 
-# Get version from Cargo.toml
-VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+# Get version from workspace or first package in Cargo.toml
+VERSION=$(grep -E '^\s*version\s*=\s*"' Cargo.toml | head -1 | sed -E 's/.*version\s*=\s*"([^"]+)".*/\1/')
 echo -e "Publishing version: ${GREEN}${VERSION}${NC}"
 
 # Check for uncommitted changes

@@ -63,7 +63,7 @@ pub trait Plugin: Send + Sync {
 
     /// Plugin version
     fn version(&self) -> &str {
-        "0.1.0"
+        "1.0.0"
     }
 
     /// Initialize plugin (called once on startup)

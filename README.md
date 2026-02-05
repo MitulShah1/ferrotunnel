@@ -29,7 +29,7 @@ ferrotunnel client --server localhost:7835 --local-addr 127.0.0.1:8080
 
 ```toml
 [dependencies]
-ferrotunnel = "0.1"
+ferrotunnel = "1.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -67,7 +67,7 @@ async fn main() -> ferrotunnel::Result<()> {
 
 **Choose FerroTunnel when**: You need many services over a single connection, HTTP routing, plugins, or resource efficiency.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed analysis of the multiplexing trade-off.
+See [Architecture](/docs/ARCHITECTURE.md) for detailed analysis of the multiplexing trade-off.
 
 ## CLI Reference
 
@@ -139,7 +139,7 @@ docker-compose up --build
 
 - [CLI Reference](ferrotunnel-cli/README.md)
 - [Contributing](CONTRIBUTING.md) & [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Architecture](ARCHITECTURE.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [Benchmark & Performance](docs/benchmark.md)
 - [Deployment Guide](docs/deployment.md)
 - [Plugin Development](docs/plugin-development.md)
@@ -171,21 +171,13 @@ cargo bench --workspace
 
 FerroTunnel is benchmarked against [rathole](https://github.com/rapiz1/rathole) and [frp](https://github.com/fatedier/frp). Unlike rathole/frp which use 1:1 TCP forwarding, FerroTunnel uses **multiplexed streams over a single connection** the same architecture used by [ngrok](https://ngrok.com/docs/http/) and [Cloudflare Tunnel](https://developers.cloudflare.com/speed/optimization/protocol/http2-to-origin/) (HTTP/2 multiplexing). This enables HTTP routing, plugins, and multi-service tunnels.
 
-| Metric | FerroTunnel | Rathole | frp |
-|--------|-------------|---------|-----|
-| **Throughput** | 382 MB/s | 1349 MB/s | 690 MB/s |
-| **Latency (P99)** | 0.114ms | 0.075ms | 0.131ms |
-| **Memory/conn** | 47.3 KB | 35.8 KB | 113.7 KB |
-
-**Why the throughput difference?** Multiplexing adds frame encoding/decoding overhead this is the cost of features like HTTP host routing, request plugins, and running many services over one tunnel. FerroTunnel is **18% faster than frp** on latency and uses **58% less memory**.
-
 <p align="center">
   <img src="docs/static/server_heap_graph.png" alt="Server Heap Graph" width="45%">
   <img src="docs/static/top_allocations.png" alt="Top Allocations" width="45%">
 </p>
 <p align="center"><em>Memory profile: flat heap usage, minimal allocations under load</em></p>
 
-See [docs/benchmark.md](docs/benchmark.md) for detailed analysis of the architectural trade-offs and [ferrotunnel-benchmarks](https://github.com/MitulShah1/ferrotunnel-benchmarks) for reproducible tests.
+See [docs/benchmark.md](docs/benchmark.md) for detailed analysis of the architectural trade-offs.
 
 ## License
 
