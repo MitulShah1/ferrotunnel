@@ -1,5 +1,9 @@
+# Build stage with cargo-chef for dependency caching
 FROM rust:1.90-slim-bookworm AS chef
-RUN apt-get update && apt-get install -y build-essential pkg-config && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 RUN cargo install cargo-chef
 WORKDIR /app
 
@@ -9,23 +13,22 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
-# Build dependencies - this is the caching layer!
+
+# Build dependencies with aggressive size optimizations
+ENV RUSTFLAGS="-C link-arg=-s -C opt-level=z -C codegen-units=1 -C panic=abort -C strip=symbols"
 RUN cargo chef cook --release --recipe-path recipe.json
+
 # Build application
 COPY . .
-RUN cargo build --release -p ferrotunnel-cli
+RUN cargo build --release -p ferrotunnel-cli && \
+    strip --strip-all /app/target/release/ferrotunnel
 
-FROM debian:bookworm-slim AS runtime
-WORKDIR /app
-# Install OpenSSL/CA certs
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+# Runtime stage with Google distroless (minimal Debian)
+FROM gcr.io/distroless/cc-debian12:nonroot AS runtime
 
-# Create non-root user
-RUN groupadd -r ferrotunnel && useradd -r -g ferrotunnel ferrotunnel
+COPY --from=builder --chown=nonroot:nonroot /app/target/release/ferrotunnel /usr/local/bin/
 
-COPY --from=builder /app/target/release/ferrotunnel /usr/local/bin/
-
-USER ferrotunnel
+USER nonroot
 EXPOSE 7835 8080 9090 4040
 
 # Default to server, but allows easy override for client
