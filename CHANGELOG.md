@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2026-02-06
 
+### Added
+
+#### Installation
+- **Homebrew Formula**: Introduce `brew install ferrotunnel` command for macOS users via [MitulShah1/homebrew-ferrotunnel](https://github.com/MitulShah1/homebrew-ferrotunnel) tap
+
 ### Improved
 
 #### Docker Optimization
