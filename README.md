@@ -10,6 +10,7 @@
 
 FerroTunnel multiplexes streams over a single connection (like ngrok/Cloudflare Tunnel) but ships as a **library-first** crate. Expose local services behind NAT, route HTTP by hostname, intercept requests with plugins with minimal memory footprint and sub-millisecond latency. Works as CLI or `Client::builder()` API. Written in Rust.
 
+
 ## Quick Start
 
 ### CLI
@@ -68,6 +69,37 @@ async fn main() -> ferrotunnel::Result<()> {
 **Choose FerroTunnel when**: You need many services over a single connection, HTTP routing, plugins, or resource efficiency.
 
 See [Architecture](/docs/ARCHITECTURE.md) for detailed analysis of the multiplexing trade-off.
+
+## Security: Why Rust Matters
+
+Traditional C/C++ tunneling solutions (OpenSSH, OpenVPN, stunnel) have suffered from **30+ critical memory safety vulnerabilities** over the past decade—buffer overflows, use-after-free, double-free, race conditions, and heap corruption.
+
+**FerroTunnel eliminates these entire vulnerability classes at compile time** using Rust's ownership system:
+
+- ✅ **Zero unsafe code** (`#![forbid(unsafe)]` at workspace level)
+- ✅ **Memory safety guaranteed** (no buffer overflows, use-after-free, double-free)
+- ✅ **Thread safety enforced** (no data races possible)
+- ✅ **Pure Rust crypto** (rustls instead of OpenSSL—zero legacy vulnerabilities)
+
+**Security Features:**
+- TLS 1.3-only enforcement with mutual TLS support
+- Token-based authentication with constant-time comparison
+- Built-in rate limiting and frame size limits
+- Automated dependency scanning (`cargo-audit` in CI)
+
+See [docs/security.md](docs/security.md) for detailed CVE comparison, vulnerability analysis, and security best practices.
+
+## Ideal For
+
+FerroTunnel's **memory-safe architecture** and **minimal resource footprint** make it perfect for security-critical and resource-constrained environments:
+
+- 🔐 **Crypto & Blockchain Infrastructure** - High security requirements, integrates seamlessly with Rust blockchain ecosystems (Solana, Polkadot, Cosmos)
+- 📡 **IoT Devices** - Low memory overhead (<100MB/1k tunnels), zero memory vulnerabilities, ideal for edge gateways and smart devices
+- ⚡ **Edge Computing** - Sub-millisecond latency, efficient resource usage, compile-time safety guarantees
+- 🖥️ **Embedded Systems** - No garbage collector, predictable performance, cross-compilation friendly
+- 🏢 **Enterprise Security** - Zero unsafe code, automated dependency scanning, compliance-ready audit trails
+
+**Why it matters:** Traditional C/C++ tunnels require constant security patches for memory vulnerabilities. Embedded/IoT devices often can't be easily updated, making Rust's compile-time safety guarantees essential.
 
 ## CLI Reference
 
