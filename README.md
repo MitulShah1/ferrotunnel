@@ -161,6 +161,13 @@ Download from [GitHub Releases](https://github.com/MitulShah1/ferrotunnel/releas
 cargo install ferrotunnel-cli
 ```
 
+### macOS (Homebrew)
+
+```bash
+brew tap MitulShah1/ferrotunnel
+brew install ferrotunnel
+```
+
 ### Docker
 
 ```bash

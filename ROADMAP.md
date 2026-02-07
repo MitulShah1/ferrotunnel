@@ -26,14 +26,46 @@ Embeddable, extensible, and observable reverse tunnel for Rust developers.
 
 ### Planned
 
-- **v1.0.1** - HTTP/2 support (ingress & client)
-- **v1.0.2** - gRPC support
-- **v1.0.3** - QUIC transport (HTTP/3)
-- **v1.0.4** - Connection pooling (upstream/client)
-- **v1.0.5** - WebSocket tunneling
-- **v1.0.6** - Multi-region support
-- **v1.0.7** - Custom domains
-- **v2.0.0** - Breaking changes (if needed)
+> **Strategy**: Prioritize features that maximize user adoption and "time to first success"
+
+- **v1.0.1** - Stability & Developer Experience
+  - Enhanced documentation with real-world integration examples
+  - Simplified deployment: Docker images, Homebrew formula
+  - Performance benchmarks vs. alternatives (rathole, frp)
+  - Bug fixes and polish from early adopter feedback
+  - **Goal**: Convert evaluators → users → advocates
+
+- **v1.0.2** - WebSocket Tunneling
+  - Full WebSocket tunnel support
+  - Real-time application compatibility (chat, dashboards, gaming)
+  - **Market Impact**: Opens to entire real-time application developer segment
+
+- **v1.0.3** - HTTP/2 Support
+  - HTTP/2 ingress and client proxy
+  - Multiplexing and header compression
+  - **Value**: Modern web baseline, enterprise credibility
+
+- **v1.0.4** - gRPC Support
+  - Native gRPC tunneling
+  - **Target Audience**: Enterprise and microservices developers
+
+- **v1.0.5** - Connection Pooling
+  - Upstream and client connection pooling
+  - Performance optimization for high-throughput scenarios
+
+- **v1.0.6** - QUIC Transport (HTTP/3)
+  - QUIC protocol support for reduced latency
+  - **Differentiator**: Next-gen transport for competitive advantage
+
+- **v1.0.7** - Multi-region Support
+  - Geographic load balancing
+  - Regional failover capabilities
+
+- **v1.0.8** - Custom Domains
+  - Custom domain mapping for white-label deployments
+
+- **v2.0.0** - Breaking Changes (if needed)
+  - Protocol improvements based on v1.x learnings
 
 ---
 
