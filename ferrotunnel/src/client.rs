@@ -91,6 +91,7 @@ impl Client {
         let server_addr = config.server_addr.clone();
         let token = config.token.clone();
         let local_addr = config.local_addr.clone();
+        let tunnel_id = config.tunnel_id.clone();
         let auto_reconnect = config.auto_reconnect;
         let reconnect_delay = config.reconnect_delay;
         let transport_config = self.transport_config.clone();
@@ -104,6 +105,9 @@ impl Client {
             loop {
                 let mut client = TunnelClient::new(server_addr.clone(), token.clone())
                     .with_transport(transport_config.clone());
+                if let Some(ref id) = tunnel_id {
+                    client = client.with_tunnel_id(id.clone());
+                }
                 let proxy_ref = proxy.clone();
                 let info_tx = info_tx.clone();
 
@@ -225,6 +229,15 @@ impl ClientBuilder {
     #[must_use]
     pub fn local_addr(mut self, addr: impl Into<String>) -> Self {
         self.config.local_addr = addr.into();
+        self
+    }
+
+    /// Set the tunnel ID used for HTTP routing (matched against the Host header).
+    ///
+    /// If not set, the server assigns a random UUID as the tunnel ID.
+    #[must_use]
+    pub fn tunnel_id(mut self, id: impl Into<String>) -> Self {
+        self.config.tunnel_id = Some(id.into());
         self
     }
 

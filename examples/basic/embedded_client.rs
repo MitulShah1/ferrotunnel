@@ -31,20 +31,27 @@ async fn main() -> ferrotunnel::Result<()> {
     let server_addr = get_arg(&args, "--server").unwrap_or_else(|| "localhost:7835".to_string());
     let token = get_arg(&args, "--token").unwrap_or_else(|| "secret".to_string());
     let local_addr = get_arg(&args, "--local-addr").unwrap_or_else(|| "127.0.0.1:8000".to_string());
+    let tunnel_id = get_arg(&args, "--tunnel-id");
 
     println!("`FerroTunnel` Embedded Client Example");
     println!("====================================");
     println!("Server:     {server_addr}");
     println!("Local addr: {local_addr}");
+    if let Some(ref id) = tunnel_id {
+        println!("Tunnel ID:  {id}");
+    }
     println!();
 
     // Build and start the client using the builder pattern
-    let mut client = Client::builder()
+    let mut builder = Client::builder()
         .server_addr(&server_addr)
         .token(&token)
         .local_addr(&local_addr)
-        .auto_reconnect(true)
-        .build()?;
+        .auto_reconnect(true);
+    if let Some(id) = tunnel_id {
+        builder = builder.tunnel_id(id);
+    }
+    let mut client = builder.build()?;
 
     println!("Connecting to server...");
 

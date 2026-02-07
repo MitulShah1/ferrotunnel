@@ -87,6 +87,10 @@ pub struct ClientArgs {
     #[arg(long, default_value = "127.0.0.1:8000", env = "FERROTUNNEL_LOCAL_ADDR")]
     local_addr: String,
 
+    /// Tunnel ID for HTTP routing (matched against Host header). Auto-generated if omitted.
+    #[arg(long, env = "FERROTUNNEL_TUNNEL_ID")]
+    tunnel_id: Option<String>,
+
     #[command(flatten)]
     pub features: ClientFeatureArgs,
 
@@ -138,26 +142,31 @@ pub async fn run(args: ClientArgs) -> Result<()> {
 
     let token = resolve_token(&args)?;
 
-    // When dashboard is enabled, use a single tunnel ID for both dashboard display and server routing
-    let tunnel_id_opt: Option<uuid::Uuid> = if args.features.no_dashboard {
-        None
-    } else {
-        Some(uuid::Uuid::new_v4())
-    };
+    // Determine tunnel ID for routing
+    let tunnel_id_string: Option<String> = args.tunnel_id.clone().or_else(|| {
+        if args.features.no_dashboard {
+            None
+        } else {
+            Some(uuid::Uuid::new_v4().to_string())
+        }
+    });
+
+    // Parse as UUID for dashboard (if it's a valid UUID)
+    let dashboard_tunnel_id: Option<uuid::Uuid> =
+        tunnel_id_string.as_ref().and_then(|s| s.parse().ok());
 
     // Start Dashboard and configure proxy
-    let proxy: Arc<dyn StreamHandler> = if let Some(tunnel_id) = tunnel_id_opt {
+    let proxy: Arc<dyn StreamHandler> = if let Some(tunnel_id) = dashboard_tunnel_id {
         setup_dashboard(&args, tunnel_id).await
     } else {
-        // Initialize basic Proxy (Identity layer)
         Arc::new(ferrotunnel_http::HttpProxy::new(args.local_addr.clone()))
     };
 
     // Simple reconnection loop
     loop {
         let mut client = TunnelClient::new(args.server.clone(), token.clone());
-        if let Some(tid) = &tunnel_id_opt {
-            client = client.with_tunnel_id(tid.to_string());
+        if let Some(ref tid) = tunnel_id_string {
+            client = client.with_tunnel_id(tid.clone());
         }
         client = setup_tls(client, &args);
 

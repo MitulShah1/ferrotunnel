@@ -23,7 +23,7 @@ cargo install ferrotunnel-cli
 ferrotunnel server --token secret
 
 # Start client (in another terminal; token from env or secure prompt if omitted)
-ferrotunnel client --server localhost:7835 --local-addr 127.0.0.1:8080
+ferrotunnel client --server localhost:7835 --local-addr 127.0.0.1:8080 --tunnel-id my-app
 ```
 
 ### Library
@@ -43,6 +43,7 @@ async fn main() -> ferrotunnel::Result<()> {
         .server_addr("tunnel.example.com:7835")
         .token("my-secret-token")
         .local_addr("127.0.0.1:8080")
+        .tunnel_id("my-app")
         .build()?;
 
     client.start().await?;
@@ -130,6 +131,7 @@ ferrotunnel client [OPTIONS]
 | `--server` | `FERROTUNNEL_SERVER` | required | Server address |
 | `--token` | `FERROTUNNEL_TOKEN` | optional | Auth token; if omitted, uses env or prompts securely |
 | `--local-addr` | `FERROTUNNEL_LOCAL_ADDR` | `127.0.0.1:8000` | Local service |
+| `--tunnel-id` | `FERROTUNNEL_TUNNEL_ID` | (auto) | Tunnel ID for HTTP routing |
 | `--dashboard-port` | `FERROTUNNEL_DASHBOARD_PORT` | `4040` | Dashboard port |
 | `--tls` | `FERROTUNNEL_TLS` | false | Enable TLS |
 | `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | CA certificate |
