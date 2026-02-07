@@ -23,6 +23,9 @@ pub struct ClientConfig {
     /// Local address to forward traffic to
     pub local_addr: String,
 
+    /// Tunnel ID used for HTTP routing (matched against the Host header)
+    pub tunnel_id: Option<String>,
+
     /// Enable automatic reconnection on disconnect
     pub auto_reconnect: bool,
 
@@ -52,6 +55,7 @@ impl Default for ClientConfig {
             server_addr: String::new(),
             token: String::new(),
             local_addr: DEFAULT_LOCAL_ADDR.to_string(),
+            tunnel_id: None,
             auto_reconnect: true,
             reconnect_delay: Duration::from_secs(5),
         }

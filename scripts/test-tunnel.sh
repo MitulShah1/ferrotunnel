@@ -44,9 +44,10 @@ echo -e "${GREEN}================================${NC}"
 echo ""
 
 # Build the project first
-echo -e "${YELLOW}Step 1: Building project...${NC}"
+echo -e "${YELLOW}Step 1: Building project and examples...${NC}"
 cd "$PROJECT_DIR"
-cargo build -p ferrotunnel --examples 2>&1 | tail -3
+# Pre-build to ensure examples are ready
+cargo build --quiet -p ferrotunnel --examples
 echo -e "${GREEN}✓ Build complete${NC}"
 echo ""
 
@@ -58,27 +59,36 @@ echo "Test file content" > "$TEMP_DIR/test.txt"
 # Step 2: Start local HTTP server (simulates the service to tunnel)
 echo -e "${YELLOW}Step 2: Starting local HTTP server on $LOCAL_SERVICE...${NC}"
 cd "$TEMP_DIR"
-python3 -m http.server 19000 --bind 127.0.0.1 > /dev/null 2>&1 &
+python3 -m http.server 19000 --bind 127.0.0.1 > /tmp/ferrotunnel-http-server.log 2>&1 &
 HTTP_SERVER_PID=$!
 cd "$PROJECT_DIR"
-sleep 1
+sleep 2
 
 if kill -0 "$HTTP_SERVER_PID" 2>/dev/null; then
     echo -e "${GREEN}✓ Local HTTP server started (PID: $HTTP_SERVER_PID)${NC}"
 else
     echo -e "${RED}✗ Failed to start local HTTP server${NC}"
+    cat /tmp/ferrotunnel-http-server.log
     exit 1
 fi
 echo ""
 
 # Step 3: Start the tunnel server
 echo -e "${YELLOW}Step 3: Starting FerroTunnel server...${NC}"
-RUST_LOG=info cargo run --example embedded_server -- \
+RUST_LOG=info cargo run --quiet --example embedded_server -- \
     --bind "$SERVER_BIND" \
     --http-bind "$HTTP_BIND" \
     --token "$TOKEN" > /tmp/ferrotunnel-server.log 2>&1 &
 SERVER_PID=$!
-sleep 2
+
+# Wait for server to bind
+echo "  Waiting for server to initialize..."
+for i in {1..10}; do
+    if grep -q "Starting server..." /tmp/ferrotunnel-server.log 2>/dev/null; then
+        break
+    fi
+    sleep 1
+done
 
 if kill -0 "$SERVER_PID" 2>/dev/null; then
     echo -e "${GREEN}✓ Tunnel server started (PID: $SERVER_PID)${NC}"
@@ -93,12 +103,21 @@ echo ""
 
 # Step 4: Start the tunnel client
 echo -e "${YELLOW}Step 4: Starting FerroTunnel client...${NC}"
-RUST_LOG=info cargo run --example embedded_client -- \
+RUST_LOG=info cargo run --quiet --example embedded_client -- \
     --server "$SERVER_BIND" \
     --token "$TOKEN" \
-    --local-addr "$LOCAL_SERVICE" > /tmp/ferrotunnel-client.log 2>&1 &
+    --local-addr "$LOCAL_SERVICE" \
+    --tunnel-id "127.0.0.1" > /tmp/ferrotunnel-client.log 2>&1 &
 CLIENT_PID=$!
-sleep 3
+
+# Wait for client to connect
+echo "  Waiting for client to connect..."
+for i in {1..10}; do
+    if grep -q "Connected!" /tmp/ferrotunnel-client.log 2>/dev/null; then
+        break
+    fi
+    sleep 1
+done
 
 if kill -0 "$CLIENT_PID" 2>/dev/null; then
     echo -e "${GREEN}✓ Tunnel client started (PID: $CLIENT_PID)${NC}"
