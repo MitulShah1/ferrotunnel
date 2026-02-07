@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-02-07
+
+### Fixed
+
+#### Docker Verification
+- **Metrics Endpoint**: Fixed issue where the metrics server was not enabled by default in the Docker environment, causing verification scripts to report missing data.
+
 ## [1.0.1] - 2026-02-06
 
 ### Added
@@ -111,6 +118,7 @@ FerroTunnel v1.0.0 is the first stable release.
 | `ferrotunnel-observability` | Metrics, tracing, and dashboard |
 | `ferrotunnel-common` | Shared types and errors |
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.2
 [1.0.1]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.1
 [1.0.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.0
