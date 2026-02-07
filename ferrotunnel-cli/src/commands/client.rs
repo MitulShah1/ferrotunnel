@@ -152,7 +152,8 @@ pub async fn run(args: ClientArgs) -> Result<()> {
     });
 
     // Parse as UUID for dashboard (if it's a valid UUID)
-    let dashboard_tunnel_id: Option<uuid::Uuid> = tunnel_id_string.as_ref().and_then(|s| s.parse().ok());
+    let dashboard_tunnel_id: Option<uuid::Uuid> =
+        tunnel_id_string.as_ref().and_then(|s| s.parse().ok());
 
     // Start Dashboard and configure proxy
     let proxy: Arc<dyn StreamHandler> = if let Some(tunnel_id) = dashboard_tunnel_id {
