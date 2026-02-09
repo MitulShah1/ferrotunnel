@@ -1,9 +1,13 @@
 [package]
 name = "ferrotunnel-protocol-fuzz"
-version.workspace = true
+version = "0.1.0"
 publish = false
 license = "MIT"
-edition.workspace = true
+edition = "2021"
+
+# Prevent this from interfering with workspaces (Tokio-style: fuzz is not in root workspace)
+[workspace]
+members = ["."]
 
 [package.metadata]
 cargo-fuzz = true

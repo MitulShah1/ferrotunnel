@@ -9,6 +9,8 @@ members = [
     "ferrotunnel-http",
     "ferrotunnel-plugin",
     "ferrotunnel-observability",
+
+    # Internal (not published); fuzz lives under ferrotunnel-protocol/fuzz with its own [workspace]
     "tools/loadgen",
     "tools/soak",
     "tests",
