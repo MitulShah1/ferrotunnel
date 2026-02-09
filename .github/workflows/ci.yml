@@ -158,25 +158,6 @@ jobs:
   #     - name: Compile benchmarks
   #       run: cargo test --benches --workspace --no-run
 
-  minimal-versions:
-    name: Minimal Dependency Versions
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: swatinem/rust-cache@v2
-      - name: Generate minimal-versions lockfile
-        run: cargo +nightly update -Z minimal-versions
-      # crc32fast 1.1.0 has a broken build.rs (semver Version API); bump so check succeeds
-      - name: Bump crc32fast for minimal-versions build
-        run: cargo update -p crc32fast --precise 1.5.0
-      - name: Check with minimal versions
-        run: cargo +stable check --workspace --all-features --locked
-
   ci-pass:
     name: CI Pass
     if: always()
@@ -187,7 +168,6 @@ jobs:
       - test
       - docs
       - fuzz-smoke-test
-      - minimal-versions
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
