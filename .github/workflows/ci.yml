@@ -171,6 +171,9 @@ jobs:
       - uses: swatinem/rust-cache@v2
       - name: Generate minimal-versions lockfile
         run: cargo +nightly update -Z minimal-versions
+      # crc32fast 1.1.0 has a broken build.rs (semver Version API); bump so check succeeds
+      - name: Bump crc32fast for minimal-versions build
+        run: cargo update -p crc32fast --precise 1.5.0
       - name: Check with minimal versions
         run: cargo +stable check --workspace --all-features --locked
 
