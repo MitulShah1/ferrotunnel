@@ -64,6 +64,12 @@ lto = true
 codegen-units = 1
 strip = true
 
+[profile.ci]
+inherits = "release"
+lto = false
+codegen-units = 16
+strip = false
+
 [profile.dev]
 opt-level = 0
 debug = true

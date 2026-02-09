@@ -92,6 +92,7 @@ pub async fn run_batched_sender<W>(
         // Send in priority order: Critical first, then High, Normal, Low
         frames.sort_by_key(|(p, _)| p.drain_order());
 
+        #[cfg(feature = "metrics")]
         let n_frames = frames.len();
 
         #[cfg(feature = "metrics")]
@@ -99,6 +100,7 @@ pub async fn run_batched_sender<W>(
             m.set_queue_depth(n_frames);
         }
 
+        #[cfg(feature = "metrics")]
         let encode_start = Instant::now();
         // Encode all frames using vectored writes for zero-copy data frames
         for (_priority, frame) in frames.drain(..) {
@@ -106,6 +108,7 @@ pub async fn run_batched_sender<W>(
                 warn!("Skipping invalid frame: {}", e);
             }
         }
+        #[cfg(feature = "metrics")]
         let encoded_bytes: usize = encoded_segments.iter().map(Bytes::len).sum();
 
         #[cfg(feature = "metrics")]
