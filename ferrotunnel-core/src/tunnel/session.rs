@@ -219,7 +219,7 @@ fn shard_index(tunnel_id: &str, n_shards: usize) -> usize {
 }
 
 impl ShardedSessionStore {
-    /// Create a sharded store with [`DEFAULT_SESSION_STORE_SHARDS`] shards.
+    /// Create a sharded store with the default number of shards (16).
     pub fn new() -> Self {
         Self::with_shards(DEFAULT_SESSION_STORE_SHARDS)
     }

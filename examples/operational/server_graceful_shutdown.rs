@@ -19,7 +19,6 @@ async fn main() -> ferrotunnel::Result<()> {
         .with_env_filter(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "info,ferrotunnel=info".to_string()),
         )
-        .json()
         .init();
 
     tracing::info!("Starting FerroTunnel server with graceful shutdown support");
