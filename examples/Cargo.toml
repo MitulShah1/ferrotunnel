@@ -77,6 +77,10 @@ path = "scenarios/expose_local_dev.rs"
 name = "receive_webhooks_locally"
 path = "scenarios/receive_webhooks_locally.rs"
 
+[[example]]
+name = "websocket_tunnel"
+path = "scenarios/websocket_tunnel.rs"
+
 [dependencies]
 # Core ferrotunnel library
 ferrotunnel = { path = "../ferrotunnel" }
@@ -94,6 +98,10 @@ async-trait = "0.1"
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# WebSocket dependencies for examples
+tokio-tungstenite = "0.26"
+futures-util = "0.3"
 
 # Using custom lints for examples - allow unwrap/expect for demonstration code
 [lints.rust]
