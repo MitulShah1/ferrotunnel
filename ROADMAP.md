@@ -20,25 +20,25 @@ Embeddable, extensible, and observable reverse tunnel for Rust developers.
 
 ### Stable
 
-- **v1.0.0** - Current stable release ✅
+- **v1.0.0** - First stable release ✅
   - Protocol, tunnel, HTTP/TCP ingress, plugin system, observability, dashboard, unified CLI
   - Published to crates.io
+
+- **v1.0.1** - Stability & Developer Experience ✅
+  - Homebrew formula, Docker optimization (13.4 MB image)
+  - `--tunnel-id` CLI flag and `.tunnel_id()` builder method
+  - HTTP ingress routing fix, performance benchmarks vs. alternatives
+  - **Goal**: Convert evaluators → users → advocates
+
+- **v1.0.2** - WebSocket Tunneling & Graceful Shutdown ✅
+  - Full WebSocket tunnel support (upgrade detection, bidirectional bridging)
+  - Graceful shutdown for CLI server and client (Ctrl-C / SIGTERM handling)
+  - Real-time application compatibility (chat, dashboards, gaming)
+  - **Market Impact**: Opens to entire real-time application developer segment
 
 ### Planned
 
 > **Strategy**: Prioritize features that maximize user adoption and "time to first success"
-
-- **v1.0.1** - Stability & Developer Experience
-  - Enhanced documentation with real-world integration examples
-  - Simplified deployment: Docker images, Homebrew formula
-  - Performance benchmarks vs. alternatives (rathole, frp)
-  - Bug fixes and polish from early adopter feedback
-  - **Goal**: Convert evaluators → users → advocates
-
-- **v1.0.2** - WebSocket Tunneling
-  - Full WebSocket tunnel support
-  - Real-time application compatibility (chat, dashboards, gaming)
-  - **Market Impact**: Opens to entire real-time application developer segment
 
 - **v1.0.3** - HTTP/2 Support
   - HTTP/2 ingress and client proxy

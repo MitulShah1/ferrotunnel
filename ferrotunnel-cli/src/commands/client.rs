@@ -162,59 +162,66 @@ pub async fn run(args: ClientArgs) -> Result<()> {
         Arc::new(ferrotunnel_http::HttpProxy::new(args.local_addr.clone()))
     };
 
-    // Simple reconnection loop
-    loop {
-        let mut client = TunnelClient::new(args.server.clone(), token.clone());
-        if let Some(ref tid) = tunnel_id_string {
-            client = client.with_tunnel_id(tid.clone());
-        }
-        client = setup_tls(client, &args);
+    // Simple reconnection loop with graceful shutdown
+    tokio::select! {
+        _ = async {
+            loop {
+                let mut client = TunnelClient::new(args.server.clone(), token.clone());
+                if let Some(ref tid) = tunnel_id_string {
+                    client = client.with_tunnel_id(tid.clone());
+                }
+                client = setup_tls(client, &args);
 
-        let proxy_ref = proxy.clone();
+                let proxy_ref = proxy.clone();
 
-        let local_addr_config = args.local_addr.clone();
-        match client
-            .connect_and_run(move |stream| {
-                let proxy = proxy_ref.clone();
-                let local_addr = local_addr_config.clone();
-                async move {
-                    if stream.protocol() == Protocol::TCP {
-                        // Handle raw TCP stream
-                        tokio::spawn(async move {
-                            match TcpStream::connect(&local_addr).await {
-                                Ok(mut local_stream) => {
-                                    let mut tunnel_stream = stream;
-                                    let _ = tokio::io::copy_bidirectional(
-                                        &mut tunnel_stream,
-                                        &mut local_stream,
-                                    )
-                                    .await;
-                                }
-                                Err(e) => {
-                                    error!(
-                                        "Failed to connect to local TCP service {}: {}",
-                                        local_addr, e
-                                    );
-                                }
+                let local_addr_config = args.local_addr.clone();
+                match client
+                    .connect_and_run(move |stream| {
+                        let proxy = proxy_ref.clone();
+                        let local_addr = local_addr_config.clone();
+                        async move {
+                            if stream.protocol() == Protocol::TCP {
+                                // Handle raw TCP stream
+                                tokio::spawn(async move {
+                                    match TcpStream::connect(&local_addr).await {
+                                        Ok(mut local_stream) => {
+                                            let mut tunnel_stream = stream;
+                                            let _ = tokio::io::copy_bidirectional(
+                                                &mut tunnel_stream,
+                                                &mut local_stream,
+                                            )
+                                            .await;
+                                        }
+                                        Err(e) => {
+                                            error!(
+                                                "Failed to connect to local TCP service {}: {}",
+                                                local_addr, e
+                                            );
+                                        }
+                                    }
+                                });
+                            } else {
+                                // Handle HTTP/WebSocket stream via proxy
+                                proxy.handle(stream);
                             }
-                        });
-                    } else {
-                        // Handle HTTP/WebSocket stream via proxy
-                        proxy.handle(stream);
+                        }
+                    })
+                    .await
+                {
+                    Ok(()) => {
+                        info!("Client finished normally, exiting.");
+                        break;
+                    }
+                    Err(e) => {
+                        error!("Connection lost or failed: {}", e);
+                        info!("Reconnecting in 5 seconds...");
+                        tokio::time::sleep(Duration::from_secs(5)).await;
                     }
                 }
-            })
-            .await
-        {
-            Ok(()) => {
-                info!("Client finished normally, exiting.");
-                break;
             }
-            Err(e) => {
-                error!("Connection lost or failed: {}", e);
-                info!("Reconnecting in 5 seconds...");
-                tokio::time::sleep(Duration::from_secs(5)).await;
-            }
+        } => {}
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received shutdown signal, disconnecting...");
         }
     }
 

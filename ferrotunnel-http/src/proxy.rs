@@ -73,9 +73,22 @@ where
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, req: Request<B>) -> Self::Future {
+    #[allow(clippy::too_many_lines)]
+    fn call(&mut self, mut req: Request<B>) -> Self::Future {
         let target = self.target_addr.clone();
         Box::pin(async move {
+            let is_upgrade = req
+                .headers()
+                .get(hyper::header::UPGRADE)
+                .and_then(|v| v.to_str().ok())
+                .is_some_and(|v| v.eq_ignore_ascii_case("websocket"));
+
+            let server_upgrade = if is_upgrade {
+                Some(hyper::upgrade::on(&mut req))
+            } else {
+                None
+            };
+
             let stream = match TcpStream::connect(&target).await {
                 Ok(s) => {
                     configure_socket_silent(&s);
@@ -103,20 +116,69 @@ where
             };
 
             tokio::spawn(async move {
-                if let Err(e) = conn.await {
+                if let Err(e) = conn.with_upgrades().await {
                     error!("Connection error: {:?}", e);
                 }
             });
 
-            // Map generic body to BoxBody for hyper client
             let req = req.map(|b| BodyExt::boxed(b).map_err(Into::into));
 
             match sender.send_request(req).await {
                 Ok(res) => {
-                    let (parts, body) = res.into_parts();
-                    // Map hyper::Error to ProxyError
-                    let boxed_body = body.map_err(Into::into).boxed();
-                    Ok(Response::from_parts(parts, boxed_body))
+                    if is_upgrade && res.status() == StatusCode::SWITCHING_PROTOCOLS {
+                        let upstream_headers = res.headers().clone();
+                        let local_upgrade = hyper::upgrade::on(res);
+
+                        if let Some(server_upgrade) = server_upgrade {
+                            tokio::spawn(async move {
+                                let (local_result, server_result) =
+                                    tokio::join!(local_upgrade, server_upgrade);
+
+                                let local_upgraded = match local_result {
+                                    Ok(u) => u,
+                                    Err(e) => {
+                                        error!("Local upgrade failed: {e}");
+                                        return;
+                                    }
+                                };
+                                let server_upgraded = match server_result {
+                                    Ok(u) => u,
+                                    Err(e) => {
+                                        error!("Server upgrade failed: {e}");
+                                        return;
+                                    }
+                                };
+
+                                let mut local_io = TokioIo::new(local_upgraded);
+                                let mut server_io = TokioIo::new(server_upgraded);
+                                let _ =
+                                    tokio::io::copy_bidirectional(&mut local_io, &mut server_io)
+                                        .await;
+                            });
+                        }
+
+                        let mut builder =
+                            Response::builder().status(StatusCode::SWITCHING_PROTOCOLS);
+                        for (key, value) in &upstream_headers {
+                            builder = builder.header(key, value);
+                        }
+                        Ok(builder
+                            .body(
+                                Full::new(Bytes::new())
+                                    .map_err(|_| ProxyError::Custom("unreachable".into()))
+                                    .boxed(),
+                            )
+                            .unwrap_or_else(|_| {
+                                error_response(
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    "Failed to build upgrade response",
+                                )
+                            }))
+                    } else {
+                        let (parts, body) = res.into_parts();
+                        let boxed_body = body.map_err(Into::into).boxed();
+                        Ok(Response::from_parts(parts, boxed_body))
+                    }
                 }
                 Err(e) => {
                     error!("Failed to proxy request: {e}");
@@ -197,6 +259,7 @@ impl<L> HttpProxy<L> {
         tokio::spawn(async move {
             let _ = http1::Builder::new()
                 .serve_connection(io, hyper_service)
+                .with_upgrades()
                 .await;
         });
     }

@@ -11,6 +11,7 @@ mod plugin_test;
 mod tcp_test;
 mod tls_test;
 mod tunnel_test;
+mod websocket_test;
 
 use std::net::SocketAddr;
 use std::time::Duration;

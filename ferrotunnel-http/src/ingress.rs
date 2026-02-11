@@ -112,6 +112,7 @@ impl HttpIngress {
                             )
                         }),
                     )
+                    .with_upgrades()
                     .await
                 {
                     error!("Error serving connection: {:?}", err);
@@ -123,7 +124,7 @@ impl HttpIngress {
 
 #[allow(clippy::too_many_lines)]
 async fn handle_request(
-    req: Request<hyper::body::Incoming>,
+    mut req: Request<hyper::body::Incoming>,
     sessions: SessionStoreBackend,
     registry: Arc<PluginRegistry>,
     peer_addr: SocketAddr,
@@ -147,6 +148,14 @@ async fn handle_request(
         session_id: uuid::Uuid::new_v4().to_string(),
         remote_addr: peer_addr,
         timestamp: SystemTime::now(),
+    };
+
+    let is_ws = is_websocket_upgrade(req.headers());
+
+    let client_upgrade = if is_ws {
+        Some(hyper::upgrade::on(&mut req))
+    } else {
+        None
     };
 
     // 1. Run Request Hooks (On Headers Only - No Body Buffering)
@@ -219,10 +228,16 @@ async fn handle_request(
 
     // Reconstruct request for forwarding using the ORIGINAL streaming body
     // FIX #28: No body buffering here.
+    let protocol = if is_ws {
+        Protocol::WebSocket
+    } else {
+        Protocol::HTTP
+    };
+
     let forward_req = Request::from_parts(parts, body.boxed());
 
     // 3. Open Stream
-    let stream = match multiplexer.open_stream(Protocol::HTTP).await {
+    let stream = match multiplexer.open_stream(protocol).await {
         Ok(s) => s,
         Err(e) => {
             error!("Failed to open stream: {}", e);
@@ -261,7 +276,7 @@ async fn handle_request(
     };
 
     tokio::spawn(async move {
-        if let Err(err) = conn.await {
+        if let Err(err) = conn.with_upgrades().await {
             error!("Connection failed: {:?}", err);
         }
     });
@@ -287,6 +302,57 @@ async fn handle_request(
             ));
         }
     };
+
+    if is_ws && res.status() == StatusCode::SWITCHING_PROTOCOLS {
+        let upstream_headers = res.headers().clone();
+        let tunnel_upgrade = hyper::upgrade::on(res);
+
+        if let Some(client_upgrade) = client_upgrade {
+            tokio::spawn(async move {
+                let (tunnel_result, client_result) = tokio::join!(tunnel_upgrade, client_upgrade);
+
+                let tunnel_upgraded = match tunnel_result {
+                    Ok(u) => u,
+                    Err(e) => {
+                        error!("Tunnel upgrade failed: {e}");
+                        return;
+                    }
+                };
+                let client_upgraded = match client_result {
+                    Ok(u) => u,
+                    Err(e) => {
+                        error!("Client upgrade failed: {e}");
+                        return;
+                    }
+                };
+
+                let mut tunnel_io = TokioIo::new(tunnel_upgraded);
+                let mut client_io = TokioIo::new(client_upgraded);
+                if let Err(e) = tokio::io::copy_bidirectional(&mut tunnel_io, &mut client_io).await
+                {
+                    error!("WebSocket copy error: {e}");
+                }
+            });
+        }
+
+        let mut client_res = Response::builder().status(StatusCode::SWITCHING_PROTOCOLS);
+        for (key, value) in &upstream_headers {
+            client_res = client_res.header(key, value);
+        }
+        let client_res = client_res
+            .body(
+                Empty::<Bytes>::new()
+                    .map_err(|never| match never {})
+                    .boxed(),
+            )
+            .unwrap_or_else(|_| {
+                full_response(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to build upgrade response",
+                )
+            });
+        return Ok(client_res);
+    }
 
     let (parts, body) = res.into_parts();
 
@@ -329,6 +395,21 @@ async fn handle_request(
         .boxed();
 
     Ok(Response::from_parts(final_parts, boxed_body))
+}
+
+fn is_websocket_upgrade(headers: &hyper::HeaderMap) -> bool {
+    let upgrade = headers
+        .get(hyper::header::UPGRADE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.eq_ignore_ascii_case("websocket"));
+    let connection = headers
+        .get(hyper::header::CONNECTION)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| {
+            v.split(',')
+                .any(|s| s.trim().eq_ignore_ascii_case("upgrade"))
+        });
+    upgrade && connection
 }
 
 /// Parse and normalize the Host header for secure multi-tenant routing.
@@ -503,5 +584,44 @@ mod tests {
     #[test]
     fn test_parse_host_missing() {
         assert!(parse_and_normalize_host(None).is_err());
+    }
+
+    #[test]
+    fn test_websocket_upgrade_detected() {
+        let mut headers = hyper::HeaderMap::new();
+        headers.insert(hyper::header::UPGRADE, "websocket".parse().unwrap());
+        headers.insert(hyper::header::CONNECTION, "Upgrade".parse().unwrap());
+        assert!(is_websocket_upgrade(&headers));
+    }
+
+    #[test]
+    fn test_websocket_upgrade_case_insensitive() {
+        let mut headers = hyper::HeaderMap::new();
+        headers.insert(hyper::header::UPGRADE, "WebSocket".parse().unwrap());
+        headers.insert(
+            hyper::header::CONNECTION,
+            "keep-alive, Upgrade".parse().unwrap(),
+        );
+        assert!(is_websocket_upgrade(&headers));
+    }
+
+    #[test]
+    fn test_not_websocket_without_upgrade_header() {
+        let mut headers = hyper::HeaderMap::new();
+        headers.insert(hyper::header::CONNECTION, "Upgrade".parse().unwrap());
+        assert!(!is_websocket_upgrade(&headers));
+    }
+
+    #[test]
+    fn test_not_websocket_without_connection_header() {
+        let mut headers = hyper::HeaderMap::new();
+        headers.insert(hyper::header::UPGRADE, "websocket".parse().unwrap());
+        assert!(!is_websocket_upgrade(&headers));
+    }
+
+    #[test]
+    fn test_not_websocket_regular_request() {
+        let headers = hyper::HeaderMap::new();
+        assert!(!is_websocket_upgrade(&headers));
     }
 }

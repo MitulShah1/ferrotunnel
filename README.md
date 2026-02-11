@@ -63,6 +63,7 @@ async fn main() -> ferrotunnel::Result<()> {
 | **TLS 1.3** | Secure connections with rustls |
 | **Mutual TLS** | Client certificate authentication |
 | **Observability** | Prometheus metrics + OpenTelemetry tracing |
+| **WebSocket** | Transparent WebSocket upgrade tunneling |
 | **TCP & HTTP** | Forward both HTTP and raw TCP traffic |
 
 
