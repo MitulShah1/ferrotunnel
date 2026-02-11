@@ -11,6 +11,12 @@
 FerroTunnel multiplexes streams over a single connection (like ngrok/Cloudflare Tunnel) but ships as a **library-first** crate. Expose local services behind NAT, route HTTP by hostname, intercept requests with plugins with minimal memory footprint and sub-millisecond latency. Works as CLI or `Client::builder()` API. Written in Rust.
 
 
+## Prerequisites
+
+- **Rust 1.90+**: FerroTunnel uses modern Rust features for performance and safety.
+- **Cargo**: Required for building and installing from source.
+- **Git**: For cloning the repository during development.
+
 ## Quick Start
 
 ### CLI
@@ -63,6 +69,7 @@ async fn main() -> ferrotunnel::Result<()> {
 | **TLS 1.3** | Secure connections with rustls |
 | **Mutual TLS** | Client certificate authentication |
 | **Observability** | Prometheus metrics + OpenTelemetry tracing |
+| **WebSocket** | Transparent WebSocket upgrade tunneling |
 | **TCP & HTTP** | Forward both HTTP and raw TCP traffic |
 
 
@@ -171,6 +178,22 @@ brew install ferrotunnel
 ```
 
 ### Docker
+
+#### Using Pull
+
+You can pull the official image from GitHub Container Registry:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/mitulshah1/ferrotunnel:latest
+
+# Run as a server
+docker run -p 7835:7835 -p 8080:8080 ghcr.io/mitulshah1/ferrotunnel:latest server --token secret
+```
+
+#### Using Docker Compose
+
+For more complex setups, use the provided `docker-compose.yml`:
 
 ```bash
 docker-compose up --build

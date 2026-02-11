@@ -175,6 +175,7 @@ ferrotunnel/
 │       ├── plugin_test.rs
 │       ├── tls_test.rs
 │       ├── tcp_test.rs
+│       ├── websocket_test.rs
 │       ├── concurrent_test.rs
 │       ├── multi_client_test.rs
 │       └── error_test.rs
@@ -268,7 +269,7 @@ flowchart TB
 |-------|---------|
 | `ferrotunnel` | Main API: `Client::builder()`, `Server::builder()`, re-exports, prelude |
 | `ferrotunnel-core` | Tunnel engine: connection, session, multiplexer, transport (TCP/TLS) |
-| `ferrotunnel-http` | Ingress, HTTP/WS proxy, TCP ingress |
+| `ferrotunnel-http` | Ingress, HTTP/WebSocket proxy, TCP ingress |
 | `ferrotunnel-protocol` | Frame types, codec, validation |
 | `ferrotunnel-plugin` | Plugin traits, registry, builtins (auth, logger, rate_limit, circuit_breaker) |
 | `ferrotunnel-observability` | Metrics, tracing, dashboard (Axum + SSE + Web UI) |
@@ -298,6 +299,17 @@ sequenceDiagram
     Ingress->>Plugin: Post-response
     Plugin-->>Ingress: -
     Ingress-->>User: HTTP response
+
+    Note over User,Backend: WebSocket Upgrade Flow
+    User->>Ingress: HTTP Upgrade: websocket
+    Ingress->>Core: Open stream (Protocol::WebSocket)
+    Core->>Client: Forward upgrade request
+    Client->>Backend: Upgrade handshake
+    Backend-->>Client: 101 Switching Protocols
+    Client-->>Core: Forward 101
+    Core-->>Ingress: 101 response
+    Ingress-->>User: 101 Switching Protocols
+    User<<->>Backend: Bidirectional WebSocket frames
 ```
 
 ## Integration Tests
@@ -308,6 +320,7 @@ sequenceDiagram
 | `plugin_test.rs` | Auth, rate limiting, execution order |
 | `tls_test.rs` | TLS end-to-end |
 | `tcp_test.rs` | TCP tunnel echo |
+| `websocket_test.rs` | WebSocket upgrade through tunnel, 101 handshake |
 | `concurrent_test.rs` | Concurrent requests |
 | `multi_client_test.rs` | Multiple clients, reconnection |
 | `error_test.rs` | Timeout, connection refused |

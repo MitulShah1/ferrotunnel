@@ -37,6 +37,12 @@ reqwest = { version = "0.12", default-features = false, features = [
 rcgen = "0.12"
 rustls = { version = "0.23", features = ["ring"] }
 http = "1.4.0"
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+bytes = { workspace = true }
+tokio-tungstenite = "0.26"
+futures-util = "0.3"
 
 [lints]
 workspace = true
