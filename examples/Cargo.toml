@@ -100,7 +100,7 @@ tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # WebSocket dependencies for examples
-tokio-tungstenite = "0.26"
+tokio-tungstenite = "0.28"
 futures-util = "0.3"
 
 # Using custom lints for examples - allow unwrap/expect for demonstration code
