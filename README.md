@@ -10,6 +10,13 @@
 
 FerroTunnel multiplexes streams over a single connection (like ngrok/Cloudflare Tunnel) but ships as a **library-first** crate. Expose local services behind NAT, route HTTP by hostname, intercept requests with plugins with minimal memory footprint and sub-millisecond latency. Works as CLI or `Client::builder()` API. Written in Rust.
 
+
+## Prerequisites
+
+- **Rust 1.90+**: FerroTunnel uses modern Rust features for performance and safety.
+- **Cargo**: Required for building and installing from source.
+- **Git**: For cloning the repository during development.
+
 ## Quick Start
 
 ### CLI
@@ -22,14 +29,14 @@ cargo install ferrotunnel-cli
 ferrotunnel server --token secret
 
 # Start client (in another terminal; token from env or secure prompt if omitted)
-ferrotunnel client --server localhost:7835 --local-addr 127.0.0.1:8080
+ferrotunnel client --server localhost:7835 --local-addr 127.0.0.1:8080 --tunnel-id my-app
 ```
 
 ### Library
 
 ```toml
 [dependencies]
-ferrotunnel = "0.1"
+ferrotunnel = "1.0"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -42,6 +49,7 @@ async fn main() -> ferrotunnel::Result<()> {
         .server_addr("tunnel.example.com:7835")
         .token("my-secret-token")
         .local_addr("127.0.0.1:8080")
+        .tunnel_id("my-app")
         .build()?;
 
     client.start().await?;
@@ -61,13 +69,45 @@ async fn main() -> ferrotunnel::Result<()> {
 | **TLS 1.3** | Secure connections with rustls |
 | **Mutual TLS** | Client certificate authentication |
 | **Observability** | Prometheus metrics + OpenTelemetry tracing |
+| **WebSocket** | Transparent WebSocket upgrade tunneling |
 | **TCP & HTTP** | Forward both HTTP and raw TCP traffic |
 
 
 
 **Choose FerroTunnel when**: You need many services over a single connection, HTTP routing, plugins, or resource efficiency.
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed analysis of the multiplexing trade-off.
+See [Architecture](/docs/ARCHITECTURE.md) for detailed analysis of the multiplexing trade-off.
+
+## Security: Why Rust Matters
+
+Traditional C/C++ tunneling solutions (OpenSSH, OpenVPN, stunnel) have suffered from **30+ critical memory safety vulnerabilities** over the past decade—buffer overflows, use-after-free, double-free, race conditions, and heap corruption.
+
+**FerroTunnel eliminates these entire vulnerability classes at compile time** using Rust's ownership system:
+
+- ✅ **Zero unsafe code** (`#![forbid(unsafe)]` at workspace level)
+- ✅ **Memory safety guaranteed** (no buffer overflows, use-after-free, double-free)
+- ✅ **Thread safety enforced** (no data races possible)
+- ✅ **Pure Rust crypto** (rustls instead of OpenSSL—zero legacy vulnerabilities)
+
+**Security Features:**
+- TLS 1.3-only enforcement with mutual TLS support
+- Token-based authentication with constant-time comparison
+- Built-in rate limiting and frame size limits
+- Automated dependency scanning (`cargo-audit` in CI)
+
+See [docs/security.md](docs/security.md) for detailed CVE comparison, vulnerability analysis, and security best practices.
+
+## Ideal For
+
+FerroTunnel's **memory-safe architecture** and **minimal resource footprint** make it perfect for security-critical and resource-constrained environments:
+
+- 🔐 **Crypto & Blockchain Infrastructure** - High security requirements, integrates seamlessly with Rust blockchain ecosystems (Solana, Polkadot, Cosmos)
+- 📡 **IoT Devices** - Low memory overhead (<100MB/1k tunnels), zero memory vulnerabilities, ideal for edge gateways and smart devices
+- ⚡ **Edge Computing** - Sub-millisecond latency, efficient resource usage, compile-time safety guarantees
+- 🖥️ **Embedded Systems** - No garbage collector, predictable performance, cross-compilation friendly
+- 🏢 **Enterprise Security** - Zero unsafe code, automated dependency scanning, compliance-ready audit trails
+
+**Why it matters:** Traditional C/C++ tunnels require constant security patches for memory vulnerabilities. Embedded/IoT devices often can't be easily updated, making Rust's compile-time safety guarantees essential.
 
 ## CLI Reference
 
@@ -98,6 +138,7 @@ ferrotunnel client [OPTIONS]
 | `--server` | `FERROTUNNEL_SERVER` | required | Server address |
 | `--token` | `FERROTUNNEL_TOKEN` | optional | Auth token; if omitted, uses env or prompts securely |
 | `--local-addr` | `FERROTUNNEL_LOCAL_ADDR` | `127.0.0.1:8000` | Local service |
+| `--tunnel-id` | `FERROTUNNEL_TUNNEL_ID` | (auto) | Tunnel ID for HTTP routing |
 | `--dashboard-port` | `FERROTUNNEL_DASHBOARD_PORT` | `4040` | Dashboard port |
 | `--tls` | `FERROTUNNEL_TLS` | false | Enable TLS |
 | `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | CA certificate |
@@ -129,7 +170,30 @@ Download from [GitHub Releases](https://github.com/MitulShah1/ferrotunnel/releas
 cargo install ferrotunnel-cli
 ```
 
+### macOS (Homebrew)
+
+```bash
+brew tap MitulShah1/ferrotunnel
+brew install ferrotunnel
+```
+
 ### Docker
+
+#### Using Pull
+
+You can pull the official image from GitHub Container Registry:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/mitulshah1/ferrotunnel:latest
+
+# Run as a server
+docker run -p 7835:7835 -p 8080:8080 ghcr.io/mitulshah1/ferrotunnel:latest server --token secret
+```
+
+#### Using Docker Compose
+
+For more complex setups, use the provided `docker-compose.yml`:
 
 ```bash
 docker-compose up --build
@@ -139,7 +203,7 @@ docker-compose up --build
 
 - [CLI Reference](ferrotunnel-cli/README.md)
 - [Contributing](CONTRIBUTING.md) & [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Architecture](ARCHITECTURE.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [Benchmark & Performance](docs/benchmark.md)
 - [Deployment Guide](docs/deployment.md)
 - [Plugin Development](docs/plugin-development.md)
@@ -171,21 +235,13 @@ cargo bench --workspace
 
 FerroTunnel is benchmarked against [rathole](https://github.com/rapiz1/rathole) and [frp](https://github.com/fatedier/frp). Unlike rathole/frp which use 1:1 TCP forwarding, FerroTunnel uses **multiplexed streams over a single connection** the same architecture used by [ngrok](https://ngrok.com/docs/http/) and [Cloudflare Tunnel](https://developers.cloudflare.com/speed/optimization/protocol/http2-to-origin/) (HTTP/2 multiplexing). This enables HTTP routing, plugins, and multi-service tunnels.
 
-| Metric | FerroTunnel | Rathole | frp |
-|--------|-------------|---------|-----|
-| **Throughput** | 382 MB/s | 1349 MB/s | 690 MB/s |
-| **Latency (P99)** | 0.114ms | 0.075ms | 0.131ms |
-| **Memory/conn** | 47.3 KB | 35.8 KB | 113.7 KB |
-
-**Why the throughput difference?** Multiplexing adds frame encoding/decoding overhead this is the cost of features like HTTP host routing, request plugins, and running many services over one tunnel. FerroTunnel is **18% faster than frp** on latency and uses **58% less memory**.
-
 <p align="center">
   <img src="docs/static/server_heap_graph.png" alt="Server Heap Graph" width="45%">
   <img src="docs/static/top_allocations.png" alt="Top Allocations" width="45%">
 </p>
 <p align="center"><em>Memory profile: flat heap usage, minimal allocations under load</em></p>
 
-See [docs/benchmark.md](docs/benchmark.md) for detailed analysis of the architectural trade-offs and [ferrotunnel-benchmarks](https://github.com/MitulShah1/ferrotunnel-benchmarks) for reproducible tests.
+See [docs/benchmark.md](docs/benchmark.md) for detailed analysis of the architectural trade-offs.
 
 ## License
 

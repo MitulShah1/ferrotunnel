@@ -51,7 +51,7 @@ async fn test_tls_connection() {
         .bind(config.server_addr)
         .http_bind(config.http_addr)
         .token(config.token)
-        .tls(server_tls)
+        .tls(&server_tls)
         .build()
         .expect("Failed to build server");
 
@@ -78,7 +78,7 @@ async fn test_tls_connection() {
         .server_addr(config.server_addr.to_string())
         .token(config.token)
         .local_addr(config.local_service_addr.to_string())
-        .tls(client_tls)
+        .tls(&client_tls)
         .build()
         .expect("Failed to build client");
 

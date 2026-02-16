@@ -7,11 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-02-02
+## [1.0.2] - 2026-02-11
+
+### Added
+
+#### WebSocket Tunneling
+- **Full WebSocket tunnel support**: Transparent WebSocket upgrade handling through the tunnel — real-time applications (chat, dashboards, gaming) now work out of the box
+- **Automatic upgrade detection**: HTTP ingress detects `Connection: Upgrade` + `Upgrade: websocket` headers and opens streams with `Protocol::WebSocket`
+- **Bidirectional bridging**: After the 101 handshake, upgraded connections are bridged with zero-copy `copy_bidirectional` for minimal overhead
+- **End-to-end integration tests**: Two new WebSocket integration tests (`test_websocket_upgrade_through_tunnel`, `test_websocket_raw_upgrade_101`)
+
+#### Graceful Shutdown
+- **CLI signal handling**: Both `ferrotunnel server` and `ferrotunnel client` now handle Ctrl-C / SIGTERM gracefully, logging shutdown and cleaning up resources before exit
+- **Server shutdown**: Server `tokio::select!` races all services against `ctrl_c()` for clean process termination
+- **Client shutdown**: Client reconnection loop exits cleanly on signal, calling `shutdown_tracing()` before exit
+
+### Changed
+
+#### HTTP Proxy
+- **Upgrade support**: HTTP/1 connections in both ingress and proxy now use `.with_upgrades()` for hyper upgrade protocol compatibility
+
+## [1.0.1] - 2026-02-07
+
+### Added
+
+#### Installation
+- **Homebrew Formula**: Introduce `brew install ferrotunnel` command for macOS users via [MitulShah1/homebrew-ferrotunnel](https://github.com/MitulShah1/homebrew-ferrotunnel) tap
+
+#### Tunnel Routing
+- **`--tunnel-id` CLI flag**: New `--tunnel-id` option for `ferrotunnel client` to set the tunnel ID used for HTTP Host-header routing (`FERROTUNNEL_TUNNEL_ID` env var supported)
+- **`.tunnel_id()` builder method**: New method on `Client::builder()` for setting the tunnel ID when using the library API
+
+### Fixed
+
+#### Tunnel Routing
+- **HTTP ingress routing**: Fixed "Tunnel not found" error when accessing tunnels via direct IP. The client now registers a `tunnel_id` that matches the Host header used by incoming HTTP requests
+
+#### Docker Verification
+- **Metrics Endpoint**: Fixed issue where the metrics server was not enabled by default in the Docker environment, causing verification scripts to report missing data.
+
+### Improved
+
+#### Docker Optimization
+- **Optimized Docker image size**: Reduced from 34.8 MB to **13.4 MB** (61.6% smaller)
+- **Faster build times**: Build time reduced from 6.5 minutes to **2.5 minutes** (62% faster)
+- **Minimal base image**: Switched to Google's `distroless/cc-debian12` for minimal attack surface
+- **Aggressive compiler optimizations**: Size-focused compile flags (`-C opt-level=z`, single codegen unit, panic=abort)
+- **Enhanced caching**: cargo-chef for faster incremental builds
+- **Binary stripping**: Comprehensive symbol removal for smaller binaries
+
+#### Documentation
+- Enhanced README with security comparisons and CVE analysis
+- Updated ROADMAP to prioritize user adoption (WebSocket, HTTP/2, gRPC)
+- Improved architecture diagrams
+
+## [1.0.0] - 2026-02-05
 
 ### Highlights
 
-FerroTunnel v0.1.0 is the initial public release.
+FerroTunnel v1.0.0 is the first stable release.
 
 ### Features
 
@@ -89,5 +143,7 @@ FerroTunnel v0.1.0 is the initial public release.
 | `ferrotunnel-observability` | Metrics, tracing, and dashboard |
 | `ferrotunnel-common` | Shared types and errors |
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v0.1.0
+[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.2
+[1.0.1]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.1
+[1.0.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.0

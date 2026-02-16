@@ -20,20 +20,52 @@ Embeddable, extensible, and observable reverse tunnel for Rust developers.
 
 ### Stable
 
-- **v0.1.0** - Current stable release ✅
+- **v1.0.0** - First stable release ✅
   - Protocol, tunnel, HTTP/TCP ingress, plugin system, observability, dashboard, unified CLI
   - Published to crates.io
 
-### Future (post v0.1.0)
+- **v1.0.1** - Stability & Developer Experience ✅
+  - Homebrew formula, Docker optimization (13.4 MB image)
+  - `--tunnel-id` CLI flag and `.tunnel_id()` builder method
+  - HTTP ingress routing fix, performance benchmarks vs. alternatives
+  - **Goal**: Convert evaluators → users → advocates
 
-- **v0.2.0** - HTTP/2 support (ingress & client)
-- **v0.3.0** - gRPC support
-- **v0.4.0** - QUIC transport (HTTP/3)
-- **v0.5.0** - Connection pooling (upstream/client)
-- **v0.6.0** - WebSocket tunneling
-- **v0.7.0** - Multi-region support
-- **v0.8.0** - Custom domains
-- **v1.0.0** - Breaking changes if needed
+- **v1.0.2** - WebSocket Tunneling & Graceful Shutdown ✅
+  - Full WebSocket tunnel support (upgrade detection, bidirectional bridging)
+  - Graceful shutdown for CLI server and client (Ctrl-C / SIGTERM handling)
+  - Real-time application compatibility (chat, dashboards, gaming)
+  - **Market Impact**: Opens to entire real-time application developer segment
+
+### Planned
+
+> **Strategy**: Prioritize features that maximize user adoption and "time to first success"
+
+- **v1.0.3** - HTTP/2 Support
+  - HTTP/2 ingress and client proxy
+  - Multiplexing and header compression
+  - **Value**: Modern web baseline, enterprise credibility
+
+- **v1.0.4** - gRPC Support
+  - Native gRPC tunneling
+  - **Target Audience**: Enterprise and microservices developers
+
+- **v1.0.5** - Connection Pooling
+  - Upstream and client connection pooling
+  - Performance optimization for high-throughput scenarios
+
+- **v1.0.6** - QUIC Transport (HTTP/3)
+  - QUIC protocol support for reduced latency
+  - **Differentiator**: Next-gen transport for competitive advantage
+
+- **v1.0.7** - Multi-region Support
+  - Geographic load balancing
+  - Regional failover capabilities
+
+- **v1.0.8** - Custom Domains
+  - Custom domain mapping for white-label deployments
+
+- **v2.0.0** - Breaking Changes (if needed)
+  - Protocol improvements based on v1.x learnings
 
 ---
 

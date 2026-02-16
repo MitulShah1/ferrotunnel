@@ -9,8 +9,9 @@ Shared types and error handling for [FerroTunnel](https://github.com/MitulShah1/
 
 This crate provides common utilities shared across all FerroTunnel crates:
 
-- `TunnelError` - Comprehensive error type for tunnel operations
-- `Result<T>` - Convenient result type alias
+- **Error handling**: `TunnelError`, `Result<T>`
+- **Configuration**: `TlsConfig`, `LimitsConfig`, `RateLimitConfig` (serializable for config files)
+- **Default constants**: `DEFAULT_TUNNEL_PORT` (7835), `DEFAULT_HTTP_PORT` (8080), `DEFAULT_METRICS_PORT` (9090), `DEFAULT_DASHBOARD_PORT` (4040), `DEFAULT_TUNNEL_BIND`, `DEFAULT_HTTP_BIND`, `DEFAULT_LOCAL_ADDR`
 
 ## Usage
 
@@ -21,6 +22,14 @@ fn example() -> Result<()> {
     // Your tunnel logic here
     Ok(())
 }
+```
+
+```rust
+use ferrotunnel_common::{DEFAULT_HTTP_PORT, DEFAULT_TUNNEL_PORT, TlsConfig};
+
+// Use default ports when building bind addresses
+let tunnel_bind = format!("0.0.0.0:{}", DEFAULT_TUNNEL_PORT);
+let _tls = TlsConfig::default();
 ```
 
 ## Error Types

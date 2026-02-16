@@ -21,25 +21,44 @@ FerroTunnel is **slower in raw throughput** but provides **ngrok-like capabiliti
 
 ### 1.1 The Architecture Spectrum
 
+```mermaid
+flowchart LR
+    subgraph spectrum["Architecture spectrum"]
+        direction LR
+        A[Simple & Fast] --> B[rathole]
+        B --> C[frp]
+        C --> D[ngrok / Cloudflare / FerroTunnel]
+        D --> E[Feature-Rich]
+    end
 ```
-Simple & Fast                                    Feature-Rich
-     │                                                │
-     ▼                                                ▼
- ┌────────┐      ┌─────────┐      ┌──────────────────────────────┐
- │ rathole│      │   frp   │      │ ngrok / Cloudflare / FerroTunnel │
- └────────┘      └─────────┘      └──────────────────────────────┘
-     │                │                        │
-   1:1 TCP         1:1 TCP            Multiplexed Streams
-   Minimal         Some features      HTTP routing, plugins,
-   overhead        (dashboard)        dashboard, observability
-```
+
+| Solution | Model | Notes |
+|----------|--------|-------|
+| **rathole** | 1:1 TCP | Minimal overhead, maximum throughput |
+| **frp** | 1:1 TCP | Some features (e.g. dashboard) |
+| **FerroTunnel** | Multiplexed | HTTP routing, plugins, dashboard, observability |
 
 ### 1.2 What rathole/frp Do
 
 **rathole** and **frp** use a **1:1 TCP forwarding model**:
 
-```
-[Client Request] ──TCP──▶ [Tunnel Server] ──NEW TCP──▶ [Tunnel Client] ──TCP──▶ [Local Service]
+```mermaid
+sequenceDiagram
+    participant Client
+    participant TunnelServer as Tunnel Server
+    participant TunnelClient as Tunnel Client
+    participant LocalService as Local Service
+
+    Client->>+TunnelServer: TCP connection
+    TunnelServer->>+TunnelClient: New TCP connection (through tunnel)
+    TunnelClient->>+LocalService: TCP connection
+    Note over Client,LocalService: 1:1 mapping, minimal protocol overhead
+    Client->>TunnelServer: Data
+    TunnelServer->>TunnelClient: Forward
+    TunnelClient->>LocalService: Forward
+    LocalService-->>TunnelClient: Response
+    TunnelClient-->>TunnelServer: Response
+    TunnelServer-->>Client: Response
 ```
 
 - Each incoming connection spawns a **dedicated TCP connection** through the tunnel
@@ -51,13 +70,55 @@ Simple & Fast                                    Feature-Rich
 
 FerroTunnel uses a **multiplexed stream model** over a single control connection the same approach used by [ngrok](https://ngrok.com/docs/http/) (persistent TLS connection routing multiple concurrent requests) and [Cloudflare Tunnel](https://developers.cloudflare.com/speed/optimization/protocol/http2-to-origin/) (HTTP/2 multiplexing with up to 200 concurrent streams per connection):
 
+```mermaid
+flowchart LR
+    subgraph requests["Incoming requests"]
+        R1[Request 1]
+        R2[Request 2]
+        R3[Request 3]
+    end
+
+    subgraph tunnel["Single TCP connection"]
+        subgraph streams["Virtual streams"]
+            S1["S:1"]
+            S2["S:2"]
+            S3["S:3"]
+            Sn["S:n"]
+        end
+    end
+
+    subgraph backends["Backend services"]
+        A[Service A]
+        B[Service B]
+        C[Service C]
+    end
+
+    R1 & R2 & R3 --> MUX[MUX]
+    MUX --> streams
+    streams --> DEMUX[DEMUX]
+    DEMUX --> A & B & C
 ```
-                        ┌─────────────────────────────────────┐
-[Request 1] ──┐         │        Single TCP Connection        │         ┌──▶ [Service A]
-[Request 2] ──┼──MUX───▶│  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐   │──DEMUX──┼──▶ [Service B]
-[Request 3] ──┘         │  │ S:1 │ │ S:2 │ │ S:3 │ │ S:n │   │         └──▶ [Service C]
-                        │  └─────┘ └─────┘ └─────┘ └─────┘   │
-                        └─────────────────────────────────────┘
+
+```mermaid
+sequenceDiagram
+    participant R1 as Request 1
+    participant R2 as Request 2
+    participant Server as Tunnel Server
+    participant Client as Tunnel Client
+    participant A as Service A
+    participant B as Service B
+
+    R1->>Server: Stream 1
+    R2->>Server: Stream 2
+    Note over Server,Client: Single persistent connection, framed by stream ID
+    Server->>Client: Frame(S:1) + Frame(S:2)
+    Client->>A: Forward S:1
+    Client->>B: Forward S:2
+    A-->>Client: Response
+    B-->>Client: Response
+    Client-->>Server: Frame(S:1) + Frame(S:2)
+    Server-->>R1: Response
+    Server-->>R2: Response
 ```
 
 **Why this matters:**
@@ -107,7 +168,7 @@ Transfer of 100MB payload through the tunnel:
 |--------|----------|------------|----------|-------|
 | Rathole 0.5.0 | 0.07s | **1349 MB/s** | 1.00× | 1:1 TCP, minimal overhead |
 | frp 0.66.0 | 0.14s | 690 MB/s | 0.51× | 1:1 TCP, Go runtime |
-| FerroTunnel 0.1.0 | 0.26s | 382 MB/s | 0.28× | Multiplexed, frame overhead |
+| FerroTunnel 1.0.0 | 0.26s | 382 MB/s | 0.28× | Multiplexed, frame overhead |
 
 **Analysis**: FerroTunnel's throughput gap is primarily due to:
 - Frame encode/decode per chunk (length-prefixed protocol)
@@ -192,6 +253,26 @@ Dominant allocations:
 
 ## 4. Optimization Roadmap
 
+```mermaid
+flowchart LR
+    subgraph done["Completed"]
+        D1[DashMap dispatch]
+        D2[Buffer pooling]
+        D3[Channel cap 128]
+        D4[Fast startup]
+    end
+    subgraph progress["In progress"]
+        P1[writev batching]
+        P2[Zero-copy frames]
+    end
+    subgraph planned["Planned"]
+        F1[mimalloc]
+        F2[io_uring]
+        F3[Connection pooling]
+    end
+    done --> progress --> planned
+```
+
 ### Completed
 - ✅ Lock-free stream dispatch (`DashMap`)
 - ✅ Buffer pooling (`ObjectPool<Vec<u8>>`)
@@ -213,6 +294,20 @@ Dominant allocations:
 
 All benchmarks follow these principles:
 
+```mermaid
+flowchart TB
+    subgraph setup["Test setup"]
+        A[Identical conditions] --> B[Encryption/compression off]
+        B --> C[Docker, version-pinned]
+        C --> D[TCP_NODELAY on all sockets]
+    end
+    subgraph run["Run"]
+        D --> E[Warmup: 1000 requests]
+        E --> F[Measure latency / throughput]
+        F --> G[HDR Histogram: 3 sig figs, 1µs–60s]
+    end
+```
+
 | Principle | Implementation |
 |-----------|----------------|
 | **Accuracy** | HDR Histogram (3 sig figs), 1µs–60s range |
@@ -224,4 +319,4 @@ All benchmarks follow these principles:
 
 ---
 
-*Benchmarks run: 2026-02-03 | FerroTunnel 0.1.0, Rathole 0.5.0, frp 0.66.0*
+*Benchmarks run: 2026-02-03 | FerroTunnel 1.0.0, Rathole 0.5.0, frp 0.66.0*

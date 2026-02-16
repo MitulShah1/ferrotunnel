@@ -180,7 +180,7 @@ impl Plugin for CircuitBreakerPlugin {
 
     #[allow(clippy::unnecessary_literal_bound)]
     fn version(&self) -> &str {
-        "0.1.0"
+        "1.0.0"
     }
 
     async fn on_request(

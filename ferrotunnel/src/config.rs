@@ -3,7 +3,9 @@
 //! These types provide type-safe configuration for embedding `FerroTunnel`
 //! in your applications.
 
-use ferrotunnel_common::{Result, TunnelError};
+use ferrotunnel_common::{
+    Result, TunnelError, DEFAULT_HTTP_PORT, DEFAULT_LOCAL_ADDR, DEFAULT_TUNNEL_PORT,
+};
 use std::net::SocketAddr;
 use std::time::Duration;
 
@@ -20,6 +22,9 @@ pub struct ClientConfig {
 
     /// Local address to forward traffic to
     pub local_addr: String,
+
+    /// Tunnel ID used for HTTP routing (matched against the Host header)
+    pub tunnel_id: Option<String>,
 
     /// Enable automatic reconnection on disconnect
     pub auto_reconnect: bool,
@@ -49,7 +54,8 @@ impl Default for ClientConfig {
         Self {
             server_addr: String::new(),
             token: String::new(),
-            local_addr: "127.0.0.1:8080".to_string(),
+            local_addr: DEFAULT_LOCAL_ADDR.to_string(),
+            tunnel_id: None,
             auto_reconnect: true,
             reconnect_delay: Duration::from_secs(5),
         }
@@ -84,8 +90,8 @@ impl ServerConfig {
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
-            bind_addr: ([0, 0, 0, 0], 7835).into(),
-            http_bind_addr: ([0, 0, 0, 0], 8080).into(),
+            bind_addr: ([0, 0, 0, 0], DEFAULT_TUNNEL_PORT).into(),
+            http_bind_addr: ([0, 0, 0, 0], DEFAULT_HTTP_PORT).into(),
             token: String::new(),
         }
     }

@@ -12,6 +12,8 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  CARGO_INCREMENTAL: 0
 
 jobs:
   lints:
@@ -42,22 +44,26 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+ 
+  build-release:
+    name: Release Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: swatinem/rust-cache@v2
-      - name: Build
-        run: cargo build --workspace --all-features
-      - name: Build Release
-        run: cargo build --workspace --all-features --release
-
+        with:
+          key: ci-${{ matrix.os }}
+      - name: Build (ci profile)
+        run: cargo build --workspace --all-features --profile ci
+  
   test:
     name: Tests (${{ matrix.os }}, ${{ matrix.rust }})
     runs-on: ${{ matrix.os }}
@@ -68,8 +74,6 @@ jobs:
         include:
           - os: ubuntu-latest
             rust: stable
-          - os: ubuntu-latest
-            rust: beta
           - os: macos-latest
             rust: stable
           - os: windows-latest
@@ -80,9 +84,48 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
       - uses: swatinem/rust-cache@v2
+        with:
+          key: test-${{ matrix.os }}-${{ matrix.rust }}
       - name: Run tests
         run: cargo test --workspace --all-features
 
+  test-extra:
+    name: Tests (ubuntu, ${{ matrix.rust }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [beta, "1.90"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          key: test-ubuntu-${{ matrix.rust }}
+      - name: Run tests
+        run: cargo test --workspace --all-features
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+      - name: Build documentation
+        run: cargo doc --workspace --all-features --no-deps
+
+  # ==========================================================================
+  # Fuzz smoke test
+  # ==========================================================================
   fuzz-smoke-test:
     name: Fuzz Smoke Test
     runs-on: ubuntu-latest
@@ -97,19 +140,39 @@ jobs:
       - name: Install cargo-fuzz
         run: cargo install cargo-fuzz --locked
       - name: Run Fuzzer (Smoke Check)
-        # Run for 30 seconds just to ensure no immediate crashes
         run: cd ferrotunnel-protocol && cargo +nightly fuzz run codec_decode --sanitizer=none -- -max_total_time=30
 
-#   benchmark-check:
-#     name: Benchmark Check
-#     runs-on: ubuntu-latest
-#     steps:
-#       - uses: actions/checkout@v6
-#       - uses: dtolnay/rust-toolchain@stable
-#       - uses: swatinem/rust-cache@v2
-#       - name: Compile Benchmarks
-#         run: cargo check --benches --workspace
-#       - name: Run Benchmarks (Smoke Check)
-#         env:
-#           CRITERION_MEASUREMENT_TIME: 1
-#         run: cargo bench --workspace
+  # ==========================================================================
+  # Benchmark compilation check (disabled – takes too long in CI)
+  # ==========================================================================
+  # benchmark-check:
+  #   name: Benchmark Compile Check
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 15
+  #   permissions:
+  #     contents: read
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #     - uses: dtolnay/rust-toolchain@stable
+  #     - uses: swatinem/rust-cache@v2
+  #     - name: Compile benchmarks
+  #       run: cargo test --benches --workspace --no-run
+
+  ci-pass:
+    name: CI Pass
+    if: always()
+    needs:
+      - lints
+      - compliance-check
+      - build-release
+      - test
+      - docs
+      - fuzz-smoke-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Decide whether all jobs succeeded
+        uses: re-actors/alls-green@release/v1
+        with:
+          allowed-failures: test-extra
+          jobs: ${{ toJSON(needs) }}

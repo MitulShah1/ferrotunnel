@@ -90,7 +90,7 @@ async fn run_server() -> ferrotunnel::Result<()> {
         .bind("0.0.0.0:7835".parse().unwrap())
         .http_bind("0.0.0.0:8080".parse().unwrap())
         .token("secure-tls-token")
-        .tls(tls)
+        .tls(&tls)
         .build()?;
 
     println!("TLS Server Configuration:");
@@ -129,7 +129,7 @@ async fn run_client() -> ferrotunnel::Result<()> {
         .server_addr("localhost:7835")
         .token("secure-tls-token")
         .local_addr("127.0.0.1:8000")
-        .tls(tls)
+        .tls(&tls)
         .auto_reconnect(false)
         .build()?;
 
@@ -167,7 +167,7 @@ fn demo_server_config(tls: &TlsConfig) {
     println!("    .bind(\"0.0.0.0:7835\".parse().unwrap())");
     println!("    .http_bind(\"0.0.0.0:8080\".parse().unwrap())");
     println!("    .token(\"secure-token\")");
-    println!("    .tls(tls)");
+    println!("    .tls(&tls)");
     println!("    .build()?;");
     println!("```");
 }
@@ -189,7 +189,7 @@ fn demo_client_config(tls: &TlsConfig) {
     println!("    .server_addr(\"localhost:7835\")");
     println!("    .token(\"secure-token\")");
     println!("    .local_addr(\"127.0.0.1:8000\")");
-    println!("    .tls(tls)");
+    println!("    .tls(&tls)");
     println!("    .build()?;");
     println!("```");
 }

@@ -66,6 +66,7 @@ ferrotunnel client --server tunnel.example.com:7835
 | `--server` | `FERROTUNNEL_SERVER` | (required) | Server address (`host:port`) |
 | `--token` | `FERROTUNNEL_TOKEN` | (optional) | Authentication token; if omitted, uses env or prompts securely |
 | `--local-addr` | `FERROTUNNEL_LOCAL_ADDR` | `127.0.0.1:8000` | Local service to forward |
+| `--tunnel-id` | `FERROTUNNEL_TUNNEL_ID` | (auto) | Tunnel ID for HTTP routing (matched against Host header) |
 | `--dashboard-port` | `FERROTUNNEL_DASHBOARD_PORT` | `4040` | Dashboard port |
 | `--no-dashboard` | - | `false` | Disable dashboard |
 | `--log-level` | `RUST_LOG` | `info` | Log level |

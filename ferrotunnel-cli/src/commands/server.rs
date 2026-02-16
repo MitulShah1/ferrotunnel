@@ -3,7 +3,9 @@
 use anyhow::Result;
 use clap::Args;
 use ferrotunnel_core::TunnelServer;
-use ferrotunnel_observability::{gather_metrics, init_basic_observability, init_minimal_logging};
+use ferrotunnel_observability::{
+    gather_metrics, init_basic_observability, init_minimal_logging, shutdown_tracing,
+};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use tracing::{error, info};
@@ -151,18 +153,28 @@ pub async fn run(args: ServerArgs) -> Result<()> {
         .await
         .map_err(|e| anyhow::anyhow!(e.to_string()))?;
 
-    // Run both services
-    tokio::try_join!(
-        async { server_handle.await.map_err(std::io::Error::other)? },
-        async { http_handle.await.map_err(std::io::Error::other)? },
-        async {
-            if let Some(h) = tcp_handle {
-                h.await.map_err(std::io::Error::other)?
-            } else {
-                Ok(())
-            }
+    // Run services until shutdown signal
+    tokio::select! {
+        res = async {
+            tokio::try_join!(
+                async { server_handle.await.map_err(std::io::Error::other)? },
+                async { http_handle.await.map_err(std::io::Error::other)? },
+                async {
+                    if let Some(h) = tcp_handle {
+                        h.await.map_err(std::io::Error::other)?
+                    } else {
+                        Ok(())
+                    }
+                }
+            )
+        } => {
+            res?;
         }
-    )?;
+        _ = tokio::signal::ctrl_c() => {
+            info!("Received shutdown signal, shutting down gracefully...");
+            shutdown_tracing();
+        }
+    }
 
     Ok(())
 }

@@ -91,6 +91,7 @@ impl Client {
         let server_addr = config.server_addr.clone();
         let token = config.token.clone();
         let local_addr = config.local_addr.clone();
+        let tunnel_id = config.tunnel_id.clone();
         let auto_reconnect = config.auto_reconnect;
         let reconnect_delay = config.reconnect_delay;
         let transport_config = self.transport_config.clone();
@@ -104,6 +105,9 @@ impl Client {
             loop {
                 let mut client = TunnelClient::new(server_addr.clone(), token.clone())
                     .with_transport(transport_config.clone());
+                if let Some(ref id) = tunnel_id {
+                    client = client.with_tunnel_id(id.clone());
+                }
                 let proxy_ref = proxy.clone();
                 let info_tx = info_tx.clone();
 
@@ -228,6 +232,15 @@ impl ClientBuilder {
         self
     }
 
+    /// Set the tunnel ID used for HTTP routing (matched against the Host header).
+    ///
+    /// If not set, the server assigns a random UUID as the tunnel ID.
+    #[must_use]
+    pub fn tunnel_id(mut self, id: impl Into<String>) -> Self {
+        self.config.tunnel_id = Some(id.into());
+        self
+    }
+
     /// Enable or disable automatic reconnection.
     ///
     /// Default: `true`
@@ -250,22 +263,9 @@ impl ClientBuilder {
     ///
     /// When enabled, the client will use TLS to connect to the server.
     #[must_use]
-    pub fn tls(mut self, config: TlsConfig) -> Self {
-        if config.enabled {
-            self.transport_config = Some(TransportConfig::Tls(TlsTransportConfig {
-                ca_cert_path: config.ca_cert_path.map(|p| p.to_string_lossy().to_string()),
-                cert_path: config
-                    .cert_path
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_default(),
-                key_path: config
-                    .key_path
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_default(),
-                server_name: config.server_name,
-                client_auth: config.client_auth,
-                skip_verify: false,
-            }));
+    pub fn tls(mut self, config: &TlsConfig) -> Self {
+        if let Some(tls) = TlsTransportConfig::from_common(config) {
+            self.transport_config = Some(TransportConfig::Tls(tls));
         }
         self
     }
@@ -371,7 +371,7 @@ mod tests {
         let client = Client::builder()
             .server_addr("localhost:7835")
             .token("secret")
-            .tls(tls)
+            .tls(&tls)
             .build()
             .expect("should build");
 

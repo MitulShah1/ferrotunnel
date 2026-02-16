@@ -137,17 +137,36 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Extract changelog for release
+        id: changelog
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG#v}"
+          # Escape dots for literal match in regex (e.g. 1.0.1 -> 1\.0\.1)
+          VER_ESC=$(echo "$VERSION" | sed 's/\./\\./g')
+          awk -v ver="$VER_ESC" '
+            $0 ~ "^## \\[" ver "\\]" { found=1; print; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "No changelog section for $TAG; using fallback."
+            echo "Release $TAG. See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md) for details." > release-notes.md
+          fi
+
       - name: Download Artifacts
         uses: actions/download-artifact@v7
         with:
           path: artifacts
+          pattern: ferrotunnel-*
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          # We need the tag name. workflow_run.head_branch contains tag name for tag pushes.
           tag_name: ${{ github.ref_name }}
+          body_path: release-notes.md
           files: artifacts/**/*
           draft: true
           prerelease: true
-          generate_release_notes: true
+          generate_release_notes: false
