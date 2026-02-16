@@ -37,7 +37,7 @@ bincode-next = { version = "2.0.4", features = ["serde"] }
 bytes = { version = "1", features = ["serde"] }
 
 # Benchmarking
-criterion = "0.5"
+criterion = "0.8"
 
 # Codec
 tokio-util = { version = "0.7", features = ["codec"] }
