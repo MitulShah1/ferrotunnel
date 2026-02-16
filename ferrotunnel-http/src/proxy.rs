@@ -1,6 +1,5 @@
 use bytes::Bytes;
 use ferrotunnel_core::stream::VirtualStream;
-use ferrotunnel_core::transport::socket_tuning::configure_socket_silent;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Incoming;
 use hyper::server::conn::http1;
@@ -9,9 +8,11 @@ use hyper_util::rt::TokioIo;
 use hyper_util::service::TowerToHyperService;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::{Context, Poll};
-use tokio::net::TcpStream;
 use tower::{Layer, Service};
+
+use crate::pool::{ConnectionPool, PoolConfig};
 #[derive(Debug)]
 pub enum ProxyError {
     Hyper(hyper::Error),
@@ -48,12 +49,17 @@ type BoxBody = http_body_util::combinators::BoxBody<Bytes, ProxyError>;
 /// Service that forwards requests to a local TCP port.
 #[derive(Clone)]
 pub struct LocalProxyService {
-    target_addr: String,
+    pool: Arc<ConnectionPool>,
 }
 
 impl LocalProxyService {
     pub fn new(target_addr: String) -> Self {
-        Self { target_addr }
+        let pool = Arc::new(ConnectionPool::new(target_addr, PoolConfig::default()));
+        Self { pool }
+    }
+
+    pub fn with_pool(pool: Arc<ConnectionPool>) -> Self {
+        Self { pool }
     }
 }
 
@@ -61,9 +67,8 @@ use hyper::body::Body;
 
 impl<B> Service<Request<B>> for LocalProxyService
 where
-    B: Body + Send + Sync + 'static,
-    B::Data: Send,
-    B::Error: Into<ProxyError>,
+    B: Body<Data = Bytes> + Send + Sync + 'static,
+    B::Error: Into<ProxyError> + std::error::Error + Send + Sync + 'static,
 {
     type Response = Response<BoxBody>;
     type Error = hyper::Error;
@@ -75,7 +80,7 @@ where
 
     #[allow(clippy::too_many_lines)]
     fn call(&mut self, mut req: Request<B>) -> Self::Future {
-        let target = self.target_addr.clone();
+        let pool = self.pool.clone();
         Box::pin(async move {
             let is_upgrade = req
                 .headers()
@@ -89,13 +94,11 @@ where
                 None
             };
 
-            let stream = match TcpStream::connect(&target).await {
-                Ok(s) => {
-                    configure_socket_silent(&s);
-                    s
-                }
+            // Try to acquire connection from pool
+            let mut sender = match pool.acquire_h1().await {
+                Ok(s) => s,
                 Err(e) => {
-                    error!("Failed to connect to local service {target}: {e}");
+                    error!("Failed to acquire connection from pool: {e}");
                     return Ok(error_response(
                         StatusCode::BAD_GATEWAY,
                         &format!("Failed to connect to local service: {e}"),
@@ -103,29 +106,15 @@ where
                 }
             };
 
-            let io = TokioIo::new(stream);
-            let (mut sender, conn) = match hyper::client::conn::http1::handshake(io).await {
-                Ok(h) => h,
-                Err(e) => {
-                    error!("Local handshake failed: {e}");
-                    return Ok(error_response(
-                        StatusCode::BAD_GATEWAY,
-                        &format!("Local handshake failed: {e}"),
-                    ));
-                }
-            };
-
-            tokio::spawn(async move {
-                if let Err(e) = conn.with_upgrades().await {
-                    error!("Connection error: {:?}", e);
-                }
+            let req = req.map(|b| {
+                b.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync + 'static>)
+                    .boxed()
             });
-
-            let req = req.map(|b| BodyExt::boxed(b).map_err(Into::into));
 
             match sender.send_request(req).await {
                 Ok(res) => {
                     if is_upgrade && res.status() == StatusCode::SWITCHING_PROTOCOLS {
+                        // Don't return upgraded connections to pool
                         let upstream_headers = res.headers().clone();
                         let local_upgrade = hyper::upgrade::on(res);
 
@@ -175,12 +164,16 @@ where
                                 )
                             }))
                     } else {
+                        // Return connection to pool for reuse
+                        pool.release_h1(sender).await;
+
                         let (parts, body) = res.into_parts();
                         let boxed_body = body.map_err(Into::into).boxed();
                         Ok(Response::from_parts(parts, boxed_body))
                     }
                 }
                 Err(e) => {
+                    // Don't return broken connections to pool
                     error!("Failed to proxy request: {e}");
                     Ok(error_response(StatusCode::BAD_GATEWAY, "Proxy error"))
                 }
@@ -221,13 +214,28 @@ pub fn error_response(status: StatusCode, msg: &str) -> Response<BoxBody> {
 pub struct HttpProxy<L> {
     target_addr: String,
     layer: L,
+    pool: Arc<ConnectionPool>,
 }
 
 impl HttpProxy<tower::layer::util::Identity> {
     pub fn new(target_addr: String) -> Self {
+        let pool = Arc::new(ConnectionPool::new(
+            target_addr.clone(),
+            PoolConfig::default(),
+        ));
         Self {
             target_addr,
             layer: tower::layer::util::Identity::new(),
+            pool,
+        }
+    }
+
+    pub fn with_pool_config(target_addr: String, pool_config: PoolConfig) -> Self {
+        let pool = Arc::new(ConnectionPool::new(target_addr.clone(), pool_config));
+        Self {
+            target_addr,
+            layer: tower::layer::util::Identity::new(),
+            pool,
         }
     }
 }
@@ -237,6 +245,7 @@ impl<L> HttpProxy<L> {
         HttpProxy {
             target_addr: self.target_addr,
             layer,
+            pool: self.pool,
         }
     }
 
@@ -252,7 +261,7 @@ impl<L> HttpProxy<L> {
         let service = self
             .layer
             .clone()
-            .layer(LocalProxyService::new(self.target_addr.clone()));
+            .layer(LocalProxyService::with_pool(self.pool.clone()));
         let hyper_service = TowerToHyperService::new(service);
         let io = TokioIo::new(stream);
 
@@ -290,14 +299,15 @@ mod tests {
     #[test]
     fn test_local_proxy_service_new() {
         let service = LocalProxyService::new("127.0.0.1:8080".to_string());
-        assert_eq!(service.target_addr, "127.0.0.1:8080");
+        // Service is created successfully with pool
+        let _ = service;
     }
 
     #[test]
     fn test_local_proxy_service_clone() {
         let service = LocalProxyService::new("localhost:3000".to_string());
-        let cloned = service.clone();
-        assert_eq!(cloned.target_addr, "localhost:3000");
+        let _cloned = service.clone();
+        // Service can be cloned successfully
     }
 
     #[tokio::test]

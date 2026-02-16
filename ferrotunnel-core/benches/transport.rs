@@ -2,8 +2,9 @@
 #![allow(clippy::expect_used)]
 #![allow(clippy::pedantic)]
 #![allow(unused_imports, unused_variables)]
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 use ferrotunnel_core::transport::{self, BoxedStream, TransportConfig};
+use std::hint::black_box;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};

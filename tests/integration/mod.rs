@@ -104,14 +104,18 @@ pub fn make_client() -> reqwest::Client {
 
 /// Generate a self-signed certificate for testing
 pub fn generate_self_signed_cert(subject_alt_names: Vec<String>) -> (String, String) {
-    let mut params = rcgen::CertificateParams::new(subject_alt_names);
+    let mut params =
+        rcgen::CertificateParams::new(subject_alt_names).expect("Failed to create params");
     params
         .distinguished_name
         .push(rcgen::DnType::CommonName, "localhost");
 
-    let cert = rcgen::Certificate::from_params(params).expect("Failed to generate cert");
-    let cert_pem = cert.serialize_pem().expect("Failed to serialize cert");
-    let key_pem = cert.serialize_private_key_pem();
+    let key_pair = rcgen::KeyPair::generate().expect("Failed to generate key pair");
+    let cert = params
+        .self_signed(&key_pair)
+        .expect("Failed to generate cert");
+    let cert_pem = cert.pem();
+    let key_pem = key_pair.serialize_pem();
 
     (cert_pem, key_pem)
 }

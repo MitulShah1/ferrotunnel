@@ -53,6 +53,14 @@ path = "advanced/tls_config.rs"
 name = "multi_tunnel"
 path = "advanced/multi_tunnel.rs"
 
+[[example]]
+name = "http2_connection_pooling"
+path = "advanced/http2_connection_pooling.rs"
+
+[[example]]
+name = "custom_pool_config"
+path = "advanced/custom_pool_config.rs"
+
 # ============================================================================
 # Operational Examples - Server lifecycle and observability
 # ============================================================================
@@ -84,6 +92,9 @@ path = "scenarios/websocket_tunnel.rs"
 [dependencies]
 # Core ferrotunnel library
 ferrotunnel = { path = "../ferrotunnel" }
+
+# HTTP library (for connection pooling examples)
+ferrotunnel-http = { path = "../ferrotunnel-http" }
 
 # Plugin system (for plugin examples)
 ferrotunnel-plugin = { path = "../ferrotunnel-plugin" }

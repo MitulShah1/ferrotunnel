@@ -3,9 +3,10 @@
 //! Benchmarks that measure complete tunnel operations.
 #![allow(clippy::unwrap_used)]
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use ferrotunnel_protocol::frame::HandshakeFrame;
 use ferrotunnel_protocol::Frame;
+use std::hint::black_box;
 
 fn encode_frame(frame: &Frame) -> Vec<u8> {
     let config = bincode_next::config::standard();

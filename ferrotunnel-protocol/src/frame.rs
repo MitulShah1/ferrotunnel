@@ -173,6 +173,7 @@ pub enum StreamStatus {
 pub enum Protocol {
     HTTP,
     HTTPS,
+    HTTP2,
     WebSocket,
     GRPC,
     TCP,
