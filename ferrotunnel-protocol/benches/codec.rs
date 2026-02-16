@@ -6,12 +6,13 @@
 #![allow(unused_imports, unused_variables)]
 
 use bytes::{Bytes, BytesMut};
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::frame::{
     Frame, HandshakeFrame, HandshakeStatus, OpenStreamFrame, Protocol, StreamPriority,
 };
 use std::collections::HashMap;
+use std::hint::black_box;
 use tokio_util::codec::{Decoder, Encoder};
 use uuid::Uuid;
 

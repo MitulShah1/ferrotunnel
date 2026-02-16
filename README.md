@@ -59,11 +59,43 @@ async fn main() -> ferrotunnel::Result<()> {
 }
 ```
 
+### HTTP/2 and Connection Pooling
+
+FerroTunnel v1.0.3+ includes automatic HTTP/2 support and connection pooling for improved performance:
+
+**Server-side**: The HTTP ingress automatically detects and handles both HTTP/1.1 and HTTP/2 connections from clients.
+
+**Client-side**: Connection pooling reuses HTTP connections to local services, eliminating per-request TCP handshake overhead:
+
+```rust
+use ferrotunnel_http::{HttpProxy, PoolConfig};
+use std::time::Duration;
+
+// Create proxy with custom pool configuration
+let pool_config = PoolConfig {
+    max_idle_per_host: 32,           // Max idle connections per host (default: 32)
+    idle_timeout: Duration::from_secs(90), // Connection idle timeout (default: 90s)
+    prefer_h2: false,                 // Prefer HTTP/2 when available (default: false)
+};
+
+let proxy = HttpProxy::with_pool_config("127.0.0.1:8080".into(), pool_config);
+```
+
+**CLI**: Use default pool settings (no flags needed) or customize via the library API.
+
+**Benefits**:
+- 🚀 Eliminates TCP handshake overhead per request
+- 🔄 HTTP/2 multiplexing reduces connection count
+- 🧹 Background eviction prevents resource leaks
+- 📈 Significantly improves throughput (target: 800-1000 MB/s)
+
 ## Features
 
 | Feature | Description |
 |---------|-------------|
 | **Embeddable** | Use as a library with builder APIs |
+| **HTTP/2** | Automatic HTTP/1.1 and HTTP/2 protocol detection |
+| **Connection Pooling** | Efficient connection reuse for improved performance |
 | **Plugin System** | Auth, rate limiting, logging, circuit breaker |
 | **Dashboard** | Real-time WebUI at `localhost:4040` |
 | **TLS 1.3** | Secure connections with rustls |

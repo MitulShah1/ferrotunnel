@@ -4,10 +4,10 @@ use ferrotunnel_plugin::{PluginAction, PluginRegistry, RequestContext, ResponseC
 use ferrotunnel_protocol::frame::Protocol;
 use http_body_util::{BodyExt, Empty};
 use hyper::body::Bytes;
-use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response, StatusCode};
-use hyper_util::rt::TokioIo;
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use hyper_util::server::conn::auto::Builder as AutoBuilder;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
@@ -76,7 +76,10 @@ impl HttpIngress {
 
     pub async fn start(self) -> Result<()> {
         let listener = TcpListener::bind(self.addr).await?;
-        info!("HTTP Ingress listening on {}", self.addr);
+        info!(
+            "HTTP Ingress listening on {} (HTTP/1.1 + HTTP/2)",
+            self.addr
+        );
 
         loop {
             let (stream, peer_addr) = listener.accept().await?;
@@ -99,23 +102,21 @@ impl HttpIngress {
             tokio::spawn(async move {
                 let _permit = permit; // Hold permit until connection closes
 
-                if let Err(err) = http1::Builder::new()
-                    .serve_connection(
-                        io,
-                        service_fn(move |req| {
-                            handle_request(
-                                req,
-                                sessions.clone(),
-                                registry.clone(),
-                                peer_addr,
-                                config.clone(),
-                            )
-                        }),
+                let service = service_fn(move |req| {
+                    handle_request(
+                        req,
+                        sessions.clone(),
+                        registry.clone(),
+                        peer_addr,
+                        config.clone(),
                     )
-                    .with_upgrades()
-                    .await
-                {
-                    error!("Error serving connection: {:?}", err);
+                });
+
+                let builder = AutoBuilder::new(TokioExecutor::new());
+                if let Err(err) = builder.serve_connection_with_upgrades(io, service).await {
+                    if !is_connection_close_error(&err) {
+                        error!("Error serving connection: {:?}", err);
+                    }
                 }
             });
         }
@@ -533,6 +534,15 @@ fn _empty_response(status: StatusCode) -> Response<BoxBody> {
         .status(status)
         .body(Empty::new().map_err(|never| match never {}).boxed())
         .unwrap_or_else(|_| Response::new(Empty::new().map_err(|never| match never {}).boxed()))
+}
+
+/// Check if error is a benign connection close to reduce log noise
+#[allow(clippy::borrowed_box)]
+fn is_connection_close_error(err: &Box<dyn std::error::Error + Send + Sync>) -> bool {
+    let msg = err.to_string();
+    msg.contains("connection closed")
+        || msg.contains("reset by peer")
+        || msg.contains("broken pipe")
 }
 
 #[cfg(test)]

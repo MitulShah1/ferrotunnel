@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-02-16
+
+### Added
+
+#### HTTP/2 Support
+- **HTTP/2 ingress**: Server-side ingress now supports both HTTP/1.1 and HTTP/2 via automatic protocol detection using `hyper-util`'s `AutoBuilder`
+- **HTTP/2 protocol variant**: Added `HTTP2` variant to the `Protocol` enum for future protocol-specific handling
+- **Connection-close error filtering**: Added helper function to reduce log noise from benign connection close errors
+
+#### Connection Pooling
+- **Connection pool module**: New `pool` module (`ferrotunnel-http/src/pool.rs`) for efficient connection reuse
+- **HTTP/1.1 pooling**: Idle HTTP/1.1 connections are stored in a LIFO queue (VecDeque) for cache warmth, with configurable limits (default: 32 per host, 90s timeout)
+- **HTTP/2 multiplexing**: Single shared HTTP/2 connection per target with automatic clone-cheap multiplexing
+- **Background eviction**: Automatic cleanup of expired idle connections every 30 seconds
+- **Pool configuration**: `PoolConfig` struct with `max_idle_per_host`, `idle_timeout`, and `prefer_h2` options
+- **`HttpProxy::with_pool_config()`**: New constructor for custom pool configuration
+
+### Changed
+
+#### Performance
+- **Client proxy connection reuse**: `LocalProxyService` now acquires connections from the pool instead of creating new TCP connections per request, significantly reducing connection overhead
+- **Connection lifecycle management**: Connections are returned to the pool after successful requests, but not for upgraded (WebSocket) connections or failed requests
+
+#### Dependencies
+- **hyper**: Added `http2` feature flag
+- **hyper-util**: Added `server-auto` and `tokio` features for HTTP/2 auto-detection
+- **thiserror**: Added for connection pool error types
+
+### Fixed
+- **Test compatibility**: Connection pool constructor now checks for tokio runtime availability before spawning background tasks, preventing test failures
+
 ## [1.0.2] - 2026-02-11
 
 ### Added
