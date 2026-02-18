@@ -10,8 +10,10 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use super::models::{
-    ApiError, DashboardTunnelInfo, HealthResponse, RequestLogEntry, SharedDashboardState,
+    ApiError, CreateTunnelRequest, DashboardTunnelInfo, HealthResponse, RequestLogEntry,
+    SharedDashboardState, TunnelStatus,
 };
+use chrono::Utc;
 use std::str::FromStr;
 
 /// Creates a JSON error response with consistent format.
@@ -141,6 +143,55 @@ pub async fn get_request_handler(
     }
 }
 
+/// Create a new tunnel entry.
+///
+/// POST /api/v1/tunnels
+pub async fn create_tunnel_handler(
+    State(state): State<SharedDashboardState>,
+    Json(req): Json<CreateTunnelRequest>,
+) -> Response {
+    let tunnel = DashboardTunnelInfo {
+        id: Uuid::new_v4(),
+        subdomain: req.subdomain,
+        local_addr: req.local_addr,
+        public_url: req.public_url,
+        created_at: Utc::now(),
+        status: TunnelStatus::Connecting,
+    };
+    let mut state = state.write().await;
+    state.add_tunnel(tunnel.clone());
+    (StatusCode::CREATED, Json(tunnel)).into_response()
+}
+
+/// Delete a tunnel by ID.
+///
+/// DELETE /api/v1/tunnels/:id
+pub async fn delete_tunnel_handler(
+    State(state): State<SharedDashboardState>,
+    Path(id_str): Path<String>,
+) -> Response {
+    let id = match Uuid::parse_str(&id_str) {
+        Ok(u) => u,
+        Err(e) => {
+            return error_response(
+                StatusCode::BAD_REQUEST,
+                "BAD_REQUEST",
+                format!("Invalid ID format: {}", e),
+            );
+        }
+    };
+
+    let mut state = state.write().await;
+    match state.remove_tunnel(id) {
+        Some(_) => StatusCode::NO_CONTENT.into_response(),
+        None => error_response(
+            StatusCode::NOT_FOUND,
+            "NOT_FOUND",
+            format!("Tunnel with id '{}' not found", id),
+        ),
+    }
+}
+
 /// Prometheus metrics endpoint.
 ///
 /// GET /api/v1/metrics
@@ -262,5 +313,85 @@ pub async fn replay_request_handler(
                 format!("Failed to replay request: {}", e),
             )
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dashboard::models::DashboardState;
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
+
+    fn make_state() -> SharedDashboardState {
+        Arc::new(RwLock::new(DashboardState::new(10)))
+    }
+
+    #[tokio::test]
+    async fn test_create_tunnel_returns_201_with_tunnel() {
+        let state = make_state();
+        let req = CreateTunnelRequest {
+            subdomain: Some("my-service".to_string()),
+            local_addr: "127.0.0.1:3000".to_string(),
+            public_url: Some("https://my-service.example.com".to_string()),
+        };
+
+        let response =
+            create_tunnel_handler(State(state.clone()), Json(req.clone())).await;
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        // Tunnel should now be in state
+        let locked = state.read().await;
+        assert_eq!(locked.tunnels.len(), 1);
+        let tunnel = locked.tunnels.values().next().unwrap();
+        assert_eq!(tunnel.subdomain, req.subdomain);
+        assert_eq!(tunnel.local_addr, req.local_addr);
+        assert_eq!(tunnel.public_url, req.public_url);
+        assert_eq!(tunnel.status, TunnelStatus::Connecting);
+    }
+
+    #[tokio::test]
+    async fn test_delete_tunnel_returns_204_when_found() {
+        let state = make_state();
+
+        // Pre-populate a tunnel
+        let tunnel = DashboardTunnelInfo {
+            id: Uuid::new_v4(),
+            subdomain: Some("test".to_string()),
+            local_addr: "127.0.0.1:4000".to_string(),
+            public_url: None,
+            created_at: Utc::now(),
+            status: TunnelStatus::Connected,
+        };
+        let tunnel_id = tunnel.id;
+        state.write().await.add_tunnel(tunnel);
+
+        let response =
+            delete_tunnel_handler(State(state.clone()), Path(tunnel_id.to_string())).await;
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        assert!(state.read().await.tunnels.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_delete_tunnel_returns_404_when_not_found() {
+        let state = make_state();
+        let missing_id = Uuid::new_v4();
+
+        let response =
+            delete_tunnel_handler(State(state.clone()), Path(missing_id.to_string())).await;
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_delete_tunnel_returns_400_for_invalid_id() {
+        let state = make_state();
+
+        let response =
+            delete_tunnel_handler(State(state.clone()), Path("not-a-uuid".to_string())).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 }

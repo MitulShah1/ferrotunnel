@@ -4,10 +4,13 @@ use anyhow::Result;
 use clap::Args;
 use ferrotunnel_core::TunnelServer;
 use ferrotunnel_observability::{
+    dashboard::{create_router, DashboardState, EventBroadcaster},
     gather_metrics, init_basic_observability, init_minimal_logging, shutdown_tracing,
 };
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use tracing::{error, info};
 
 #[derive(Args, Debug)]
@@ -59,6 +62,10 @@ pub struct ServerArgs {
     /// Enable metrics endpoint
     #[arg(long, env = "FERROTUNNEL_METRICS")]
     metrics: bool,
+
+    /// Dashboard / control-API bind address (set to enable)
+    #[arg(long, env = "FERROTUNNEL_DASHBOARD_BIND")]
+    dashboard_bind: Option<SocketAddr>,
 }
 
 pub async fn run(args: ServerArgs) -> Result<()> {
@@ -112,6 +119,11 @@ pub async fn run(args: ServerArgs) -> Result<()> {
     }
     let sessions = server.sessions();
 
+    // Start Dashboard / control-API server (optional)
+    if let Some(dashboard_addr) = args.dashboard_bind {
+        spawn_dashboard_server(dashboard_addr);
+    }
+
     // Start Control Plane Service immediately (non-blocking)
     info!("Starting Control Plane on {}", args.bind);
     let server_handle = tokio::spawn(async move { server.run().await });
@@ -121,16 +133,16 @@ pub async fn run(args: ServerArgs) -> Result<()> {
 
     // built-in plugins
     // 1. Logger
-    registry.register(std::sync::Arc::new(tokio::sync::RwLock::new(
+    registry.register(Arc::new(RwLock::new(
         ferrotunnel_plugin::builtin::LoggerPlugin::new().with_body_logging(),
     )));
 
     // 2. Token Auth
-    registry.register(std::sync::Arc::new(tokio::sync::RwLock::new(
+    registry.register(Arc::new(RwLock::new(
         ferrotunnel_plugin::builtin::TokenAuthPlugin::new(vec![args.token.clone()]),
     )));
 
-    let registry = std::sync::Arc::new(registry);
+    let registry = Arc::new(registry);
 
     info!("Starting HTTP Ingress on {}", args.http_bind);
     let http_ingress =
@@ -177,4 +189,22 @@ pub async fn run(args: ServerArgs) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Spawn the dashboard / control-API Axum server in the background.
+fn spawn_dashboard_server(addr: SocketAddr) {
+    let dashboard_state = Arc::new(RwLock::new(DashboardState::new(1000)));
+    let broadcaster = Arc::new(EventBroadcaster::new(100));
+    let app = create_router(dashboard_state, broadcaster);
+    info!("Starting Dashboard/Control API on http://{}", addr);
+    tokio::spawn(async move {
+        match tokio::net::TcpListener::bind(addr).await {
+            Ok(listener) => {
+                if let Err(e) = axum::serve(listener, app).await {
+                    error!("Dashboard server error: {}", e);
+                }
+            }
+            Err(e) => error!("Failed to bind dashboard server to {}: {}", addr, e),
+        }
+    });
 }

@@ -122,3 +122,24 @@ impl DashboardState {
 
 /// Thread-safe shared dashboard state.
 pub type SharedDashboardState = Arc<RwLock<DashboardState>>;
+
+/// Request body for creating a new tunnel via the control API.
+///
+/// # Example
+///
+/// ```json
+/// {
+///   "subdomain": "my-service",
+///   "local_addr": "127.0.0.1:3000",
+///   "public_url": "https://my-service.example.com"
+/// }
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateTunnelRequest {
+    /// Optional subdomain / tunnel name.
+    pub subdomain: Option<String>,
+    /// Local address the tunnel forwards traffic to.
+    pub local_addr: String,
+    /// Optional public URL assigned to this tunnel.
+    pub public_url: Option<String>,
+}
