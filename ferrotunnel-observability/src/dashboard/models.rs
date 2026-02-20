@@ -16,6 +16,14 @@ pub enum TunnelStatus {
     Disconnected,
 }
 
+/// Request payload to programmatically create a tunnel via Dashboard API.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateTunnelRequest {
+    pub subdomain: Option<String>,
+    pub local_addr: String,
+    pub public_url: Option<String>,
+}
+
 /// Extended tunnel information for the dashboard.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DashboardTunnelInfo {

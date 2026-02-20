@@ -73,6 +73,59 @@ pub async fn get_tunnel_handler(
     }
 }
 
+/// Programmatically create a new tunnel entry via the dashboard.
+///
+/// POST /api/v1/tunnels
+pub async fn create_tunnel_handler(
+    State(state): State<SharedDashboardState>,
+    Json(payload): Json<super::models::CreateTunnelRequest>,
+) -> Response {
+    let new_id = Uuid::new_v4();
+    let tunnel = DashboardTunnelInfo {
+        id: new_id,
+        subdomain: payload.subdomain,
+        public_url: payload.public_url,
+        local_addr: payload.local_addr,
+        created_at: chrono::Utc::now(),
+        status: super::models::TunnelStatus::Connecting,
+    };
+
+    let mut state_writer = state.write().await;
+    state_writer.add_tunnel(tunnel.clone());
+
+    (StatusCode::CREATED, Json(tunnel)).into_response()
+}
+
+/// Remove a tunnel entry by ID.
+///
+/// DELETE /api/v1/tunnels/:id
+pub async fn delete_tunnel_handler(
+    State(state): State<SharedDashboardState>,
+    Path(id_str): Path<String>,
+) -> Response {
+    let id = match Uuid::parse_str(&id_str) {
+        Ok(u) => u,
+        Err(e) => {
+            return error_response(
+                StatusCode::BAD_REQUEST,
+                "BAD_REQUEST",
+                format!("Invalid ID format: {}", e),
+            );
+        }
+    };
+
+    let mut state_writer = state.write().await;
+    if state_writer.remove_tunnel(id).is_some() {
+        StatusCode::NO_CONTENT.into_response()
+    } else {
+        error_response(
+            StatusCode::NOT_FOUND,
+            "NOT_FOUND",
+            format!("Tunnel with id '{}' not found", id),
+        )
+    }
+}
+
 /// Query parameters for listing requests.
 #[derive(Debug, Deserialize)]
 pub struct ListRequestsQuery {
