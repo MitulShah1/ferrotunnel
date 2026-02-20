@@ -32,6 +32,10 @@ pub struct ServerArgs {
     #[arg(long, default_value = "0.0.0.0:9090", env = "FERROTUNNEL_METRICS_BIND")]
     metrics_bind: SocketAddr,
 
+    /// Dashboard / control-API bind address (set to enable)
+    #[arg(long, env = "FERROTUNNEL_DASHBOARD_BIND")]
+    dashboard_bind: Option<SocketAddr>,
+
     /// Path to TLS certificate file (PEM format)
     #[arg(long, env = "FERROTUNNEL_TLS_CERT")]
     tls_cert: Option<PathBuf>,
@@ -92,6 +96,10 @@ pub async fn run(args: ServerArgs) -> Result<()> {
     }
 
     info!("Starting FerroTunnel Server v{}", env!("CARGO_PKG_VERSION"));
+
+    if let Some(dashboard_bind) = args.dashboard_bind {
+        spawn_dashboard_server(dashboard_bind);
+    }
 
     let mut server = TunnelServer::new(args.bind, args.token.clone());
 
@@ -177,4 +185,30 @@ pub async fn run(args: ServerArgs) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn spawn_dashboard_server(bind_addr: SocketAddr) {
+    use ferrotunnel_observability::dashboard::{create_router, DashboardState, EventBroadcaster};
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
+
+    info!("Starting opt-in Dashboard Server on http://{}", bind_addr);
+
+    tokio::spawn(async move {
+        let dashboard_state = Arc::new(RwLock::new(DashboardState::new(1000)));
+        let broadcaster = Arc::new(EventBroadcaster::new(100));
+
+        let app = create_router(dashboard_state, broadcaster);
+
+        match tokio::net::TcpListener::bind(bind_addr).await {
+            Ok(listener) => {
+                if let Err(e) = axum::serve(listener, app).await {
+                    error!("Dashboard server error: {e}");
+                }
+            }
+            Err(e) => {
+                error!("Failed to bind dashboard server to {bind_addr}: {e}");
+            }
+        }
+    });
 }
