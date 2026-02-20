@@ -19,8 +19,11 @@ pub enum TunnelStatus {
 /// Request payload to programmatically create a tunnel via Dashboard API.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTunnelRequest {
+    /// Optional assigned subdomain (e.g., "my-svc"). If omitted, one is auto-generated.
     pub subdomain: Option<String>,
+    /// The target local address to route traffic to (e.g., "127.0.0.1:8080" or "localhost:3000").
     pub local_addr: String,
+    /// Optional externally accessible URL (informative field for the dashboard).
     pub public_url: Option<String>,
 }
 
