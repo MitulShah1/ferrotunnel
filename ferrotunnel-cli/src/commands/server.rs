@@ -32,7 +32,7 @@ pub struct ServerArgs {
     #[arg(long, default_value = "0.0.0.0:9090", env = "FERROTUNNEL_METRICS_BIND")]
     metrics_bind: SocketAddr,
 
-    /// Dashboard bind address (opt-in)
+    /// Dashboard / control-API bind address (set to enable)
     #[arg(long, env = "FERROTUNNEL_DASHBOARD_BIND")]
     dashboard_bind: Option<SocketAddr>,
 

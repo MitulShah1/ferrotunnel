@@ -54,14 +54,16 @@ use tower_http::{
 ///
 /// # Endpoints
 ///
-/// - `GET /api/v1/health` - Health check
-/// - `GET /api/v1/tunnels` - List all tunnels
-/// - `GET /api/v1/tunnels/:id` - Get tunnel by ID
-/// - `GET /api/v1/requests` - List recent requests
-/// - `GET /api/v1/requests/:id` - Get request details
-/// - `GET /api/v1/requests/:id/replay` - Replay a request
-/// - `GET /api/v1/metrics` - Prometheus metrics
-/// - `GET /api/v1/events` - SSE event stream
+/// - `GET    /api/v1/health`              - Health check
+/// - `GET    /api/v1/tunnels`             - List all tunnels
+/// - `POST   /api/v1/tunnels`             - Create a new tunnel entry (returns 201)
+/// - `GET    /api/v1/tunnels/:id`         - Get tunnel by ID
+/// - `DELETE /api/v1/tunnels/:id`         - Remove tunnel (204 / 404 / 400)
+/// - `GET    /api/v1/requests`            - List recent requests
+/// - `GET    /api/v1/requests/:id`        - Get request details
+/// - `POST   /api/v1/requests/:id/replay` - Replay a request
+/// - `GET    /api/v1/metrics`             - Prometheus metrics
+/// - `GET    /api/v1/events`              - SSE event stream
 // Embedded assets
 #[derive(rust_embed::RustEmbed)]
 #[folder = "src/dashboard/static/"]
