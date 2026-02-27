@@ -38,7 +38,6 @@ impl RateLimitPlugin {
 
 #[async_trait]
 impl Plugin for RateLimitPlugin {
-    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "rate-limit"
     }

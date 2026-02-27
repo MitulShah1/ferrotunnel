@@ -27,7 +27,6 @@ impl Default for LoggerPlugin {
 
 #[async_trait]
 impl Plugin for LoggerPlugin {
-    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "logger"
     }
