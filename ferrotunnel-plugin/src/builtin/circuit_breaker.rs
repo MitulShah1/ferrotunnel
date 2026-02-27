@@ -173,12 +173,10 @@ impl std::fmt::Debug for CircuitBreakerPlugin {
 
 #[async_trait]
 impl Plugin for CircuitBreakerPlugin {
-    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "circuit-breaker"
     }
 
-    #[allow(clippy::unnecessary_literal_bound)]
     fn version(&self) -> &str {
         "1.0.0"
     }

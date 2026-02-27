@@ -25,7 +25,6 @@ impl TokenAuthPlugin {
 
 #[async_trait]
 impl Plugin for TokenAuthPlugin {
-    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "token-auth"
     }
