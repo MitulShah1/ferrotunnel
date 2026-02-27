@@ -42,24 +42,51 @@ where
 
 /// TLS and connection feature flags (flattened into ClientArgs)
 #[derive(Args, Debug)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct ClientFeatureArgs {
+    /// Dashboard config struct
+    #[command(flatten)]
+    pub dashboard: DashboardConfig,
+
+    /// TLS config struct
+    #[command(flatten)]
+    pub tls: TlsConfig,
+
+    /// Telemetry config struct
+    #[command(flatten)]
+    pub telemetry: TelemetryConfig,
+}
+
+/// Dashboard config (flattened into ClientFeatureArgs)
+#[derive(Args, Debug)]
+pub struct DashboardConfig {
     /// Dashboard port
-    #[arg(long, default_value = "4040", env = "FERROTUNNEL_DASHBOARD_PORT")]
-    pub dashboard_port: u16,
+    #[arg(
+        long = "dashboard-port",
+        default_value = "4040",
+        env = "FERROTUNNEL_DASHBOARD_PORT"
+    )]
+    pub port: u16,
 
     /// Disable dashboard
-    #[arg(long)]
-    pub no_dashboard: bool,
+    #[arg(long = "no-dashboard")]
+    pub disabled: bool,
+}
 
+/// TLS config (flattened into ClientFeatureArgs)
+#[derive(Args, Debug)]
+pub struct TlsConfig {
     /// Enable TLS for server connection
-    #[arg(long, env = "FERROTUNNEL_TLS")]
-    pub tls: bool,
+    #[arg(long = "tls", env = "FERROTUNNEL_TLS")]
+    pub enabled: bool,
 
     /// Skip TLS certificate verification (insecure, for self-signed certs)
-    #[arg(long, env = "FERROTUNNEL_TLS_SKIP_VERIFY")]
-    pub tls_skip_verify: bool,
+    #[arg(long = "tls-skip-verify", env = "FERROTUNNEL_TLS_SKIP_VERIFY")]
+    pub skip_verify: bool,
+}
 
+/// Telemetry config (flattened into ClientFeatureArgs)
+#[derive(Args, Debug)]
+pub struct TelemetryConfig {
     /// Enable tracing (metrics is separate via --metrics)
     #[arg(long, env = "FERROTUNNEL_OBSERVABILITY")]
     pub observability: bool,
@@ -129,8 +156,8 @@ fn prompt_token() -> Result<String> {
 }
 
 pub async fn run(args: ClientArgs) -> Result<()> {
-    let enable_tracing = args.features.observability;
-    let enable_metrics = args.features.metrics;
+    let enable_tracing = args.features.telemetry.observability;
+    let enable_metrics = args.features.telemetry.metrics;
 
     if enable_tracing || enable_metrics {
         init_basic_observability("ferrotunnel-client", enable_tracing, enable_metrics);
@@ -144,7 +171,7 @@ pub async fn run(args: ClientArgs) -> Result<()> {
 
     // Determine tunnel ID for routing
     let tunnel_id_string: Option<String> = args.tunnel_id.clone().or_else(|| {
-        if args.features.no_dashboard {
+        if args.features.dashboard.disabled {
             None
         } else {
             Some(uuid::Uuid::new_v4().to_string())
@@ -237,7 +264,7 @@ async fn setup_dashboard(args: &ClientArgs, tunnel_id: uuid::Uuid) -> Arc<dyn St
     let broadcaster = Arc::new(EventBroadcaster::new(100));
 
     let app = create_router(dashboard_state.clone(), broadcaster.clone());
-    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], args.features.dashboard_port));
+    let addr = std::net::SocketAddr::from(([0, 0, 0, 0], args.features.dashboard.port));
 
     info!("Starting Dashboard at http://{}", addr);
     tokio::spawn(async move {
@@ -280,8 +307,8 @@ async fn setup_dashboard(args: &ClientArgs, tunnel_id: uuid::Uuid) -> Arc<dyn St
 }
 
 fn setup_tls(mut client: TunnelClient, args: &ClientArgs) -> TunnelClient {
-    if args.features.tls {
-        if args.features.tls_skip_verify {
+    if args.features.tls.enabled {
+        if args.features.tls.skip_verify {
             info!("TLS enabled with certificate verification skipped (insecure)");
             client = client.with_tls_skip_verify();
         } else if let Some(ref ca_path) = args.tls_ca {
