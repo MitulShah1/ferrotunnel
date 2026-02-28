@@ -3,6 +3,7 @@ use crate::resource_limits::{ServerResourceLimits, SessionPermit};
 use crate::stream::{Multiplexer, PrioritizedFrame};
 use crate::transport::batched_sender::run_batched_sender;
 use crate::transport::{self, BoxedStream, TransportConfig};
+use crate::tunnel::common::clamp_u128_to_u64;
 use crate::tunnel::session::{Session, SessionStoreBackend, ShardedSessionStore};
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
@@ -336,11 +337,12 @@ impl TunnelServer {
                 Frame::Heartbeat { .. } => {
                     multiplexer
                         .send_frame(Frame::HeartbeatAck {
-                            #[allow(clippy::cast_possible_truncation)]
-                            timestamp: std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_millis() as u64,
+                            timestamp: clamp_u128_to_u64(
+                                std::time::SystemTime::now()
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_millis(),
+                            ),
                         })
                         .await?;
                 }
