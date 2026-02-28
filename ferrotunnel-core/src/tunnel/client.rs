@@ -163,7 +163,6 @@ impl TunnelClient {
     where
         C: FnOnce(Uuid) + Send + 'static,
     {
-        #[allow(clippy::cast_possible_truncation)]
         framed
             .send(Frame::Handshake(Box::new(HandshakeFrame {
                 min_version: MIN_PROTOCOL_VERSION,
@@ -258,11 +257,12 @@ impl TunnelClient {
             let decode_start = Instant::now();
             tokio::select! {
                 _ = heartbeat_interval.tick() => {
-                    #[allow(clippy::cast_possible_truncation)]
                     let ts = std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap_or_default()
-                        .as_millis() as u64;
+                        .as_millis()
+                        .min(u128::from(u64::MAX))
+                        as u64;
                     if let Err(e) = multiplexer.send_frame(Frame::Heartbeat { timestamp: ts }).await {
                         error!("Failed to send heartbeat: {}", e);
                         return Err(e);

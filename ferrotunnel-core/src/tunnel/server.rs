@@ -336,11 +336,12 @@ impl TunnelServer {
                 Frame::Heartbeat { .. } => {
                     multiplexer
                         .send_frame(Frame::HeartbeatAck {
-                            #[allow(clippy::cast_possible_truncation)]
                             timestamp: std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
                                 .unwrap_or_default()
-                                .as_millis() as u64,
+                                .as_millis()
+                                .min(u128::from(u64::MAX))
+                                as u64,
                         })
                         .await?;
                 }
