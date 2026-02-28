@@ -2,6 +2,7 @@ use crate::auth::validate_token_format;
 use crate::stream::{Multiplexer, PrioritizedFrame, VirtualStream};
 use crate::transport::batched_sender::run_batched_sender;
 use crate::transport::{self, TransportConfig};
+use crate::tunnel::common::clamp_u128_to_u64;
 use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_protocol::codec::TunnelCodec;
 use ferrotunnel_protocol::constants::{MAX_PROTOCOL_VERSION, MIN_PROTOCOL_VERSION};
@@ -257,12 +258,12 @@ impl TunnelClient {
             let decode_start = Instant::now();
             tokio::select! {
                 _ = heartbeat_interval.tick() => {
-                    let ts = std::time::SystemTime::now()
+                    let ts = clamp_u128_to_u64(
+                        std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
                         .unwrap_or_default()
                         .as_millis()
-                        .min(u128::from(u64::MAX))
-                        as u64;
+                    );
                     if let Err(e) = multiplexer.send_frame(Frame::Heartbeat { timestamp: ts }).await {
                         error!("Failed to send heartbeat: {}", e);
                         return Err(e);
