@@ -40,7 +40,7 @@ where
     }
 }
 
-/// TLS and connection feature flags (flattened into ClientArgs)
+/// Client feature configuration (dashboard, TLS, telemetry; flattened into ClientArgs)
 #[derive(Args, Debug)]
 pub struct ClientFeatureArgs {
     /// Dashboard config struct
@@ -56,7 +56,7 @@ pub struct ClientFeatureArgs {
     pub telemetry: TelemetryConfig,
 }
 
-/// Dashboard config (flattened into ClientFeatureArgs)
+/// Dashboard configuration for tunnel inspection (flattened into ClientFeatureArgs)
 #[derive(Args, Debug)]
 pub struct DashboardConfig {
     /// Dashboard port
@@ -72,7 +72,7 @@ pub struct DashboardConfig {
     pub disabled: bool,
 }
 
-/// TLS config (flattened into ClientFeatureArgs)
+/// TLS configuration for secure server connections (flattened into ClientFeatureArgs)
 #[derive(Args, Debug)]
 pub struct TlsConfig {
     /// Enable TLS for server connection
@@ -84,7 +84,7 @@ pub struct TlsConfig {
     pub skip_verify: bool,
 }
 
-/// Telemetry config (flattened into ClientFeatureArgs)
+/// Telemetry and observability configuration (flattened into ClientFeatureArgs)
 #[derive(Args, Debug)]
 pub struct TelemetryConfig {
     /// Enable tracing (metrics is separate via --metrics)
