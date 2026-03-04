@@ -27,8 +27,8 @@ pub mod models;
 
 pub use events::{DashboardEvent, EventBroadcaster};
 pub use models::{
-    ApiError, DashboardState, DashboardTunnelInfo, HealthResponse, RequestDetails, RequestLogEntry,
-    SharedDashboardState, TunnelStatus,
+    ApiError, CreateTunnelRequest, DashboardState, DashboardTunnelInfo, HealthResponse,
+    RequestDetails, RequestLogEntry, SharedDashboardState, TunnelStatus,
 };
 
 use std::sync::Arc;
@@ -54,14 +54,16 @@ use tower_http::{
 ///
 /// # Endpoints
 ///
-/// - `GET /api/v1/health` - Health check
-/// - `GET /api/v1/tunnels` - List all tunnels
-/// - `GET /api/v1/tunnels/:id` - Get tunnel by ID
-/// - `GET /api/v1/requests` - List recent requests
-/// - `GET /api/v1/requests/:id` - Get request details
-/// - `GET /api/v1/requests/:id/replay` - Replay a request
-/// - `GET /api/v1/metrics` - Prometheus metrics
-/// - `GET /api/v1/events` - SSE event stream
+/// - `GET    /api/v1/health`              - Health check
+/// - `GET    /api/v1/tunnels`             - List all tunnels
+/// - `POST   /api/v1/tunnels`             - Create a new tunnel entry (returns 201)
+/// - `GET    /api/v1/tunnels/:id`         - Get tunnel by ID
+/// - `DELETE /api/v1/tunnels/:id`         - Remove tunnel (204 / 404 / 400)
+/// - `GET    /api/v1/requests`            - List recent requests
+/// - `GET    /api/v1/requests/:id`        - Get request details
+/// - `POST   /api/v1/requests/:id/replay` - Replay a request
+/// - `GET    /api/v1/metrics`             - Prometheus metrics
+/// - `GET    /api/v1/events`              - SSE event stream
 // Embedded assets
 #[derive(rust_embed::RustEmbed)]
 #[folder = "src/dashboard/static/"]
@@ -87,8 +89,14 @@ async fn static_handler(uri: axum::http::Uri) -> impl IntoResponse {
 pub fn create_router(state: SharedDashboardState, broadcaster: Arc<EventBroadcaster>) -> Router {
     let api_routes = Router::new()
         .route("/health", get(handlers::health_handler))
-        .route("/tunnels", get(handlers::list_tunnels_handler))
-        .route("/tunnels/{id}", get(handlers::get_tunnel_handler))
+        .route(
+            "/tunnels",
+            get(handlers::list_tunnels_handler).post(handlers::create_tunnel_handler),
+        )
+        .route(
+            "/tunnels/{id}",
+            get(handlers::get_tunnel_handler).delete(handlers::delete_tunnel_handler),
+        )
         .route("/requests", get(handlers::list_requests_handler))
         .route("/requests/{id}", get(handlers::get_request_handler))
         .route(

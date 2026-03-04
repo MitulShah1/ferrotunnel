@@ -73,6 +73,59 @@ pub async fn get_tunnel_handler(
     }
 }
 
+/// Programmatically create a new tunnel entry via the dashboard.
+///
+/// POST /api/v1/tunnels
+pub async fn create_tunnel_handler(
+    State(state): State<SharedDashboardState>,
+    Json(payload): Json<super::models::CreateTunnelRequest>,
+) -> Response {
+    let new_id = Uuid::new_v4();
+    let tunnel = DashboardTunnelInfo {
+        id: new_id,
+        subdomain: payload.subdomain,
+        public_url: payload.public_url,
+        local_addr: payload.local_addr,
+        created_at: chrono::Utc::now(),
+        status: super::models::TunnelStatus::Connecting,
+    };
+
+    let mut state_writer = state.write().await;
+    state_writer.add_tunnel(tunnel.clone());
+
+    (StatusCode::CREATED, Json(tunnel)).into_response()
+}
+
+/// Remove a tunnel entry by ID.
+///
+/// DELETE /api/v1/tunnels/:id
+pub async fn delete_tunnel_handler(
+    State(state): State<SharedDashboardState>,
+    Path(id_str): Path<String>,
+) -> Response {
+    let id = match Uuid::parse_str(&id_str) {
+        Ok(u) => u,
+        Err(e) => {
+            return error_response(
+                StatusCode::BAD_REQUEST,
+                "BAD_REQUEST",
+                format!("Invalid ID format: {}", e),
+            );
+        }
+    };
+
+    let mut state_writer = state.write().await;
+    if state_writer.remove_tunnel(id).is_some() {
+        StatusCode::NO_CONTENT.into_response()
+    } else {
+        error_response(
+            StatusCode::NOT_FOUND,
+            "NOT_FOUND",
+            format!("Tunnel with id '{}' not found", id),
+        )
+    }
+}
+
 /// Query parameters for listing requests.
 #[derive(Debug, Deserialize)]
 pub struct ListRequestsQuery {
@@ -262,5 +315,98 @@ pub async fn replay_request_handler(
                 format!("Failed to replay request: {}", e),
             )
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dashboard::models::{DashboardState, TunnelStatus};
+    use axum::body::to_bytes;
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
+
+    /// Helper to setup a test dashboard state.
+    fn test_state() -> SharedDashboardState {
+        Arc::new(RwLock::new(DashboardState::new(100)))
+    }
+
+    #[tokio::test]
+    async fn test_create_tunnel_handler() {
+        let state = test_state();
+        let payload = super::super::models::CreateTunnelRequest {
+            subdomain: Some("test-svc".to_string()),
+            local_addr: "127.0.0.1:8080".to_string(),
+            public_url: None,
+        };
+
+        let response = create_tunnel_handler(State(state.clone()), Json(payload)).await;
+
+        // Verify status code is CREATED
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        // Parse response body
+        let body_bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let created_info: DashboardTunnelInfo = serde_json::from_slice(&body_bytes).unwrap();
+
+        // Check fields match
+        assert_eq!(created_info.subdomain.as_deref(), Some("test-svc"));
+        assert_eq!(created_info.local_addr, "127.0.0.1:8080");
+        assert_eq!(created_info.status, TunnelStatus::Connecting);
+
+        // Verify it was actually added to the state
+        let state_guard = state.read().await;
+        assert!(state_guard.tunnels.contains_key(&created_info.id));
+    }
+
+    #[tokio::test]
+    async fn test_delete_tunnel_handler_success() {
+        let state = test_state();
+        let new_id = Uuid::new_v4();
+
+        // 1. Arrange - Add a tunnel manually
+        {
+            let mut state_guard = state.write().await;
+            state_guard.add_tunnel(DashboardTunnelInfo {
+                id: new_id,
+                subdomain: None,
+                public_url: None,
+                local_addr: "127.0.0.1:3000".to_string(),
+                created_at: chrono::Utc::now(),
+                status: TunnelStatus::Connecting,
+            });
+        }
+
+        // 2. Act - Try to delete it
+        let response = delete_tunnel_handler(State(state.clone()), Path(new_id.to_string())).await;
+
+        // 3. Assert - Should return 204 NO_CONTENT
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+        // Double check it's gone from state
+        let state_guard = state.read().await;
+        assert!(!state_guard.tunnels.contains_key(&new_id));
+    }
+
+    #[tokio::test]
+    async fn test_delete_tunnel_handler_not_found() {
+        let state = test_state();
+        let random_id = Uuid::new_v4(); // Not in state
+
+        let response =
+            delete_tunnel_handler(State(state.clone()), Path(random_id.to_string())).await;
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_delete_tunnel_handler_invalid_uuid() {
+        let state = test_state();
+
+        let response =
+            delete_tunnel_handler(State(state.clone()), Path("not-a-uuid".to_string())).await;
+
+        // Assuming parsing fails gracefully and returns BAD_REQUEST (as impl currently does)
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 }
