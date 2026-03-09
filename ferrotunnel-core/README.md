@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel-core)](https://crates.io/crates/ferrotunnel-core)
 [![Documentation](https://docs.rs/ferrotunnel-core/badge.svg)](https://docs.rs/ferrotunnel-core)
 
-Core tunnel implementation for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel).
+Core tunnel implementation for [FerroTunnel](https://github.com/ferro-labs/ferrotunnel).
 
 ## Overview
 

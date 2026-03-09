@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel-common)](https://crates.io/crates/ferrotunnel-common)
 [![Documentation](https://docs.rs/ferrotunnel-common/badge.svg)](https://docs.rs/ferrotunnel-common)
 
-Shared types and error handling for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel).
+Shared types and error handling for [FerroTunnel](https://github.com/ferro-labs/ferrotunnel).
 
 ## Overview
 

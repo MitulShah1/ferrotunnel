@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-03-09
+
+### Changed
+
+#### Project Ownership
+- **Repository transfer**: Project ownership transferred from MitulShah1 to the [ferro-labs](https://github.com/ferro-labs) organization. Repository is now at <https://github.com/ferro-labs/ferrotunnel>
+- **Updated all references**: GitHub URLs, GHCR image paths (`ghcr.io/ferro-labs/ferrotunnel`), and Homebrew tap (`brew tap ferro-labs/ferrotunnel`) updated throughout the codebase
+
+#### Code Quality
+- **Refactor `ClientFeatureArgs` struct**: Replaced excessive boolean fields with nested configuration structs (`DashboardConfig`, `TlsConfig`, `TelemetryConfig`) using `#[command(flatten)]`, removing the `#[allow(clippy::struct_excessive_bools)]` suppression ([#76](https://github.com/ferro-labs/ferrotunnel/issues/76))
+- **Remove `unnecessary_literal_bound` allow directives**: Cleaned up redundant `#[allow(clippy::unnecessary_literal_bound)]` suppressions across plugin modules (`auth.rs`, `rate_limit.rs`, `logger.rs`, `circuit_breaker.rs`) ([#77](https://github.com/ferro-labs/ferrotunnel/issues/77))
+
+### Fixed
+
+#### Safety
+- **Safe integer truncation in timestamp conversions**: Replaced `as_millis() as u64` casts in tunnel client and server with `.min(u64::MAX as u128) as u64`, removing `#[allow(clippy::cast_possible_truncation)]` suppressions and making truncation behaviour explicit ([#78](https://github.com/ferro-labs/ferrotunnel/issues/78))
+
 ## [1.0.3] - 2026-02-16
 
 ### Added
@@ -63,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Installation
-- **Homebrew Formula**: Introduce `brew install ferrotunnel` command for macOS users via [MitulShah1/homebrew-ferrotunnel](https://github.com/MitulShah1/homebrew-ferrotunnel) tap
+- **Homebrew Formula**: Introduce `brew install ferrotunnel` command for macOS users via [ferro-labs/homebrew-ferrotunnel](https://github.com/ferro-labs/homebrew-ferrotunnel) tap
 
 #### Tunnel Routing
 - **`--tunnel-id` CLI flag**: New `--tunnel-id` option for `ferrotunnel client` to set the tunnel ID used for HTTP Host-header routing (`FERROTUNNEL_TUNNEL_ID` env var supported)
@@ -174,7 +191,9 @@ FerroTunnel v1.0.0 is the first stable release.
 | `ferrotunnel-observability` | Metrics, tracing, and dashboard |
 | `ferrotunnel-common` | Shared types and errors |
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v1.0.2...HEAD
-[1.0.2]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.2
-[1.0.1]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.1
-[1.0.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.0
+[Unreleased]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.2...v1.0.3
+[1.0.2]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.2
+[1.0.1]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.1
+[1.0.0]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.0

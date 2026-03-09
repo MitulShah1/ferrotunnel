@@ -19,13 +19,13 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.3"
+version = "1.0.4"
 edition = "2021"
 rust-version = "1.90"
 authors = ["Mitul Shah <shahmitul005@gmail.com>"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/MitulShah1/ferrotunnel"
-homepage = "https://github.com/MitulShah1/ferrotunnel"
+repository = "https://github.com/ferro-labs/ferrotunnel"
+homepage = "https://github.com/ferro-labs/ferrotunnel"
 description = "HTTP ingress and proxy for FerroTunnel"
 keywords = ["tunnel", "http", "proxy", "ingress"]
 categories = ["network-programming", "web-programming"]
@@ -54,7 +54,7 @@ tokio = { version = "1", features = ["full"] }
 
 # Logging
 tracing = "0.1"
-ferrotunnel-observability = { version = "1.0.3", path = "ferrotunnel-observability" }
+ferrotunnel-observability = { version = "1.0.4", path = "ferrotunnel-observability" }
 
 # High-performance allocator
 mimalloc = { version = "0.1", default-features = false }
