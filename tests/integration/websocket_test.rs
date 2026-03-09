@@ -232,12 +232,18 @@ async fn test_websocket_subprotocol_preserved() {
             let _config = WebSocketConfig::default();
             // We can't easily check subprotocol in tungstenite accept_async without custom handshake
             // but we can check if the header was passed to the local server.
-            let ws = tokio_tungstenite::accept_hdr_async(stream, |req: &tokio_tungstenite::tungstenite::handshake::server::Request, mut res: tokio_tungstenite::tungstenite::handshake::server::Response| {
+            #[allow(clippy::result_large_err)]
+            fn hdr_callback(
+                req: &tokio_tungstenite::tungstenite::handshake::server::Request,
+                mut res: tokio_tungstenite::tungstenite::handshake::server::Response,
+            ) -> Result<tokio_tungstenite::tungstenite::handshake::server::Response, tokio_tungstenite::tungstenite::handshake::server::ErrorResponse>
+            {
                 let proto = req.headers().get("sec-websocket-protocol").unwrap().clone();
                 assert_eq!(proto, "v1.ferrotunnel");
                 res.headers_mut().insert("Sec-WebSocket-Protocol", proto);
                 Ok(res)
-            })
+            }
+            let ws = tokio_tungstenite::accept_hdr_async(stream, hdr_callback)
             .await
             .expect("WS handshake failed");
             drop(ws);
