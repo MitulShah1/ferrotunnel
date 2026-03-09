@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Project Ownership
+- **Repository transfer**: Project ownership transferred from MitulShah1 to the [ferro-labs](https://github.com/ferro-labs) organization. Repository is now at <https://github.com/ferro-labs/ferrotunnel>
+- **Updated all references**: GitHub URLs, GHCR image paths (`ghcr.io/ferro-labs/ferrotunnel`), and Homebrew tap (`brew tap ferro-labs/ferrotunnel`) updated throughout the codebase
+
 #### Code Quality
 - **Refactor `ClientFeatureArgs` struct**: Replaced excessive boolean fields with nested configuration structs (`DashboardConfig`, `TlsConfig`, `TelemetryConfig`) using `#[command(flatten)]`, removing the `#[allow(clippy::struct_excessive_bools)]` suppression ([#76](https://github.com/ferro-labs/ferrotunnel/issues/76))
 - **Remove `unnecessary_literal_bound` allow directives**: Cleaned up redundant `#[allow(clippy::unnecessary_literal_bound)]` suppressions across plugin modules (`auth.rs`, `rate_limit.rs`, `logger.rs`, `circuit_breaker.rs`) ([#77](https://github.com/ferro-labs/ferrotunnel/issues/77))
@@ -188,8 +192,8 @@ FerroTunnel v1.0.0 is the first stable release.
 | `ferrotunnel-common` | Shared types and errors |
 
 [Unreleased]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.4...HEAD
-[1.0.4]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.4
-[1.0.3]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.3
+[1.0.4]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.3...v1.0.4
+[1.0.3]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.2
 [1.0.1]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.1
 [1.0.0]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.0
