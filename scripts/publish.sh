@@ -35,7 +35,7 @@ check_exists() {
     CRATE_NAME=$1
     # crates.io API requires a User-Agent
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-        -H "User-Agent: FerroTunnel-Publish-Script (https://github.com/MitulShah1/ferrotunnel)" \
+        -H "User-Agent: FerroTunnel-Publish-Script (https://github.com/ferro-labs/ferrotunnel)" \
         "https://crates.io/api/v1/crates/${CRATE_NAME}/${VERSION}")
 
     if [ "$HTTP_CODE" = "200" ]; then

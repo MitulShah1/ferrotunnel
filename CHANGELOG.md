@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Installation
-- **Homebrew Formula**: Introduce `brew install ferrotunnel` command for macOS users via [MitulShah1/homebrew-ferrotunnel](https://github.com/MitulShah1/homebrew-ferrotunnel) tap
+- **Homebrew Formula**: Introduce `brew install ferrotunnel` command for macOS users via [ferro-labs/homebrew-ferrotunnel](https://github.com/ferro-labs/homebrew-ferrotunnel) tap
 
 #### Tunnel Routing
 - **`--tunnel-id` CLI flag**: New `--tunnel-id` option for `ferrotunnel client` to set the tunnel ID used for HTTP Host-header routing (`FERROTUNNEL_TUNNEL_ID` env var supported)
@@ -174,7 +174,7 @@ FerroTunnel v1.0.0 is the first stable release.
 | `ferrotunnel-observability` | Metrics, tracing, and dashboard |
 | `ferrotunnel-common` | Shared types and errors |
 
-[Unreleased]: https://github.com/MitulShah1/ferrotunnel/compare/v1.0.2...HEAD
-[1.0.2]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.2
-[1.0.1]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.1
-[1.0.0]: https://github.com/MitulShah1/ferrotunnel/releases/tag/v1.0.0
+[Unreleased]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.2
+[1.0.1]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.1
+[1.0.0]: https://github.com/ferro-labs/ferrotunnel/releases/tag/v1.0.0

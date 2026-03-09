@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel-http)](https://crates.io/crates/ferrotunnel-http)
 [![Documentation](https://docs.rs/ferrotunnel-http/badge.svg)](https://docs.rs/ferrotunnel-http)
 
-HTTP ingress and proxy for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel).
+HTTP ingress and proxy for [FerroTunnel](https://github.com/ferro-labs/ferrotunnel).
 
 ## Overview
 

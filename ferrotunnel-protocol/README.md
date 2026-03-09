@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel-protocol)](https://crates.io/crates/ferrotunnel-protocol)
 [![Documentation](https://docs.rs/ferrotunnel-protocol/badge.svg)](https://docs.rs/ferrotunnel-protocol)
 
-Wire protocol definitions and codec for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel).
+Wire protocol definitions and codec for [FerroTunnel](https://github.com/ferro-labs/ferrotunnel).
 
 ## Overview
 
