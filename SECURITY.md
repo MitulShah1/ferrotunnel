@@ -22,7 +22,7 @@ Instead, please report security vulnerabilities by email to:
 
 Or, if you prefer, you can use GitHub's private vulnerability reporting feature:
 
-1. Go to the [Security tab](https://github.com/MitulShah1/ferrotunnel/security)
+1. Go to the [Security tab](https://github.com/ferro-labs/ferrotunnel/security)
 2. Click "Report a vulnerability"
 3. Fill in the details
 
@@ -67,9 +67,9 @@ The project team is committed to transparency in the security issue disclosure p
 
 Security advisories will be published through:
 
-1. **GitHub Security Advisories**: [FerroTunnel Security Advisories](https://github.com/MitulShah1/ferrotunnel/security/advisories)
+1. **GitHub Security Advisories**: [FerroTunnel Security Advisories](https://github.com/ferro-labs/ferrotunnel/security/advisories)
 2. **RustSec Advisory Database**: Reported via [`cargo-audit`](https://github.com/RustSec/advisory-db)
-3. **GitHub Releases**: Security fixes will be documented in [release notes](https://github.com/MitulShah1/ferrotunnel/releases)
+3. **GitHub Releases**: Security fixes will be documented in [release notes](https://github.com/ferro-labs/ferrotunnel/releases)
 4. **CHANGELOG.md**: All security-related changes will be clearly marked
 
 ## Response Timeline

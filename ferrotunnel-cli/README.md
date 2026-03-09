@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/ferrotunnel-cli)](https://crates.io/crates/ferrotunnel-cli)
 
-Unified CLI for [FerroTunnel](https://github.com/MitulShah1/ferrotunnel) - a reverse tunnel system in Rust.
+Unified CLI for [FerroTunnel](https://github.com/ferro-labs/ferrotunnel) - a reverse tunnel system in Rust.
 
 ## Installation
 
