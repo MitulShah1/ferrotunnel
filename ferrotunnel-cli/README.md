@@ -36,7 +36,8 @@ ferrotunnel server --token my-secret-token
 | `--token` | `FERROTUNNEL_TOKEN` | (required) | Authentication token |
 | `--log-level` | `RUST_LOG` | `info` | Log level |
 | `--metrics-bind` | `FERROTUNNEL_METRICS_BIND` | `0.0.0.0:9090` | Prometheus metrics address |
-| `--observability` | `FERROTUNNEL_OBSERVABILITY` | `false` | Enable metrics and tracing |
+| `--observability` | `FERROTUNNEL_OBSERVABILITY` | `false` | Enable tracing |
+| `--metrics` | `FERROTUNNEL_METRICS` | `false` | Enable Prometheus metrics endpoint |
 | `--tls-cert` | `FERROTUNNEL_TLS_CERT` | - | TLS certificate file path |
 | `--tls-key` | `FERROTUNNEL_TLS_KEY` | - | TLS private key file path |
 | `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | CA certificate for client auth |
@@ -70,7 +71,8 @@ ferrotunnel client --server tunnel.example.com:7835
 | `--dashboard-port` | `FERROTUNNEL_DASHBOARD_PORT` | `4040` | Dashboard port |
 | `--no-dashboard` | - | `false` | Disable dashboard |
 | `--log-level` | `RUST_LOG` | `info` | Log level |
-| `--observability` | `FERROTUNNEL_OBSERVABILITY` | `false` | Enable metrics and tracing |
+| `--observability` | `FERROTUNNEL_OBSERVABILITY` | `false` | Enable tracing |
+| `--metrics` | `FERROTUNNEL_METRICS` | `false` | Enable metrics collection |
 | `--tls` | `FERROTUNNEL_TLS` | `false` | Enable TLS |
 | `--tls-skip-verify` | `FERROTUNNEL_TLS_SKIP_VERIFY` | `false` | Skip certificate verification |
 | `--tls-ca` | `FERROTUNNEL_TLS_CA` | - | CA certificate path |
