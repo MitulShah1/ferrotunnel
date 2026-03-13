@@ -90,6 +90,45 @@ let proxy = HttpProxy::with_pool_config("127.0.0.1:8080".into(), pool_config);
 - 🧹 Background eviction prevents resource leaks
 - 📈 Significantly improves throughput (target: 800-1000 MB/s)
 
+### gRPC Tunneling
+
+FerroTunnel v1.0.6+ natively tunnels gRPC traffic over HTTP/2 with zero configuration.
+
+**How it works**: The server-side ingress automatically detects gRPC requests by inspecting the `Content-Type: application/grpc` header. Detected gRPC streams are forwarded over a dedicated HTTP/2 connection to the local service, preserving HTTP/2 trailers (including `grpc-status` and `grpc-message`) end-to-end.
+
+**CLI** — no special flags needed; detection is automatic:
+
+```bash
+# Expose a local gRPC server running on port 50051
+ferrotunnel client --server tunnel.example.com:7835 --local-addr 127.0.0.1:50051 --tunnel-id my-grpc-service
+```
+
+**Library**:
+
+```rust
+use ferrotunnel::Client;
+
+#[tokio::main]
+async fn main() -> ferrotunnel::Result<()> {
+    let mut client = Client::builder()
+        .server_addr("tunnel.example.com:7835")
+        .token("my-secret-token")
+        .local_addr("127.0.0.1:50051")  // gRPC server port
+        .tunnel_id("my-grpc-service")
+        .build()?;
+
+    client.start().await?;
+    tokio::signal::ctrl_c().await?;
+    client.shutdown().await
+}
+```
+
+**What is preserved end-to-end**:
+- HTTP/2 stream multiplexing
+- gRPC trailers (`grpc-status`, `grpc-message`, custom metadata)
+- Streaming RPCs (server-streaming, client-streaming, bidirectional)
+- Standard gRPC status codes and error propagation
+
 ## Features
 
 | Feature | Description |
@@ -103,6 +142,7 @@ let proxy = HttpProxy::with_pool_config("127.0.0.1:8080".into(), pool_config);
 | **Mutual TLS** | Client certificate authentication |
 | **Observability** | Prometheus metrics + OpenTelemetry tracing |
 | **WebSocket** | Transparent WebSocket upgrade tunneling |
+| **gRPC** | Native gRPC tunneling over HTTP/2 with trailer preservation |
 | **TCP & HTTP** | Forward both HTTP and raw TCP traffic |
 
 

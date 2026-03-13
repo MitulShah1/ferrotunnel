@@ -253,8 +253,7 @@ async fn handle_request(
                 let path_and_query = forward_req
                     .uri()
                     .path_and_query()
-                    .map(hyper::http::uri::PathAndQuery::as_str)
-                    .unwrap_or("/");
+                    .map_or("/", hyper::http::uri::PathAndQuery::as_str);
                 format!("http://{host}{path_and_query}")
                     .parse::<hyper::Uri>()
                     .ok()

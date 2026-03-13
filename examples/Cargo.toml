@@ -24,10 +24,6 @@ name = "embedded_client"
 path = "basic/embedded_client.rs"
 
 [[example]]
-name = "grpc_tunnel"
-path = "basic/grpc_tunnel.rs"
-
-[[example]]
 name = "auto_reconnect"
 path = "basic/auto_reconnect.rs"
 
