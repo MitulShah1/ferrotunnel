@@ -36,7 +36,11 @@ where
     <L::Service as tower::Service<hyper::Request<hyper::body::Incoming>>>::Future: Send,
 {
     fn handle(&self, stream: ferrotunnel_core::stream::VirtualStream) {
-        self.handle_stream(stream);
+        if stream.protocol() == Protocol::GRPC {
+            self.handle_grpc_stream(stream);
+        } else {
+            self.handle_stream(stream);
+        }
     }
 }
 

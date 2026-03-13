@@ -152,6 +152,7 @@ async fn handle_request(
     };
 
     let is_ws = is_websocket_upgrade(req.headers());
+    let is_grpc = is_grpc(req.headers());
 
     let client_upgrade = if is_ws {
         Some(hyper::upgrade::on(&mut req))
@@ -231,6 +232,8 @@ async fn handle_request(
     // FIX #28: No body buffering here.
     let protocol = if is_ws {
         Protocol::WebSocket
+    } else if is_grpc {
+        Protocol::GRPC
     } else {
         Protocol::HTTP
     };
@@ -251,6 +254,62 @@ async fn handle_request(
 
     // 4. Handshake and Send Request (with timeout)
     let io = TokioIo::new(stream);
+
+    // gRPC: forward over HTTP/2, preserving trailers (grpc-status, grpc-message)
+    if is_grpc {
+        let handshake_result = tokio::time::timeout(
+            config.handshake_timeout,
+            hyper::client::conn::http2::handshake(TokioExecutor::new(), io),
+        )
+        .await;
+
+        let (mut sender, conn) = match handshake_result {
+            Ok(Ok(res)) => res,
+            Ok(Err(e)) => {
+                error!("gRPC tunnel handshake failed: {}", e);
+                return Ok(full_response(
+                    StatusCode::BAD_GATEWAY,
+                    "gRPC tunnel handshake failed",
+                ));
+            }
+            Err(_) => {
+                error!("gRPC tunnel handshake timeout");
+                return Ok(full_response(
+                    StatusCode::GATEWAY_TIMEOUT,
+                    "gRPC tunnel handshake timeout",
+                ));
+            }
+        };
+
+        tokio::spawn(async move {
+            let _ = conn.await;
+        });
+
+        let response_result = tokio::time::timeout(
+            config.response_timeout,
+            sender.send_request(forward_req),
+        )
+        .await;
+
+        let res = match response_result {
+            Ok(Ok(res)) => res,
+            Ok(Err(e)) => {
+                error!("gRPC request failed: {}", e);
+                return Ok(full_response(StatusCode::BAD_GATEWAY, "gRPC request failed"));
+            }
+            Err(_) => {
+                error!("gRPC response timeout");
+                return Ok(full_response(
+                    StatusCode::GATEWAY_TIMEOUT,
+                    "gRPC upstream response timeout",
+                ));
+            }
+        };
+
+        let (parts, body) = res.into_parts();
+        // Stream the response body directly to preserve HTTP/2 trailers
+        return Ok(Response::from_parts(parts, body.boxed()));
+    }
 
     let handshake_result = tokio::time::timeout(
         config.handshake_timeout,
@@ -396,6 +455,13 @@ async fn handle_request(
         .boxed();
 
     Ok(Response::from_parts(final_parts, boxed_body))
+}
+
+fn is_grpc(headers: &hyper::HeaderMap) -> bool {
+    headers
+        .get(hyper::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.starts_with("application/grpc"))
 }
 
 fn is_websocket_upgrade(headers: &hyper::HeaderMap) -> bool {

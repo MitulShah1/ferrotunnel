@@ -2,9 +2,9 @@ use bytes::Bytes;
 use ferrotunnel_core::stream::VirtualStream;
 use http_body_util::{BodyExt, Full};
 use hyper::body::Incoming;
-use hyper::server::conn::http1;
+use hyper::server::conn::{http1, http2};
 use hyper::{Request, Response, StatusCode};
-use hyper_util::rt::TokioIo;
+use hyper_util::rt::{TokioExecutor, TokioIo};
 use hyper_util::service::TowerToHyperService;
 use std::future::Future;
 use std::pin::Pin;
@@ -50,16 +50,22 @@ type BoxBody = http_body_util::combinators::BoxBody<Bytes, ProxyError>;
 #[derive(Clone)]
 pub struct LocalProxyService {
     pool: Arc<ConnectionPool>,
+    use_h2: bool,
 }
 
 impl LocalProxyService {
     pub fn new(target_addr: String) -> Self {
         let pool = Arc::new(ConnectionPool::new(target_addr, PoolConfig::default()));
-        Self { pool }
+        Self { pool, use_h2: false }
     }
 
     pub fn with_pool(pool: Arc<ConnectionPool>) -> Self {
-        Self { pool }
+        Self { pool, use_h2: false }
+    }
+
+    /// Create a service that uses HTTP/2 for forwarding (required for gRPC).
+    pub fn with_pool_h2(pool: Arc<ConnectionPool>) -> Self {
+        Self { pool, use_h2: true }
     }
 }
 
@@ -81,7 +87,36 @@ where
     #[allow(clippy::too_many_lines)]
     fn call(&mut self, mut req: Request<B>) -> Self::Future {
         let pool = self.pool.clone();
+        let use_h2 = self.use_h2;
         Box::pin(async move {
+            // gRPC path: forward over HTTP/2, which preserves trailers
+            if use_h2 {
+                let req = req.map(|b| {
+                    b.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync + 'static>)
+                        .boxed()
+                });
+                let mut sender = match pool.acquire_h2().await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!("Failed to acquire HTTP/2 connection from pool: {e}");
+                        return Ok(error_response(
+                            StatusCode::BAD_GATEWAY,
+                            &format!("Failed to connect to local service: {e}"),
+                        ));
+                    }
+                };
+                return match sender.send_request(req).await {
+                    Ok(res) => {
+                        let (parts, body) = res.into_parts();
+                        Ok(Response::from_parts(parts, body.map_err(Into::into).boxed()))
+                    }
+                    Err(e) => {
+                        error!("Failed to proxy gRPC request: {e}");
+                        Ok(error_response(StatusCode::BAD_GATEWAY, "Proxy error"))
+                    }
+                };
+            }
+
             let is_upgrade = req
                 .headers()
                 .get(hyper::header::UPGRADE)
@@ -269,6 +304,42 @@ impl<L> HttpProxy<L> {
             let _ = http1::Builder::new()
                 .serve_connection(io, hyper_service)
                 .with_upgrades()
+                .await;
+        });
+    }
+
+    /// Serve an incoming gRPC `VirtualStream` over HTTP/2.
+    ///
+    /// gRPC requires HTTP/2 end-to-end so that trailers (`grpc-status`,
+    /// `grpc-message`) are propagated correctly. This method uses a
+    /// dedicated HTTP/2 connection pool (`prefer_h2: true`) to forward
+    /// requests to the local service.
+    pub fn handle_grpc_stream(&self, stream: VirtualStream)
+    where
+        L: Layer<LocalProxyService> + Clone + Send + 'static,
+        L::Service: Service<Request<Incoming>, Response = Response<BoxBody>, Error = hyper::Error>
+            + Send
+            + Clone
+            + 'static,
+        <L::Service as Service<Request<Incoming>>>::Future: Send,
+    {
+        let grpc_pool = Arc::new(ConnectionPool::new(
+            self.target_addr.clone(),
+            PoolConfig {
+                prefer_h2: true,
+                ..PoolConfig::default()
+            },
+        ));
+        let service = self
+            .layer
+            .clone()
+            .layer(LocalProxyService::with_pool_h2(grpc_pool));
+        let hyper_service = TowerToHyperService::new(service);
+        let io = TokioIo::new(stream);
+
+        tokio::spawn(async move {
+            let _ = http2::Builder::new(TokioExecutor::new())
+                .serve_connection(io, hyper_service)
                 .await;
         });
     }
