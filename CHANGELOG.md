@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automatic gRPC detection**: Server-side ingress detects `Content-Type: application/grpc*` and tags the stream as `Protocol::GRPC` (the enum variant was already reserved; this release adds the full implementation)
 - **HTTP/2 forwarding path in ingress**: When a gRPC stream is detected, the ingress uses `hyper::client::conn::http2::handshake` over the `VirtualStream` instead of the HTTP/1.1 path, ensuring HTTP/2 framing and trailer semantics are preserved through the tunnel
 - **`LocalProxyService` h2 mode**: Added `use_h2` field and `with_pool_h2()` constructor; the service now uses `ConnectionPool::acquire_h2()` for gRPC streams, routing requests over a shared HTTP/2 connection to the local gRPC server
-- **`HttpProxy::handle_grpc_stream()`**: New method on `HttpProxy<L>` that serves a `VirtualStream` as HTTP/2 using `hyper::server::conn::http2::Builder`, with a dedicated `prefer_h2: true` connection pool for local forwarding
+- **`HttpProxy::handle_grpc_stream()`**: New method on `HttpProxy<L>` that serves a `VirtualStream` as HTTP/2 using `hyper::server::conn::http2::Builder`, with a dedicated HTTP/2 connection pool (always acquiring via `acquire_h2()`) for local forwarding
 - **Automatic CLI dispatch**: The CLI client dispatches `Protocol::GRPC` streams to `handle_grpc_stream()` automatically — no new flags required
 - **gRPC example**: New `examples/basic/grpc_tunnel.rs` demonstrating how to tunnel any local gRPC server
 - **Integration tests**: `test_grpc_tunnel` (end-to-end raw HTTP/2+gRPC through the full tunnel stack) and `test_non_grpc_not_classified_as_grpc` (regression guard for the HTTP path)
@@ -209,7 +209,7 @@ FerroTunnel v1.0.0 is the first stable release.
 | `ferrotunnel-observability` | Metrics, tracing, and dashboard |
 | `ferrotunnel-common` | Shared types and errors |
 
-[Unreleased]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.4...HEAD
 [1.0.6]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.4...v1.0.6
 [1.0.4]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/ferro-labs/ferrotunnel/compare/v1.0.2...v1.0.3

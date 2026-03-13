@@ -7,7 +7,9 @@
 use super::{get_free_port, wait_for_server};
 use bytes::Bytes;
 use ferrotunnel::{Client, Server};
-use http_body_util::Full;
+use futures_util::stream;
+use http_body_util::{BodyExt, Full, StreamBody};
+use hyper::body::Frame;
 use hyper::{Request, StatusCode};
 use hyper_util::rt::{TokioExecutor, TokioIo};
 use std::net::SocketAddr;
@@ -20,7 +22,7 @@ use tokio::net::TcpListener;
 /// - status 200
 /// - `content-type: application/grpc`
 /// - body: empty gRPC message frame (5-byte prefix + 0 bytes)
-/// - trailer: `grpc-status: 0`
+/// - HTTP/2 trailers: `grpc-status: 0`
 async fn start_grpc_server(addr: SocketAddr) -> tokio::task::JoinHandle<()> {
     let listener = TcpListener::bind(addr)
         .await
@@ -34,17 +36,27 @@ async fn start_grpc_server(addr: SocketAddr) -> tokio::task::JoinHandle<()> {
                     let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
                         .serve_connection(
                             io,
-                            hyper::service::service_fn(|_req: Request<hyper::body::Incoming>| async {
-                                // Minimal 5-byte gRPC message frame for an empty message
-                                let grpc_frame =
-                                    Bytes::from_static(b"\x00\x00\x00\x00\x00");
-                                let resp = hyper::Response::builder()
-                                    .status(200)
-                                    .header("content-type", "application/grpc")
-                                    .body(Full::new(grpc_frame))
-                                    .unwrap();
-                                Ok::<_, hyper::Error>(resp)
-                            }),
+                            hyper::service::service_fn(
+                                |_req: Request<hyper::body::Incoming>| async {
+                                    // Minimal 5-byte gRPC message frame for an empty message
+                                    let grpc_frame = Bytes::from_static(b"\x00\x00\x00\x00\x00");
+                                    let mut trailers = hyper::HeaderMap::new();
+                                    trailers.insert(
+                                        hyper::header::HeaderName::from_static("grpc-status"),
+                                        hyper::header::HeaderValue::from_static("0"),
+                                    );
+                                    let frames = vec![
+                                        Ok::<Frame<Bytes>, hyper::Error>(Frame::data(grpc_frame)),
+                                        Ok(Frame::trailers(trailers)),
+                                    ];
+                                    let resp = hyper::Response::builder()
+                                        .status(200)
+                                        .header("content-type", "application/grpc")
+                                        .body(StreamBody::new(stream::iter(frames)))
+                                        .unwrap();
+                                    Ok::<_, hyper::Error>(resp)
+                                },
+                            ),
                         )
                         .await;
                 });
@@ -62,6 +74,8 @@ async fn start_grpc_server(addr: SocketAddr) -> tokio::task::JoinHandle<()> {
 ///    gRPC server.
 /// 3. The response (status 200, correct content-type) makes it back to the
 ///    caller.
+/// 4. HTTP/2 trailers (`grpc-status: 0`) are preserved end-to-end through
+///    the tunnel — the core gRPC requirement.
 #[tokio::test]
 async fn test_grpc_tunnel() {
     let server_port = get_free_port();
@@ -113,10 +127,9 @@ async fn test_grpc_tunnel() {
         .expect("Failed to connect to HTTP ingress");
 
     let io = TokioIo::new(tcp);
-    let (mut sender, conn) =
-        hyper::client::conn::http2::handshake(TokioExecutor::new(), io)
-            .await
-            .expect("HTTP/2 handshake with ingress failed");
+    let (mut sender, conn) = hyper::client::conn::http2::handshake(TokioExecutor::new(), io)
+        .await
+        .expect("HTTP/2 handshake with ingress failed");
 
     tokio::spawn(async move {
         let _ = conn.await;
@@ -139,14 +152,16 @@ async fn test_grpc_tunnel() {
         .await
         .expect("gRPC request through tunnel failed");
 
+    let (res_parts, mut res_body) = res.into_parts();
+
     assert_eq!(
-        res.status(),
+        res_parts.status,
         StatusCode::OK,
         "Expected 200 OK from gRPC server"
     );
 
-    let content_type = res
-        .headers()
+    let content_type = res_parts
+        .headers
         .get("content-type")
         .expect("Missing content-type header")
         .to_str()
@@ -155,6 +170,24 @@ async fn test_grpc_tunnel() {
     assert!(
         content_type.starts_with("application/grpc"),
         "Expected application/grpc content-type, got: {content_type}"
+    );
+
+    // Drain body frames and collect HTTP/2 trailers to verify end-to-end
+    // trailer preservation — the primary gRPC-over-HTTP/2 requirement.
+    let mut grpc_status: Option<String> = None;
+    while let Some(frame) = res_body.frame().await {
+        let frame = frame.expect("Body frame error");
+        if let Ok(trailers) = frame.into_trailers() {
+            if let Some(val) = trailers.get("grpc-status") {
+                grpc_status = Some(val.to_str().unwrap_or("").to_owned());
+            }
+        }
+    }
+
+    assert_eq!(
+        grpc_status.as_deref(),
+        Some("0"),
+        "Expected grpc-status: 0 trailer to be preserved through the tunnel"
     );
 }
 
@@ -183,14 +216,16 @@ async fn test_non_grpc_not_classified_as_grpc() {
                     let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
                         .serve_connection(
                             io,
-                            hyper::service::service_fn(|_req: Request<hyper::body::Incoming>| async {
-                                let resp = hyper::Response::builder()
-                                    .status(200)
-                                    .header("content-type", "text/plain")
-                                    .body(Full::new(Bytes::from("hello")))
-                                    .unwrap();
-                                Ok::<_, hyper::Error>(resp)
-                            }),
+                            hyper::service::service_fn(
+                                |_req: Request<hyper::body::Incoming>| async {
+                                    let resp = hyper::Response::builder()
+                                        .status(200)
+                                        .header("content-type", "text/plain")
+                                        .body(Full::new(Bytes::from("hello")))
+                                        .unwrap();
+                                    Ok::<_, hyper::Error>(resp)
+                                },
+                            ),
                         )
                         .await;
                 });
@@ -241,8 +276,15 @@ async fn test_non_grpc_not_classified_as_grpc() {
         .await
         .expect("HTTP request failed");
 
-    assert_eq!(res.status(), StatusCode::OK, "Expected 200 OK from HTTP server");
+    assert_eq!(
+        res.status(),
+        StatusCode::OK,
+        "Expected 200 OK from HTTP server"
+    );
 
     let ct = res.headers()["content-type"].to_str().unwrap();
-    assert_eq!(ct, "text/plain", "Expected text/plain, not gRPC content-type");
+    assert_eq!(
+        ct, "text/plain",
+        "Expected text/plain, not gRPC content-type"
+    );
 }

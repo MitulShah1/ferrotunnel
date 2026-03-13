@@ -35,8 +35,7 @@ async fn main() -> ferrotunnel::Result<()> {
         .init();
 
     let args: Vec<String> = env::args().collect();
-    let server_addr =
-        get_arg(&args, "--server").unwrap_or_else(|| "localhost:7835".to_string());
+    let server_addr = get_arg(&args, "--server").unwrap_or_else(|| "localhost:7835".to_string());
     let token = get_arg(&args, "--token").unwrap_or_else(|| "secret".to_string());
     let local_addr =
         get_arg(&args, "--local-addr").unwrap_or_else(|| "127.0.0.1:50051".to_string());
@@ -93,7 +92,5 @@ async fn main() -> ferrotunnel::Result<()> {
 }
 
 fn get_arg(args: &[String], flag: &str) -> Option<String> {
-    args.windows(2)
-        .find(|w| w[0] == flag)
-        .map(|w| w[1].clone())
+    args.windows(2).find(|w| w[0] == flag).map(|w| w[1].clone())
 }

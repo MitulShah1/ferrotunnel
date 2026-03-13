@@ -24,6 +24,7 @@ use ferrotunnel_common::{Result, TunnelError};
 use ferrotunnel_core::transport::{tls::TlsTransportConfig, TransportConfig};
 use ferrotunnel_core::TunnelClient;
 use ferrotunnel_http::HttpProxy;
+use ferrotunnel_protocol::frame::Protocol;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{oneshot, watch};
@@ -115,7 +116,11 @@ impl Client {
                     result = client.connect_and_run_with_callback(move |stream| {
                         let proxy = proxy_ref.clone();
                         async move {
-                            proxy.handle_stream(stream);
+                            if stream.protocol() == Protocol::GRPC {
+                                proxy.handle_grpc_stream(stream);
+                            } else {
+                                proxy.handle_stream(stream);
+                            }
                         }
                     }, move |session_id| {
                         // Send connection info on successful handshake (only once)

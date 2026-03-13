@@ -56,11 +56,17 @@ pub struct LocalProxyService {
 impl LocalProxyService {
     pub fn new(target_addr: String) -> Self {
         let pool = Arc::new(ConnectionPool::new(target_addr, PoolConfig::default()));
-        Self { pool, use_h2: false }
+        Self {
+            pool,
+            use_h2: false,
+        }
     }
 
     pub fn with_pool(pool: Arc<ConnectionPool>) -> Self {
-        Self { pool, use_h2: false }
+        Self {
+            pool,
+            use_h2: false,
+        }
     }
 
     /// Create a service that uses HTTP/2 for forwarding (required for gRPC).
@@ -108,7 +114,10 @@ where
                 return match sender.send_request(req).await {
                     Ok(res) => {
                         let (parts, body) = res.into_parts();
-                        Ok(Response::from_parts(parts, body.map_err(Into::into).boxed()))
+                        Ok(Response::from_parts(
+                            parts,
+                            body.map_err(Into::into).boxed(),
+                        ))
                     }
                     Err(e) => {
                         error!("Failed to proxy gRPC request: {e}");
@@ -312,8 +321,8 @@ impl<L> HttpProxy<L> {
     ///
     /// gRPC requires HTTP/2 end-to-end so that trailers (`grpc-status`,
     /// `grpc-message`) are propagated correctly. This method uses a
-    /// dedicated HTTP/2 connection pool (`prefer_h2: true`) to forward
-    /// requests to the local service.
+    /// dedicated HTTP/2 connection pool (always acquired via `acquire_h2()`)
+    /// to forward requests to the local service.
     pub fn handle_grpc_stream(&self, stream: VirtualStream)
     where
         L: Layer<LocalProxyService> + Clone + Send + 'static,
@@ -325,10 +334,7 @@ impl<L> HttpProxy<L> {
     {
         let grpc_pool = Arc::new(ConnectionPool::new(
             self.target_addr.clone(),
-            PoolConfig {
-                prefer_h2: true,
-                ..PoolConfig::default()
-            },
+            PoolConfig::default(),
         ));
         let service = self
             .layer

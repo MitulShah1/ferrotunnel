@@ -152,7 +152,6 @@ async fn handle_request(
     };
 
     let is_ws = is_websocket_upgrade(req.headers());
-    let is_grpc = is_grpc(req.headers());
 
     let client_upgrade = if is_ws {
         Some(hyper::upgrade::on(&mut req))
@@ -230,6 +229,8 @@ async fn handle_request(
 
     // Reconstruct request for forwarding using the ORIGINAL streaming body
     // FIX #28: No body buffering here.
+    // Recompute gRPC after plugin hooks: plugins may add or remove Content-Type.
+    let is_grpc = is_grpc(&parts.headers);
     let protocol = if is_ws {
         Protocol::WebSocket
     } else if is_grpc {
@@ -238,7 +239,30 @@ async fn handle_request(
         Protocol::HTTP
     };
 
-    let forward_req = Request::from_parts(parts, body.boxed());
+    let mut forward_req = Request::from_parts(parts, body.boxed());
+
+    // HTTP/2 (gRPC) requires an absolute URI (scheme + authority).
+    // Callers often send requests with a path-only URI and a Host header;
+    // reconstruct the absolute form so the h2 client can set :scheme/:authority.
+    if is_grpc && forward_req.uri().authority().is_none() {
+        let canonical_uri = forward_req
+            .headers()
+            .get(hyper::header::HOST)
+            .and_then(|h| h.to_str().ok())
+            .and_then(|host| {
+                let path_and_query = forward_req
+                    .uri()
+                    .path_and_query()
+                    .map(hyper::http::uri::PathAndQuery::as_str)
+                    .unwrap_or("/");
+                format!("http://{host}{path_and_query}")
+                    .parse::<hyper::Uri>()
+                    .ok()
+            });
+        if let Some(uri) = canonical_uri {
+            *forward_req.uri_mut() = uri;
+        }
+    }
 
     // 3. Open Stream
     let stream = match multiplexer.open_stream(protocol).await {
@@ -285,17 +309,17 @@ async fn handle_request(
             let _ = conn.await;
         });
 
-        let response_result = tokio::time::timeout(
-            config.response_timeout,
-            sender.send_request(forward_req),
-        )
-        .await;
+        let response_result =
+            tokio::time::timeout(config.response_timeout, sender.send_request(forward_req)).await;
 
         let res = match response_result {
             Ok(Ok(res)) => res,
             Ok(Err(e)) => {
                 error!("gRPC request failed: {}", e);
-                return Ok(full_response(StatusCode::BAD_GATEWAY, "gRPC request failed"));
+                return Ok(full_response(
+                    StatusCode::BAD_GATEWAY,
+                    "gRPC request failed",
+                ));
             }
             Err(_) => {
                 error!("gRPC response timeout");
