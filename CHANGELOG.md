@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.5] - Unreleased
 
+### Fixed
+
+#### TLS
+- **CLI TLS panic on first connection** ([#98](https://github.com/ferro-labs/ferrotunnel/issues/98)): The `ferrotunnel` binary panicked with `Could not automatically determine the process-level CryptoProvider` when TLS was enabled. rustls 0.23 requires `rustls::crypto::ring::default_provider().install_default()` to be called before any `ClientConfig`/`ServerConfig` is built. Added this call at the very start of `main()` in `ferrotunnel-cli` and added `rustls` as a direct dependency.
+
 ### Added
 
 #### gRPC Support
